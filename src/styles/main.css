@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --color-canvas: var(--ps-canvas);
+  --color-surface: var(--ps-surface);
+  --color-ink: var(--ps-ink);
+  --color-muted: var(--ps-muted);
+  --color-line: var(--ps-line);
+  --color-signal: var(--ps-signal);
+}
+
+:root {
+  color-scheme: light;
+  --ps-canvas: #f3f1eb;
+  --ps-surface: #fbfaf6;
+  --ps-ink: #171915;
+  --ps-muted: #6c7068;
+  --ps-line: #d9d7cf;
+  --ps-signal: #d96f1f;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ps-canvas: #111310;
+  --ps-surface: #191c18;
+  --ps-ink: #f0f1e9;
+  --ps-muted: #9ca198;
+  --ps-line: #30352f;
+  --ps-signal: #ff9448;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ps-canvas);
+  color: var(--ps-ink);
+}
