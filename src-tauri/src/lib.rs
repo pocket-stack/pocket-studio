@@ -6,7 +6,7 @@ pub fn run() -> anyhow::Result<()> {
                 .unwrap_or_else(|_| "pocket_studio=info".into()),
         )
         .try_init()
-        .ok();
+        .map_err(|error| anyhow::anyhow!("failed to initialize tracing subscriber: {error}"))?;
 
     tracing::info!("starting Pocket Studio");
 
