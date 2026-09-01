@@ -1,0 +1,22 @@
+# JavaScript
+node_modules/
+dist/
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# Logs and coverage
+*.log
+coverage/
