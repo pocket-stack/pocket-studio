@@ -1,0 +1,113 @@
+{
+  "preparation": {
+    "steps": {
+      "enterDfu": {
+        "title": "进入 DFU 模式",
+        "detail": "按引导操作电源键与 Home 键，等待设备以 DFU 模式出现。"
+      },
+      "exploitBootrom": {
+        "title": "利用 bootrom 漏洞（limera1n）",
+        "detail": "向 A4 芯片发送 limera1n 载荷，使设备进入 pwned DFU 状态。不会持久化任何内容。"
+      },
+      "fetchResources": {
+        "title": "下载固件组件与越狱载荷",
+        "detail": "从 iOS 6.1.6 固件中获取 iBSS、iBEC、内核与 ramdisk，并校验摘要。"
+      },
+      "buildRamdisk": {
+        "title": "构建 SSH ramdisk",
+        "detail": "为 iBoot 与内核打补丁，生成带 SSH 服务的恢复 ramdisk。"
+      },
+      "bootRamdisk": {
+        "title": "启动 ramdisk",
+        "detail": "把补丁后的引导链发送到设备并启动。设备屏幕会保持黑屏或显示进度。"
+      },
+      "mountFilesystem": {
+        "title": "挂载设备文件系统",
+        "detail": "通过 SSH 挂载系统分区与数据分区。"
+      },
+      "installUntether": {
+        "title": "安装 untether 与 Cydia",
+        "detail": "写入完美越狱载荷与 Cydia 引导包。此步骤开始后无法中断。"
+      },
+      "rebootDevice": {
+        "title": "重启设备",
+        "detail": "退出 ramdisk 并正常启动。首次启动会比平时慢。"
+      },
+      "verifyJailbreak": {
+        "title": "验证越狱结果",
+        "detail": "等待设备重新出现，确认 Cydia 与 SSH 服务可用。"
+      }
+    },
+    "errors": {
+      "dfuTimeout": {
+        "title": "未能进入 DFU 模式",
+        "body": "在等待时间内没有检测到 DFU 设备。设备未被修改。",
+        "recovery": [
+          "如果屏幕出现苹果标志或「连接 iTunes」画面，同时按住电源键与 Home 键约 15 秒退出。",
+          "更换 USB 端口或数据线，避免使用集线器。",
+          "点击「重试」，重新按引导操作按键。"
+        ]
+      },
+      "exploitFailed": {
+        "title": "limera1n 漏洞利用失败",
+        "body": "设备没有进入 pwned DFU 状态。这在部分 USB 控制器上较常见，重试通常可以解决。",
+        "recovery": [
+          "同时按住电源键与 Home 键约 15 秒让设备重启。",
+          "尽量直接连接电脑本体的 USB 端口。",
+          "重新进入 DFU 模式后重试。"
+        ]
+      },
+      "downloadFailed": {
+        "title": "下载固件组件失败",
+        "body": "无法获取所需的固件组件或校验失败。设备未被修改。",
+        "recovery": ["检查网络连接。", "重试时会重新下载并校验缺失的文件。"]
+      },
+      "buildFailed": {
+        "title": "构建 ramdisk 失败",
+        "body": "补丁过程未能完成。设备未被修改。",
+        "recovery": [
+          "重试会清理缓存并重新构建。",
+          "如果持续失败，请导出日志并反馈。"
+        ]
+      },
+      "ramdiskBootFailed": {
+        "title": "ramdisk 启动失败",
+        "body": "设备没有成功启动补丁后的 ramdisk。",
+        "recovery": [
+          "同时按住电源键与 Home 键约 15 秒重启设备。",
+          "重新进入 DFU 模式后重试整个流程。"
+        ]
+      },
+      "sshUnavailable": {
+        "title": "无法通过 SSH 连接设备",
+        "body": "ramdisk 已启动，但 SSH 服务没有响应。",
+        "recovery": [
+          "等待 30 秒后重试，ramdisk 有时需要更长时间启动。",
+          "重启设备并重新进入 DFU 模式。"
+        ]
+      },
+      "writeFailed": {
+        "title": "写入 untether 失败",
+        "body": "写入过程中断，设备的系统分区可能处于不一致状态。请不要直接拔线。",
+        "recovery": [
+          "保持连接，先尝试同时按住电源键与 Home 键约 15 秒重启。",
+          "如果设备能正常启动，重新运行完整流程。",
+          "如果设备卡在苹果标志，需要使用 Legacy iOS Kit 恢复系统，这会清除数据。"
+        ]
+      },
+      "deviceDisconnected": {
+        "title": "设备连接中断",
+        "body": "流程中检测到设备断开。",
+        "recovery": ["重新连接数据线。", "等待设备被重新识别后重试。"]
+      },
+      "verificationFailed": {
+        "title": "越狱验证未通过",
+        "body": "设备已重启，但没有检测到 Cydia 或 SSH。untether 可能没有正确安装。",
+        "recovery": [
+          "确认设备已完全启动并解锁。",
+          "重新检测接入条件；如果仍未越狱，重新运行流程。"
+        ]
+      }
+    }
+  }
+}

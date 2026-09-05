@@ -1,0 +1,88 @@
+{
+  "readiness": {
+    "title": "Readiness check",
+    "subtitle": "Every check is read-only and does not modify the device.",
+    "recheck": "Check again",
+    "checking": "Reading device state…",
+    "checkedAt": "Checked at {time}",
+    "status": {
+      "ready": "Ready",
+      "needsPreparation": "Needs preparation",
+      "unsupported": "Unsupported"
+    },
+    "summary": {
+      "ready": "The device is jailbroken and can run Pocket software right away.",
+      "needsPreparation": "The model and OS version are supported, but the device is not jailbroken yet. Preparation is required first.",
+      "unsupported": "This device or OS version is not supported yet."
+    },
+    "checks": {
+      "platformSupported": {
+        "title": "Platform",
+        "pass": "iOS devices are supported.",
+        "fail": "This platform is not supported.",
+        "warn": "Limited support for this platform.",
+        "unknown": "Platform could not be determined."
+      },
+      "modelSupported": {
+        "title": "Model",
+        "pass": "iPod touch (4th generation) is on the supported list.",
+        "fail": "This model is not supported.",
+        "warn": "Limited support for this model.",
+        "unknown": "Model could not be identified."
+      },
+      "osVersionSupported": {
+        "title": "OS version",
+        "pass": "The iOS version is within the Legacy iOS Kit jailbreak range (3.1.3 – 9.3.4).",
+        "fail": "This OS version is outside the supported range.",
+        "warn": "Limited support for this OS version.",
+        "unknown": "OS version could not be read."
+      },
+      "pairingTrusted": {
+        "title": "Pairing",
+        "pass": "The device trusts this computer.",
+        "fail": "The device does not trust this computer yet.",
+        "warn": "The pairing record may be stale.",
+        "unknown": "Pairing state could not be confirmed."
+      },
+      "jailbroken": {
+        "title": "Jailbreak",
+        "pass": "Cydia and a jailbroken environment were detected.",
+        "fail": "The device is not jailbroken. The Pocket runtime needs a jailbroken environment.",
+        "warn": "Partial jailbreak traces were detected.",
+        "unknown": "Jailbreak state could not be confirmed."
+      },
+      "sshAvailable": {
+        "title": "SSH",
+        "pass": "OpenSSH is reachable.",
+        "fail": "OpenSSH is not reachable.",
+        "warn": "SSH responded unexpectedly.",
+        "unknown": "Checked again after the jailbreak."
+      },
+      "batteryLevel": {
+        "title": "Battery",
+        "pass": "Enough charge for the preparation.",
+        "fail": "Battery is too low.",
+        "warn": "Battery is below 50%. Charge before preparing the device.",
+        "unknown": "Battery level could not be read."
+      },
+      "physicalButtons": {
+        "title": "Physical buttons",
+        "pass": "Buttons work.",
+        "fail": "Buttons are broken; DFU mode cannot be entered.",
+        "warn": "Button state needs confirmation.",
+        "unknown": "You will confirm during preparation that the Power and Home buttons work."
+      }
+    },
+    "guidance": {
+      "jailbreak": {
+        "title": "A jailbreak is required before the device can join Pocket",
+        "body": "Pocket Studio can jailbreak the iPod touch 4 with the Legacy iOS Kit ramdisk method: untethered and without erasing data. The flow explains every risk and asks you to confirm each one before guiding you into DFU mode.",
+        "point1": "No data is erased, but a backup is still strongly recommended.",
+        "point2": "The Power and Home buttons must both work.",
+        "point3": "Do not unplug the cable or let the computer sleep. The whole flow takes about 5 minutes.",
+        "action": "Start jailbreak preparation"
+      },
+      "ready": "All requirements are met. Head to the App Store to install the Pocket runtime."
+    }
+  }
+}

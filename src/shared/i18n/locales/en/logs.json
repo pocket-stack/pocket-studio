@@ -1,0 +1,54 @@
+{
+  "logs": {
+    "title": "Activity Log",
+    "subtitle": "Every device operation, consent record and error is recorded here and can be exported for troubleshooting.",
+    "copy": "Copy visible lines",
+    "export": "Export log file",
+    "follow": "Follow",
+    "count": "Showing {shown} of {total}",
+    "empty": "No log entries yet",
+    "allOperations": "All operations",
+    "source": {
+      "all": "All sources",
+      "device": "Device",
+      "preparation": "Preparation",
+      "store": "App Store",
+      "system": "System"
+    }
+  },
+  "log": {
+    "system": {
+      "started": "Pocket Studio started",
+      "exported": "Log exported to {path}"
+    },
+    "device": {
+      "attached": "Device attached: {model}",
+      "detached": "Device detached",
+      "modeChanged": "Device mode changed to {mode}",
+      "readinessChecked": "Readiness check result: {status}"
+    },
+    "preparation": {
+      "planned": "Preparation plan {plan} created",
+      "consentRecorded": "Risk acknowledgement and disclaimer acceptance recorded for plan {plan}",
+      "started": "Device preparation started",
+      "finished": "Device preparation finished",
+      "failed": "Device preparation failed at step {step}: {code}",
+      "cancelled": "Device preparation cancelled at step {step}"
+    },
+    "install": {
+      "started": "Install started",
+      "finished": "Install finished",
+      "failed": "Install failed at step {step}: {code}",
+      "cancelled": "Install cancelled at step {step}"
+    },
+    "step": {
+      "started": "Step {step} started",
+      "done": "Step {step} done",
+      "actionRequired": "Waiting for user action: {action}"
+    },
+    "demo": {
+      "jailbrokenSet": "Demo: jailbroken state set to {value}",
+      "failureArmed": "Demo: failure armed for step {step}"
+    }
+  }
+}

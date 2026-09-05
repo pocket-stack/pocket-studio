@@ -1,0 +1,127 @@
+{
+  "store": {
+    "title": "App Store",
+    "subtitle": "Browse Pocket software compatible with the connected device. Signatures and digests are verified before anything is installed.",
+    "search": "Search packages or developers",
+    "loading": "Loading the catalog…",
+    "loadFailed": "The catalog could not be loaded.",
+    "empty": "No matching packages.",
+    "requiresJailbreak": "needs jailbreak",
+    "target": {
+      "none": "No device, browse only",
+      "ready": "Installing to {name}",
+      "notReady": "{name} is not ready yet"
+    },
+    "category": {
+      "all": "All",
+      "runtime": "Runtime",
+      "tool": "Tools",
+      "app": "Apps",
+      "game": "Games"
+    },
+    "state": {
+      "installing": "Installing",
+      "installed": "Installed",
+      "compatible": "Installable",
+      "requiresPreparation": "Needs jailbreak",
+      "noDevice": "No device",
+      "incompatible": "Incompatible"
+    },
+    "policy": {
+      "deb": "Debian package (Cydia)",
+      "ipa": "IPA app (signed)",
+      "bootstrap": "System bootstrap"
+    },
+    "verdict": {
+      "compatible": "Compatible with the connected device.",
+      "requiresPreparation": "Needs a jailbroken device. Finish the preparation flow on the Device page first.",
+      "unsupportedModel": "The connected device model is not supported.",
+      "unsupportedOs": "The connected OS version is not supported.",
+      "noDevice": "Connect a device to install."
+    },
+    "detail": {
+      "install": "Install",
+      "reinstall": "Reinstall",
+      "update": "Update",
+      "prepareDevice": "Prepare the device",
+      "installHint": "The package is downloaded and verified before it is transferred to the device.",
+      "prepareHint": "This package depends on a jailbroken environment.",
+      "installDependenciesFirst": "Install the missing dependencies first.",
+      "installDone": "Install finished",
+      "installCancelled": "Install cancelled",
+      "installFailed": "Install failed",
+      "installedVersion": "v{version} installed",
+      "signed": "Signed",
+      "unsigned": "Unsigned",
+      "compatibility": "Compatibility",
+      "models": "Models",
+      "osRange": "OS versions",
+      "jailbreak": "Jailbreak",
+      "dependencies": "Dependencies",
+      "dependencyMissing": "(not installed)",
+      "details": "Details",
+      "version": "Version",
+      "developer": "Developer",
+      "size": "Size",
+      "policy": "Install method",
+      "published": "Published",
+      "checksum": "SHA-256"
+    },
+    "steps": {
+      "resolve": {
+        "title": "Resolve package",
+        "detail": "Confirm the version, dependencies and target device."
+      },
+      "download": {
+        "title": "Download",
+        "detail": "Fetch the package from the repository."
+      },
+      "verify": {
+        "title": "Verify signature and digest",
+        "detail": "A failed verification stops before anything reaches the device."
+      },
+      "transfer": {
+        "title": "Transfer to device",
+        "detail": "Copy the package to the device over USB."
+      },
+      "install": {
+        "title": "Install",
+        "detail": "Run the installer on the device. This step cannot be interrupted."
+      },
+      "verifyInstall": {
+        "title": "Verify install",
+        "detail": "Confirm the package is registered and can launch."
+      }
+    },
+    "errors": {
+      "downloadFailed": {
+        "title": "Download failed",
+        "body": "The package could not be fetched from the repository. Check the network and retry."
+      },
+      "checksumMismatch": {
+        "title": "Verification failed",
+        "body": "The package digest does not match the catalog. The install was stopped. Refresh the catalog and try again; never skip verification manually."
+      },
+      "transferFailed": {
+        "title": "Transfer failed",
+        "body": "Copying to the device was interrupted. Check the connection and retry."
+      },
+      "installRejected": {
+        "title": "The device rejected the install",
+        "body": "The installer on the device returned an error, possibly missing dependencies or not enough space."
+      },
+      "verificationFailed": {
+        "title": "Install verification failed",
+        "body": "The install command ran, but the package was not found on the device."
+      },
+      "deviceDisconnected": {
+        "title": "Device disconnected",
+        "body": "The device disconnected during the install. Reconnect and retry."
+      },
+      "cancelled": {
+        "title": "Cancelled",
+        "body": "The install was cancelled at a safe point."
+      }
+    }
+  }
+}

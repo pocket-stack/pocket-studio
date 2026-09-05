@@ -1,0 +1,44 @@
+{
+  "catalog": {
+    "pocket-runtime": {
+      "name": "Pocket Runtime",
+      "summary": "Pocket 生态的核心运行时，所有 Pocket 应用的基础。",
+      "description": "Pocket Runtime 为旧设备提供统一的 JavaScript 运行环境与系统桥接层，负责应用生命周期、权限与数据同步。安装后设备即可运行 Pocket 生态中的其他应用。"
+    },
+    "pocket-agent": {
+      "name": "Pocket Agent",
+      "summary": "让设备与 Pocket Studio 保持连接的后台服务。",
+      "description": "Pocket Agent 在设备后台运行，负责接收来自 Pocket Studio 的安装指令、上报设备状态并维护运行时更新。它依赖 Pocket Runtime。"
+    },
+    "openssh": {
+      "name": "OpenSSH",
+      "summary": "标准的 SSH 服务端与客户端。",
+      "description": "来自 Cydia 官方源的 OpenSSH 软件包。越狱流程通常已经安装它，这里提供重新安装或更新的入口。安装后请务必修改 root 与 mobile 账户的默认密码。"
+    },
+    "legacy-ca-bundle": {
+      "name": "Legacy CA Bundle",
+      "summary": "为旧系统补充现代根证书，修复 HTTPS 访问。",
+      "description": "iOS 6 自带的根证书大多已过期，导致现代网站无法访问。此软件包补充当前主流 CA 根证书，使 Pocket 应用与 Cydia 能正常通过 HTTPS 连接。"
+    },
+    "pocket-reader": {
+      "name": "Pocket Reader",
+      "summary": "离线阅读器，支持 EPUB 与稍后读同步。",
+      "description": "专为小屏幕优化的阅读应用，支持 EPUB、纯文本与网页离线保存。通过 IPA 方式安装，不依赖越狱，但需要有效的签名。"
+    },
+    "pocket-notes": {
+      "name": "Pocket Notes",
+      "summary": "轻量笔记，与 Pocket 生态同步。",
+      "description": "简单的 Markdown 笔记应用，可通过 Pocket Runtime 与其他设备同步。适合在旧设备上快速记录。"
+    },
+    "pocket-arcade": {
+      "name": "Pocket Arcade",
+      "summary": "为旧设备打包的复古游戏合集。",
+      "description": "包含数十款开源复古游戏的合集，针对 A4 处理器与 3.5 英寸屏幕优化。需要 Pocket Runtime 以提供存档同步。"
+    },
+    "pocket-camera-pro": {
+      "name": "Pocket Camera Pro",
+      "summary": "高级相机应用，需要 iOS 7 或更高版本。",
+      "description": "提供手动曝光与 RAW 拍摄的相机应用。由于依赖 iOS 7 引入的相机 API，不支持 iPod touch 4。此条目用于展示不兼容软件的呈现方式。"
+    }
+  }
+}

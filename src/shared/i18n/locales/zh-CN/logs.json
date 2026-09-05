@@ -1,0 +1,54 @@
+{
+  "logs": {
+    "title": "操作日志",
+    "subtitle": "所有设备操作、确认记录与错误都会记录在这里，可导出用于排查。",
+    "copy": "复制可见日志",
+    "export": "导出日志文件",
+    "follow": "自动滚动",
+    "count": "显示 {shown} / {total} 条",
+    "empty": "暂无日志",
+    "allOperations": "全部操作",
+    "source": {
+      "all": "全部来源",
+      "device": "设备",
+      "preparation": "设备准备",
+      "store": "应用商店",
+      "system": "系统"
+    }
+  },
+  "log": {
+    "system": {
+      "started": "Pocket Studio 已启动",
+      "exported": "日志已导出到 {path}"
+    },
+    "device": {
+      "attached": "检测到设备接入：{model}",
+      "detached": "设备已断开",
+      "modeChanged": "设备模式切换为 {mode}",
+      "readinessChecked": "接入条件检测结果：{status}"
+    },
+    "preparation": {
+      "planned": "已生成准备方案 {plan}",
+      "consentRecorded": "已记录用户对方案 {plan} 的风险确认与免责条款同意",
+      "started": "设备准备流程开始",
+      "finished": "设备准备流程完成",
+      "failed": "设备准备失败于步骤 {step}：{code}",
+      "cancelled": "设备准备已在步骤 {step} 取消"
+    },
+    "install": {
+      "started": "安装流程开始",
+      "finished": "安装完成",
+      "failed": "安装失败于步骤 {step}：{code}",
+      "cancelled": "安装已在步骤 {step} 取消"
+    },
+    "step": {
+      "started": "步骤 {step} 开始",
+      "done": "步骤 {step} 完成",
+      "actionRequired": "等待用户操作：{action}"
+    },
+    "demo": {
+      "jailbrokenSet": "演示：越狱状态设置为 {value}",
+      "failureArmed": "演示：已为步骤 {step} 注入失败"
+    }
+  }
+}

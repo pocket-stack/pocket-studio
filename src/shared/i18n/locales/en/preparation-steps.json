@@ -1,0 +1,119 @@
+{
+  "preparation": {
+    "steps": {
+      "enterDfu": {
+        "title": "Enter DFU mode",
+        "detail": "Follow the guide for the Power and Home buttons and wait for the device to appear in DFU mode."
+      },
+      "exploitBootrom": {
+        "title": "Exploit the bootrom (limera1n)",
+        "detail": "Send the limera1n payload to the A4 chip to reach pwned DFU. Nothing is persisted."
+      },
+      "fetchResources": {
+        "title": "Download firmware components and payload",
+        "detail": "Fetch iBSS, iBEC, kernel and ramdisk from the iOS 6.1.6 firmware and verify their digests."
+      },
+      "buildRamdisk": {
+        "title": "Build the SSH ramdisk",
+        "detail": "Patch iBoot and the kernel, then assemble a restore ramdisk with an SSH service."
+      },
+      "bootRamdisk": {
+        "title": "Boot the ramdisk",
+        "detail": "Send the patched boot chain to the device and boot it. The screen stays black or shows progress."
+      },
+      "mountFilesystem": {
+        "title": "Mount the device filesystem",
+        "detail": "Mount the system and data partitions over SSH."
+      },
+      "installUntether": {
+        "title": "Install the untether and Cydia",
+        "detail": "Write the untethered jailbreak payload and the Cydia bootstrap. Cannot be interrupted once started."
+      },
+      "rebootDevice": {
+        "title": "Reboot the device",
+        "detail": "Leave the ramdisk and boot normally. The first boot is slower than usual."
+      },
+      "verifyJailbreak": {
+        "title": "Verify the jailbreak",
+        "detail": "Wait for the device to reappear and confirm Cydia and SSH are available."
+      }
+    },
+    "errors": {
+      "dfuTimeout": {
+        "title": "DFU mode was not reached",
+        "body": "No DFU device appeared within the waiting time. The device was not modified.",
+        "recovery": [
+          "If the screen shows an Apple logo or the \"connect to iTunes\" screen, hold Power and Home for about 15 seconds to leave it.",
+          "Try another USB port or cable and avoid hubs.",
+          "Press Retry and follow the button guide again."
+        ]
+      },
+      "exploitFailed": {
+        "title": "limera1n exploit failed",
+        "body": "The device did not reach pwned DFU. This is common on some USB controllers; a retry usually works.",
+        "recovery": [
+          "Hold Power and Home for about 15 seconds to reboot the device.",
+          "Connect directly to a port on the computer itself.",
+          "Enter DFU mode again and retry."
+        ]
+      },
+      "downloadFailed": {
+        "title": "Firmware download failed",
+        "body": "The required firmware components could not be fetched or failed verification. The device was not modified.",
+        "recovery": [
+          "Check the network connection.",
+          "Retrying downloads and verifies the missing files again."
+        ]
+      },
+      "buildFailed": {
+        "title": "Ramdisk build failed",
+        "body": "Patching did not complete. The device was not modified.",
+        "recovery": [
+          "Retrying clears the cache and rebuilds.",
+          "If it keeps failing, export the log and report it."
+        ]
+      },
+      "ramdiskBootFailed": {
+        "title": "Ramdisk boot failed",
+        "body": "The device did not boot the patched ramdisk.",
+        "recovery": [
+          "Hold Power and Home for about 15 seconds to reboot the device.",
+          "Enter DFU mode again and retry the whole flow."
+        ]
+      },
+      "sshUnavailable": {
+        "title": "SSH connection failed",
+        "body": "The ramdisk booted but the SSH service did not respond.",
+        "recovery": [
+          "Wait 30 seconds and retry; the ramdisk sometimes needs longer.",
+          "Reboot the device and enter DFU mode again."
+        ]
+      },
+      "writeFailed": {
+        "title": "Writing the untether failed",
+        "body": "The write was interrupted and the system partition may be inconsistent. Do not unplug the device yet.",
+        "recovery": [
+          "Keep it connected and first try holding Power and Home for about 15 seconds to reboot.",
+          "If the device boots normally, run the whole flow again.",
+          "If it is stuck on the Apple logo, restore it with Legacy iOS Kit. This erases the device."
+        ]
+      },
+      "deviceDisconnected": {
+        "title": "Device disconnected",
+        "body": "The device dropped off the bus during the flow.",
+        "recovery": [
+          "Reconnect the cable.",
+          "Retry once the device has been identified again."
+        ]
+      },
+      "verificationFailed": {
+        "title": "Jailbreak verification failed",
+        "body": "The device rebooted, but Cydia or SSH was not found. The untether may not have installed correctly.",
+        "recovery": [
+          "Make sure the device has fully booted and is unlocked.",
+          "Run the readiness check again; if it is still not jailbroken, run the flow again."
+        ]
+      }
+    }
+  }
+}

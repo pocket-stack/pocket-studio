@@ -1,0 +1,101 @@
+{
+  "preparation": {
+    "risks": {
+      "banner": {
+        "title": "请逐条阅读并确认以下风险",
+        "body": "以下是越狱 iPod touch 4 可能造成的后果。每一项都需要单独勾选确认，且必须达到最短阅读时间并滚动到底部后才能继续。"
+      },
+      "severity": {
+        "high": "高风险",
+        "medium": "中风险",
+        "low": "低风险"
+      },
+      "mitigation": "如何降低风险：",
+      "acknowledgeOne": "我已阅读并理解这一项风险",
+      "endOfList": "—— 以上为全部风险项 ——",
+      "progress": "已确认 {done} / {total}",
+      "continue": "我已确认全部风险",
+      "items": {
+        "bootloop": {
+          "title": "设备可能无法启动",
+          "body": "如果 untether 写入不完整或与系统版本不匹配，设备可能卡在苹果标志或反复重启，只能通过恢复系统解决。",
+          "mitigation": "保持数据线连接、不要中断写入步骤；失败后按照恢复指引操作。"
+        },
+        "dataLossOnRecovery": {
+          "title": "一旦需要恢复系统，数据将全部丢失",
+          "body": "此方式本身不会清除数据，但任何需要恢复系统的故障都会抹掉设备上的全部内容。Apple 已不再为 iOS 6 签名，恢复需要依赖 SHSH 或社区工具。",
+          "mitigation": "开始前完成完整备份，并保存设备的 SHSH blobs。"
+        },
+        "interruptionHazard": {
+          "title": "中途断开会造成损坏",
+          "body": "在 ramdisk 启动与写入阶段拔线、电脑休眠或设备没电，都可能让文件系统处于不一致状态。",
+          "mitigation": "使用可靠的数据线直连，关闭自动休眠，确保电量充足。"
+        },
+        "securityPosture": {
+          "title": "越狱会降低设备安全性",
+          "body": "越狱会移除系统的沙盒限制并安装 SSH 服务，默认密码为 alpine，任何能访问设备网络的人都可能登录。",
+          "mitigation": "越狱后立即修改 root 与 mobile 账户密码，只安装可信来源的软件。"
+        },
+        "communityTooling": {
+          "title": "依赖社区维护的工具",
+          "body": "Legacy iOS Kit 及其 Rust 实现由社区维护，其中部分路径尚未在真实硬件上验证。",
+          "mitigation": "遇到问题时保留完整日志，并在提交问题前查阅项目文档。"
+        },
+        "untetherStability": {
+          "title": "系统稳定性可能下降",
+          "body": "越狱后的设备可能出现偶发重启、部分应用崩溃或电池续航变化。",
+          "mitigation": "避免安装过多插件，出现问题时优先卸载最近安装的软件。"
+        },
+        "warrantyAndSupport": {
+          "title": "不再享有官方支持",
+          "body": "越狱设备不在 Apple 的支持范围内。这台设备的保修早已结束，但仍需知晓此事实。",
+          "mitigation": "无。"
+        }
+      }
+    },
+    "disclaimer": {
+      "title": "免责条款",
+      "version": "条款版本 {version}",
+      "preamble": "在继续之前，请完整阅读以下条款。只有在阅读时间达到要求并滚动到底部后，才能勾选同意并输入确认词。",
+      "sections": [
+        {
+          "heading": "操作性质",
+          "body": "越狱是对设备系统的深度修改。Pocket Studio 只是把 Legacy iOS Kit 的流程可视化，并不能改变这一操作的本质风险。"
+        },
+        {
+          "heading": "责任承担",
+          "body": "你确认由你本人发起此操作，并自行承担因此造成的一切后果，包括但不限于设备无法启动、数据丢失、安全性下降与功能异常。Pocket Studio、PocketJS 及 Legacy iOS Kit 的作者均不对此承担任何责任。"
+        },
+        {
+          "heading": "设备归属",
+          "body": "你确认这台设备属于你本人，或你已获得设备所有者的明确授权。"
+        },
+        {
+          "heading": "第三方工具",
+          "body": "流程中会下载并使用来自社区的固件组件与越狱载荷。这些内容不受 Apple 支持，其可用性与完整性由各自的维护者负责。"
+        },
+        {
+          "heading": "可撤销范围",
+          "body": "在「安装 untether」之前的所有步骤都可以取消且不会修改设备。一旦开始写入，中断可能导致不可恢复的损坏。"
+        },
+        {
+          "heading": "记录与日志",
+          "body": "本次确认的时间、阅读时长与条款版本会写入操作日志，用于追溯。日志不会包含设备的完整标识符或个人数据。"
+        }
+      ],
+      "end": "—— 条款结束 ——",
+      "agree": "我已完整阅读并同意上述全部条款",
+      "typeToConfirm": "请输入确认词：",
+      "typedPhrase": "同意",
+      "acceptAndStart": "同意并开始"
+    },
+    "startErrors": {
+      "unknown": "未知错误，请查看日志。",
+      "unknownPlan": "准备方案已失效，请关闭后重新开始。",
+      "consentIncomplete": "风险确认不完整。",
+      "disclaimerOutdated": "免责条款已更新，请重新阅读。",
+      "deviceNotFound": "设备已断开，请重新连接。",
+      "readingTooShort": "阅读时间不足。"
+    }
+  }
+}

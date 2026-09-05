@@ -1,0 +1,88 @@
+{
+  "readiness": {
+    "title": "接入条件检测",
+    "subtitle": "所有检测均为只读操作，不会修改设备。",
+    "recheck": "重新检测",
+    "checking": "正在读取设备状态…",
+    "checkedAt": "检测于 {time}",
+    "status": {
+      "ready": "已就绪",
+      "needsPreparation": "需要准备",
+      "unsupported": "不支持"
+    },
+    "summary": {
+      "ready": "设备已越狱，可以直接安装 Pocket 生态软件。",
+      "needsPreparation": "设备型号与系统受支持，但尚未越狱，需要先完成准备流程。",
+      "unsupported": "当前设备或系统版本暂不受支持。"
+    },
+    "checks": {
+      "platformSupported": {
+        "title": "平台",
+        "pass": "iOS 设备受支持。",
+        "fail": "该平台暂不支持。",
+        "warn": "平台支持有限。",
+        "unknown": "无法确定平台。"
+      },
+      "modelSupported": {
+        "title": "型号",
+        "pass": "iPod touch (4th generation) 在支持列表中。",
+        "fail": "该型号不受支持。",
+        "warn": "该型号支持有限。",
+        "unknown": "无法识别型号。"
+      },
+      "osVersionSupported": {
+        "title": "系统版本",
+        "pass": "iOS 版本在 Legacy iOS Kit 的越狱支持范围内（3.1.3 – 9.3.4）。",
+        "fail": "该系统版本不在支持范围内。",
+        "warn": "该系统版本支持有限。",
+        "unknown": "无法读取系统版本。"
+      },
+      "pairingTrusted": {
+        "title": "配对信任",
+        "pass": "设备已信任这台电脑。",
+        "fail": "设备尚未信任这台电脑。",
+        "warn": "配对记录可能已过期。",
+        "unknown": "无法确认配对状态。"
+      },
+      "jailbroken": {
+        "title": "越狱状态",
+        "pass": "检测到 Cydia 与越狱环境。",
+        "fail": "设备未越狱，Pocket 运行时需要越狱环境。",
+        "warn": "检测到部分越狱痕迹。",
+        "unknown": "无法确认越狱状态。"
+      },
+      "sshAvailable": {
+        "title": "SSH 服务",
+        "pass": "OpenSSH 可用。",
+        "fail": "OpenSSH 不可用。",
+        "warn": "SSH 服务响应异常。",
+        "unknown": "越狱后再检测。"
+      },
+      "batteryLevel": {
+        "title": "电量",
+        "pass": "电量充足，可以进行准备操作。",
+        "fail": "电量过低。",
+        "warn": "电量低于 50%，请先充电再进行准备操作。",
+        "unknown": "无法读取电量。"
+      },
+      "physicalButtons": {
+        "title": "物理按键",
+        "pass": "按键正常。",
+        "fail": "按键损坏，无法进入 DFU 模式。",
+        "warn": "按键状态待确认。",
+        "unknown": "需要用户在准备流程中确认电源键与 Home 键可用。"
+      }
+    },
+    "guidance": {
+      "jailbreak": {
+        "title": "需要越狱后才能接入 Pocket 生态",
+        "body": "Pocket Studio 可以使用 Legacy iOS Kit 的 ramdisk 方式为 iPod touch 4 进行无损、完美越狱（untethered）。整个流程会先说明风险并要求你逐项确认，然后再引导你进入 DFU 模式。",
+        "point1": "不会清除设备数据，但仍强烈建议先备份。",
+        "point2": "需要电源键与 Home 键均可正常使用。",
+        "point3": "过程中请勿拔线、勿让电脑休眠，全程约需 5 分钟。",
+        "action": "开始越狱准备"
+      },
+      "ready": "设备已满足所有接入条件。可以前往应用商店安装 Pocket 运行时。"
+    }
+  }
+}

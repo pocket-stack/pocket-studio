@@ -1,0 +1,40 @@
+{
+  "device": {
+    "title": "Device",
+    "subtitle": "Plug a device in over USB and its identity and readiness show up here automatically.",
+    "identifiedAs": "Identified as an {platform} device. Everything below was read without modifying the device.",
+    "maskedNote": "UDID, ECID and serial are partially masked. Full values never appear in the UI or the log.",
+    "mode": {
+      "normal": "Normal mode",
+      "recovery": "Recovery mode",
+      "dfu": "DFU mode"
+    },
+    "transport": {
+      "usb": "USB",
+      "network": "Network"
+    },
+    "fields": {
+      "model": "Model",
+      "chip": "Chip",
+      "os": "OS version",
+      "storage": "Storage",
+      "udid": "UDID",
+      "ecid": "ECID",
+      "serial": "Serial",
+      "battery": "Battery"
+    },
+    "empty": {
+      "title": "Waiting for a device",
+      "body": "Pocket Studio is listening on USB. Once a device is connected it identifies the model and OS version and checks whether the device meets the Pocket requirements.",
+      "step1": "Connect the device to this computer with a reliable cable.",
+      "step2": "If the device asks to trust this computer, tap Trust.",
+      "step3": "Keep the device unlocked on the home screen. Identification usually takes a few seconds.",
+      "listening": "Listening on USB…"
+    },
+    "next": {
+      "title": "The device is ready for Pocket",
+      "body": "You can now install the Pocket runtime and compatible software from the App Store.",
+      "action": "Open the App Store"
+    }
+  }
+}

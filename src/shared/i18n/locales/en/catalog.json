@@ -1,0 +1,44 @@
+{
+  "catalog": {
+    "pocket-runtime": {
+      "name": "Pocket Runtime",
+      "summary": "The core runtime every Pocket app builds on.",
+      "description": "Pocket Runtime gives legacy devices a shared JavaScript runtime and system bridge that handles app lifecycle, permissions and data sync. Once installed, the device can run the rest of the Pocket ecosystem."
+    },
+    "pocket-agent": {
+      "name": "Pocket Agent",
+      "summary": "Background service that keeps the device connected to Pocket Studio.",
+      "description": "Pocket Agent runs in the background, receives install commands from Pocket Studio, reports device state and keeps the runtime updated. It depends on Pocket Runtime."
+    },
+    "openssh": {
+      "name": "OpenSSH",
+      "summary": "The standard SSH server and client.",
+      "description": "The OpenSSH package from the official Cydia repository. The jailbreak usually installs it already; this entry lets you reinstall or update it. Change the default root and mobile passwords right after installing."
+    },
+    "legacy-ca-bundle": {
+      "name": "Legacy CA Bundle",
+      "summary": "Modern root certificates for old systems, fixing HTTPS.",
+      "description": "Most root certificates shipped with iOS 6 have expired, which breaks modern websites. This package adds the current mainstream CA roots so Pocket apps and Cydia can connect over HTTPS."
+    },
+    "pocket-reader": {
+      "name": "Pocket Reader",
+      "summary": "Offline reader with EPUB and read-later sync.",
+      "description": "A reading app tuned for small screens with EPUB, plain text and offline web pages. Installed as an IPA; it does not need a jailbreak but requires a valid signature."
+    },
+    "pocket-notes": {
+      "name": "Pocket Notes",
+      "summary": "Lightweight notes that sync with Pocket.",
+      "description": "A simple Markdown notes app that syncs with other devices through Pocket Runtime. Handy for quick notes on an old device."
+    },
+    "pocket-arcade": {
+      "name": "Pocket Arcade",
+      "summary": "A retro game collection packaged for legacy devices.",
+      "description": "Dozens of open-source retro games tuned for the A4 chip and the 3.5-inch screen. Needs Pocket Runtime for save-game sync."
+    },
+    "pocket-camera-pro": {
+      "name": "Pocket Camera Pro",
+      "summary": "Advanced camera app that needs iOS 7 or later.",
+      "description": "A camera app with manual exposure and RAW capture. It relies on camera APIs introduced in iOS 7 and does not support the iPod touch 4. This entry shows how incompatible packages are presented."
+    }
+  }
+}

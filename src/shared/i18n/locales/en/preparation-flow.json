@@ -1,0 +1,165 @@
+{
+  "preparation": {
+    "title": "Device preparation: jailbreak iPod touch 4",
+    "subtitle": "Ramdisk method · limera1n · no data loss · untethered",
+    "planning": "Building the preparation plan…",
+    "planFailed": "The plan could not be created. Make sure the device is still connected.",
+    "starting": "Recording your consent and starting…",
+    "milestones": {
+      "overview": "Overview",
+      "risks": "Risks",
+      "disclaimer": "Disclaimer",
+      "dfu": "DFU",
+      "execute": "Execute",
+      "result": "Result"
+    },
+    "overview": {
+      "whatHappens": "What will happen",
+      "intro": "Pocket Studio guides the device into DFU mode, uses the bootrom exploit to boot a patched SSH ramdisk, then writes the untether and Cydia to the device. The OS is not reflashed and no data is erased.",
+      "facts": {
+        "method": "Method",
+        "exploit": "Exploit",
+        "target": "Target OS",
+        "tether": "Jailbreak type",
+        "dataLoss": "Data impact",
+        "duration": "Estimated time"
+      },
+      "method": {
+        "ramdisk": "SSH ramdisk (as redsn0w)"
+      },
+      "tether": {
+        "untethered": "Untethered (survives reboots)",
+        "semiTethered": "Semi-tethered",
+        "tethered": "Tethered"
+      },
+      "dataLoss": {
+        "none": "No data is erased",
+        "full": "All data is erased"
+      },
+      "minutes": "about {minutes} min",
+      "stepsHeading": "Steps",
+      "prerequisites": "Before you start",
+      "prerequisitesHint": "Confirm each item yourself. They decide whether the flow can finish safely.",
+      "continue": "Confirmed, show me the risks"
+    },
+    "prerequisites": {
+      "batteryAbove50": {
+        "title": "Battery at 50% or more",
+        "detail": "The device reboots several times. A low battery can shut it down mid-flow."
+      },
+      "workingButtons": {
+        "title": "Power and Home buttons work",
+        "detail": "DFU mode depends on both buttons. Broken buttons require a DFU IPSW, which erases the device."
+      },
+      "backupCompleted": {
+        "title": "Device data is backed up",
+        "detail": "This method keeps your data, but any restore that becomes necessary will erase everything."
+      },
+      "stableCable": {
+        "title": "Reliable cable, directly into the computer",
+        "detail": "Avoid hubs and extension cables. Any disconnect interrupts the flow."
+      },
+      "computerAwake": {
+        "title": "The computer will not sleep or lock",
+        "detail": "Disable automatic sleep for now. Sleep drops the USB connection."
+      }
+    },
+    "dfu": {
+      "start": "Start guide",
+      "retry": "Try again",
+      "restart": "Start over",
+      "alreadyInDfu": "The device is already in DFU mode",
+      "deviceState": "Current device state",
+      "disconnected": "No device detected",
+      "autoAdvance": "The flow continues automatically once DFU mode is detected.",
+      "safeToCancel": "Nothing has been written yet. Cancelling here is safe.",
+      "keys": {
+        "power": "Power (top)",
+        "home": "Home"
+      },
+      "phase": {
+        "idle": {
+          "title": "Ready to enter DFU mode",
+          "body": "After you press Start there is a 3 second countdown. Then follow the animation and timer exactly. The button sequence takes about 16 seconds."
+        },
+        "countdown": {
+          "title": "Get your fingers ready",
+          "body": "When the countdown ends, hold the top Power button and the Home button at the same time."
+        },
+        "holdBoth": {
+          "title": "Hold Power + Home",
+          "body": "Keep both held until the timer ends. The screen turning off is expected."
+        },
+        "holdHome": {
+          "title": "Release Power, keep holding Home",
+          "body": "Release only the top Power button. Keep holding Home until the timer ends."
+        },
+        "detecting": {
+          "title": "You can let go. Detecting…",
+          "body": "The screen should stay black. Pocket Studio is waiting for the device to reappear in DFU mode."
+        },
+        "timeout": {
+          "title": "DFU mode was not detected",
+          "body": "The device did not show up in DFU mode. Check the troubleshooting list and try again."
+        }
+      },
+      "summary": {
+        "plug": "Keep the device connected to the computer.",
+        "holdBoth": "Hold Power and Home together for 8 seconds.",
+        "releasePower": "Release Power, keep holding Home for 8 seconds.",
+        "blackScreen": "A black screen means success. An Apple logo means the buttons were held too long."
+      },
+      "troubleshooting": {
+        "title": "Trouble?",
+        "appleLogo": {
+          "title": "An Apple logo appeared:",
+          "body": "Power was held too long or released too late. Let the device finish booting, then start the guide again."
+        },
+        "recoveryScreen": {
+          "title": "The \"connect to iTunes\" screen appeared:",
+          "body": "The device entered Recovery instead of DFU. Hold Power and Home for about 15 seconds to leave it, then try again."
+        },
+        "nothing": {
+          "title": "Black screen but nothing detected:",
+          "body": "Try another USB port or cable, and avoid hubs."
+        },
+        "exitDfu": {
+          "title": "To leave DFU mode:",
+          "body": "Hold Power and Home for about 15 seconds. The device reboots normally."
+        }
+      }
+    },
+    "execution": {
+      "finishing": "Finishing…",
+      "elapsed": "Elapsed {time}",
+      "cancel": "Cancel",
+      "cancelHint": "The current step can be interrupted safely.",
+      "cannotCancelNow": "The current step is writing to the device and cannot be interrupted.",
+      "keepConnected": {
+        "title": "Do not unplug or shut down",
+        "body": "The device screen goes black and the device reboots a few times. This is expected.",
+        "afterPointOfNoReturn": "Writing to the device has started. Interrupting now can leave the device unbootable and require a full restore."
+      }
+    },
+    "result": {
+      "success": {
+        "title": "Jailbreak complete",
+        "body": "The device rebooted and passed verification. Cydia and SSH are available, and the device now meets the Pocket requirements."
+      },
+      "failed": {
+        "title": "The flow failed",
+        "body": "The flow could not be completed."
+      },
+      "cancelled": {
+        "title": "Flow cancelled",
+        "body": "The flow stopped at a safe point and the device was not modified. If it is still in DFU mode, hold Power and Home for about 15 seconds to leave it."
+      },
+      "failedAt": "Failed at \"{step}\" (attempt {attempt})",
+      "recoveryTitle": "Suggested next steps",
+      "notRecoverable": "This error cannot be fixed by retrying. Follow the steps above first, then start again.",
+      "viewLogs": "View log",
+      "openStore": "Open the App Store",
+      "retry": "Retry"
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "preparation": {
+    "risks": {
+      "banner": {
+        "title": "Read and confirm each risk",
+        "body": "These are the possible consequences of jailbreaking the iPod touch 4. Every item must be ticked individually, and you can only continue after the minimum reading time and after scrolling to the end."
+      },
+      "severity": {
+        "high": "High risk",
+        "medium": "Medium risk",
+        "low": "Low risk"
+      },
+      "mitigation": "How to reduce it:",
+      "acknowledgeOne": "I have read and understand this risk",
+      "endOfList": "— end of the list —",
+      "progress": "{done} of {total} confirmed",
+      "continue": "I confirm all risks",
+      "items": {
+        "bootloop": {
+          "title": "The device may fail to boot",
+          "body": "If the untether is written incompletely or does not match the OS version, the device can get stuck on the Apple logo or reboot repeatedly. Only a restore fixes that.",
+          "mitigation": "Keep the cable connected and never interrupt the write step. After a failure, follow the recovery guidance."
+        },
+        "dataLossOnRecovery": {
+          "title": "A restore erases all data",
+          "body": "This method itself keeps your data, but any failure that requires a restore wipes the device. Apple no longer signs iOS 6, so a restore depends on SHSH blobs or community tooling.",
+          "mitigation": "Make a full backup and save the device's SHSH blobs before starting."
+        },
+        "interruptionHazard": {
+          "title": "Interruptions can corrupt the device",
+          "body": "Unplugging, a sleeping computer or an empty battery during the ramdisk and write phases can leave the filesystem inconsistent.",
+          "mitigation": "Use a reliable cable directly in the computer, disable sleep and make sure the battery is charged."
+        },
+        "securityPosture": {
+          "title": "A jailbreak weakens device security",
+          "body": "The jailbreak removes sandbox restrictions and installs an SSH service with the default password alpine. Anyone on the same network could log in.",
+          "mitigation": "Change the root and mobile passwords right after the jailbreak and install software only from trusted sources."
+        },
+        "communityTooling": {
+          "title": "Relies on community-maintained tools",
+          "body": "Legacy iOS Kit and its Rust implementation are maintained by the community, and some code paths have not been verified on real hardware yet.",
+          "mitigation": "Keep the full log when something goes wrong and read the project documentation before filing an issue."
+        },
+        "untetherStability": {
+          "title": "System stability may drop",
+          "body": "A jailbroken device may reboot occasionally, some apps may crash and battery life can change.",
+          "mitigation": "Avoid piling up tweaks. If problems appear, remove the most recently installed software first."
+        },
+        "warrantyAndSupport": {
+          "title": "No official support",
+          "body": "Jailbroken devices are outside Apple's support. This device's warranty ended long ago, but you should still be aware.",
+          "mitigation": "None."
+        }
+      }
+    },
+    "disclaimer": {
+      "title": "Disclaimer",
+      "version": "Version {version}",
+      "preamble": "Read the following terms in full before continuing. You can tick the agreement and type the confirmation word only after the reading time has elapsed and you have scrolled to the end.",
+      "sections": [
+        {
+          "heading": "Nature of the operation",
+          "body": "A jailbreak is a deep modification of the device's operating system. Pocket Studio only visualises the Legacy iOS Kit flow and does not change the inherent risk."
+        },
+        {
+          "heading": "Responsibility",
+          "body": "You confirm that you initiate this operation yourself and accept all consequences, including but not limited to an unbootable device, data loss, weakened security and malfunction. Pocket Studio, PocketJS and the authors of Legacy iOS Kit accept no liability."
+        },
+        {
+          "heading": "Device ownership",
+          "body": "You confirm that this device belongs to you or that you have the owner's explicit permission."
+        },
+        {
+          "heading": "Third-party tooling",
+          "body": "The flow downloads and uses firmware components and jailbreak payloads from the community. They are not supported by Apple, and their availability and integrity are the responsibility of their maintainers."
+        },
+        {
+          "heading": "What can be undone",
+          "body": "Every step before \"Install untether\" can be cancelled without modifying the device. Once writing starts, interrupting may cause damage that cannot be undone."
+        },
+        {
+          "heading": "Records and logs",
+          "body": "The time of this confirmation, your reading time and the terms version are written to the activity log for traceability. The log never contains full device identifiers or personal data."
+        }
+      ],
+      "end": "— end of terms —",
+      "agree": "I have read and agree to all of the terms above",
+      "typeToConfirm": "Type the confirmation word:",
+      "typedPhrase": "AGREE",
+      "acceptAndStart": "Agree and start"
+    },
+    "startErrors": {
+      "unknown": "Unknown error. See the log.",
+      "unknownPlan": "The plan is no longer valid. Close and start again.",
+      "consentIncomplete": "The risk acknowledgement is incomplete.",
+      "disclaimerOutdated": "The disclaimer has changed. Please read it again.",
+      "deviceNotFound": "The device is disconnected. Reconnect it.",
+      "readingTooShort": "The reading time was too short."
+    }
+  }
+}

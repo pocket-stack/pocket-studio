@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Pocket Studio",
+    "tagline": "Pocket 生态桌面桥梁",
+    "noDevice": "未连接设备",
+    "activeOperations": "{count} 个进行中"
+  },
+  "nav": {
+    "device": "设备",
+    "store": "应用商店",
+    "logs": "操作日志",
+    "settings": "设置"
+  },
+  "common": {
+    "back": "返回",
+    "cancel": "取消",
+    "close": "关闭",
+    "required": "需要",
+    "notRequired": "不需要"
+  },
+  "demo": {
+    "title": "演示控制",
+    "hint": "这些按钮模拟现实中的物理动作（插拔数据线、按键失败等），不会触碰任何真实设备。",
+    "show": "显示演示控制",
+    "hide": "隐藏演示控制",
+    "attach": "模拟接入 iPod touch 4",
+    "detach": "模拟拔出设备",
+    "enterDfu": "模拟进入 DFU",
+    "exitDfu": "模拟退出 DFU",
+    "markJailbroken": "标记为已越狱",
+    "markStock": "标记为未越狱",
+    "failNext": "让下一次执行到该步骤时失败",
+    "noFailure": "不注入失败"
+  },
+  "notifications": {
+    "readinessFailed": "接入条件检测失败，请重新检测。",
+    "deviceAttached": "已检测到 {name}",
+    "deviceDetached": "设备已断开连接",
+    "logExported": "日志已导出到 {path}",
+    "logExportFailed": "日志导出失败",
+    "logCopied": "已复制 {count} 条日志到剪贴板",
+    "logCopyFailed": "复制日志失败",
+    "preparationStartFailed": "无法开始准备流程，请查看错误提示。",
+    "consentExpired": "确认已超过 30 分钟，需要重新阅读风险与免责条款。",
+    "cancelRequested": "已请求取消，将在当前安全点停止。",
+    "cancelNotAllowed": "当前步骤无法安全中断，请等待其完成。",
+    "cancelFailed": "取消失败",
+    "installNeedsPreparation": "该软件需要已越狱的设备，请先完成设备准备。",
+    "installStartFailed": "无法开始安装",
+    "installFinished": "安装完成",
+    "installFailed": "安装失败，请在详情中查看原因。"
+  },
+  "reading": {
+    "remaining": "还需阅读 {seconds} 秒",
+    "timeMet": "阅读时间已满足",
+    "scrollToEnd": "请滚动到底部阅读全部内容",
+    "scrolled": "已阅读到底部"
+  },
+  "operation": {
+    "pointOfNoReturn": "不可回退",
+    "notCancellable": "不可中断"
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "外观、语言与关于信息。",
+    "theme": {
+      "title": "主题",
+      "system": "跟随系统",
+      "light": "浅色",
+      "dark": "深色"
+    },
+    "language": {
+      "title": "语言",
+      "zh-CN": "简体中文",
+      "en": "English"
+    },
+    "about": {
+      "title": "关于",
+      "version": "版本",
+      "backend": "后端",
+      "toolkit": "设备工具链",
+      "toolkitNote": "当前为界面演示，未接入真实设备操作"
+    }
+  }
+}

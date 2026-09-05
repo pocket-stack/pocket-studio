@@ -1,0 +1,127 @@
+{
+  "store": {
+    "title": "应用商店",
+    "subtitle": "浏览与当前设备兼容的 Pocket 生态软件。安装前会校验签名与摘要。",
+    "search": "搜索软件或开发者",
+    "loading": "正在加载软件目录…",
+    "loadFailed": "无法加载软件目录。",
+    "empty": "没有匹配的软件。",
+    "requiresJailbreak": "需要越狱",
+    "target": {
+      "none": "未连接设备，仅可浏览",
+      "ready": "安装目标：{name}",
+      "notReady": "{name} 尚未准备就绪"
+    },
+    "category": {
+      "all": "全部",
+      "runtime": "运行时",
+      "tool": "工具",
+      "app": "应用",
+      "game": "游戏"
+    },
+    "state": {
+      "installing": "安装中",
+      "installed": "已安装",
+      "compatible": "可安装",
+      "requiresPreparation": "需先越狱",
+      "noDevice": "未连接设备",
+      "incompatible": "不兼容"
+    },
+    "policy": {
+      "deb": "Debian 软件包（Cydia）",
+      "ipa": "IPA 应用（需签名）",
+      "bootstrap": "系统引导包"
+    },
+    "verdict": {
+      "compatible": "与当前设备兼容，可以安装。",
+      "requiresPreparation": "需要已越狱的设备。请先在「设备」页完成准备流程。",
+      "unsupportedModel": "不支持当前设备型号。",
+      "unsupportedOs": "不支持当前系统版本。",
+      "noDevice": "连接设备后即可安装。"
+    },
+    "detail": {
+      "install": "安装",
+      "reinstall": "重新安装",
+      "update": "更新",
+      "prepareDevice": "去准备设备",
+      "installHint": "安装会先下载并校验软件包，再传输到设备。",
+      "prepareHint": "该软件依赖越狱环境。",
+      "installDependenciesFirst": "请先安装缺失的依赖。",
+      "installDone": "安装完成",
+      "installCancelled": "安装已取消",
+      "installFailed": "安装失败",
+      "installedVersion": "已安装 v{version}",
+      "signed": "已签名",
+      "unsigned": "未签名",
+      "compatibility": "兼容性",
+      "models": "支持型号",
+      "osRange": "系统版本",
+      "jailbreak": "越狱环境",
+      "dependencies": "依赖",
+      "dependencyMissing": "（未安装）",
+      "details": "详细信息",
+      "version": "版本",
+      "developer": "开发者",
+      "size": "大小",
+      "policy": "安装方式",
+      "published": "发布日期",
+      "checksum": "SHA-256"
+    },
+    "steps": {
+      "resolve": {
+        "title": "解析软件包",
+        "detail": "确认版本、依赖与目标设备。"
+      },
+      "download": {
+        "title": "下载",
+        "detail": "从软件源下载软件包。"
+      },
+      "verify": {
+        "title": "校验签名与摘要",
+        "detail": "校验失败会在写入设备前终止。"
+      },
+      "transfer": {
+        "title": "传输到设备",
+        "detail": "通过 USB 把软件包复制到设备。"
+      },
+      "install": {
+        "title": "安装",
+        "detail": "在设备上执行安装，此步骤无法中断。"
+      },
+      "verifyInstall": {
+        "title": "验证安装结果",
+        "detail": "确认软件已注册并可启动。"
+      }
+    },
+    "errors": {
+      "downloadFailed": {
+        "title": "下载失败",
+        "body": "无法从软件源获取软件包，请检查网络后重试。"
+      },
+      "checksumMismatch": {
+        "title": "校验失败",
+        "body": "软件包摘要与目录不一致，已终止安装。请刷新目录后再试，不要手动跳过校验。"
+      },
+      "transferFailed": {
+        "title": "传输失败",
+        "body": "向设备复制文件时中断，请确认连接后重试。"
+      },
+      "installRejected": {
+        "title": "设备拒绝安装",
+        "body": "设备上的安装程序返回错误，可能是依赖缺失或空间不足。"
+      },
+      "verificationFailed": {
+        "title": "安装验证未通过",
+        "body": "安装命令已执行，但设备上没有找到该软件。"
+      },
+      "deviceDisconnected": {
+        "title": "设备连接中断",
+        "body": "安装过程中设备断开，请重新连接后重试。"
+      },
+      "cancelled": {
+        "title": "已取消",
+        "body": "安装已在安全点取消。"
+      }
+    }
+  }
+}

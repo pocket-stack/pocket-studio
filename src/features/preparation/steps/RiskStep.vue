@@ -1,0 +1,134 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { useI18n } from "vue-i18n";
+
+import type {
+  PreparationPlan,
+  RiskId,
+  RiskSeverity,
+} from "../../../shared/gateway";
+import ForcedReading from "../../../shared/ui/ForcedReading.vue";
+import AppIcon from "../../../shared/ui/AppIcon.vue";
+import StatusPill from "../../../shared/ui/StatusPill.vue";
+
+defineProps<{
+  plan: PreparationPlan;
+  acknowledged: readonly RiskId[];
+  allAcknowledged: boolean;
+}>();
+const emit = defineEmits<{
+  toggle: [id: RiskId];
+  next: [readingSeconds: number];
+  back: [];
+}>();
+const { t } = useI18n();
+
+const readingReady = ref(false);
+const elapsed = ref(0);
+
+function onReady(seconds: number): void {
+  readingReady.value = true;
+  elapsed.value = seconds;
+}
+
+function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
+  if (severity === "high") return "danger";
+  if (severity === "medium") return "warning";
+  return "info";
+}
+</script>
+
+<template>
+  <div class="flex min-h-0 flex-1 flex-col gap-4">
+    <div class="rounded-xl border border-danger/40 bg-danger/8 p-4">
+      <div class="flex items-start gap-3">
+        <AppIcon name="warning" class="mt-0.5 text-danger" />
+        <div>
+          <p class="text-sm font-semibold">
+            {{ t("preparation.risks.banner.title") }}
+          </p>
+          <p class="mt-1 text-sm text-muted">
+            {{ t("preparation.risks.banner.body") }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <ForcedReading
+      :minimum-seconds="plan.minimumReadingSeconds.risks"
+      @ready="onReady"
+    >
+      <div class="space-y-3">
+        <article
+          v-for="risk in plan.risks"
+          :key="risk.id"
+          class="rounded-xl border p-4 transition"
+          :class="
+            acknowledged.includes(risk.id)
+              ? 'border-success/50 bg-success/6'
+              : 'border-line'
+          "
+        >
+          <div class="flex items-center gap-2">
+            <StatusPill :tone="severityTone(risk.severity)">{{
+              t(`preparation.risks.severity.${risk.severity}`)
+            }}</StatusPill>
+            <h4 class="text-sm font-semibold">
+              {{ t(`preparation.risks.items.${risk.id}.title`) }}
+            </h4>
+          </div>
+          <p class="mt-2 text-sm">
+            {{ t(`preparation.risks.items.${risk.id}.body`) }}
+          </p>
+          <p class="mt-2 text-xs text-muted">
+            <span class="font-medium">{{
+              t("preparation.risks.mitigation")
+            }}</span>
+            {{ t(`preparation.risks.items.${risk.id}.mitigation`) }}
+          </p>
+          <label
+            class="mt-3 flex items-center gap-2 text-sm"
+            :class="
+              readingReady ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+            "
+          >
+            <input
+              type="checkbox"
+              class="accent-signal"
+              :disabled="!readingReady"
+              :checked="acknowledged.includes(risk.id)"
+              @change="emit('toggle', risk.id)"
+            />
+            {{ t("preparation.risks.acknowledgeOne") }}
+          </label>
+        </article>
+        <p class="pt-2 text-center text-xs text-muted">
+          {{ t("preparation.risks.endOfList") }}
+        </p>
+      </div>
+    </ForcedReading>
+
+    <footer class="flex items-center justify-between">
+      <button class="btn btn-ghost" @click="emit('back')">
+        <AppIcon name="arrowLeft" :size="16" />
+        {{ t("common.back") }}
+      </button>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-muted">{{
+          t("preparation.risks.progress", {
+            done: acknowledged.length,
+            total: plan.risks.length,
+          })
+        }}</span>
+        <button
+          class="btn btn-primary"
+          :disabled="!readingReady || !allAcknowledged"
+          @click="emit('next', elapsed)"
+        >
+          {{ t("preparation.risks.continue") }}
+          <AppIcon name="arrowRight" :size="16" />
+        </button>
+      </div>
+    </footer>
+  </div>
+</template>

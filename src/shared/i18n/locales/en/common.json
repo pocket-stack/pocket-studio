@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Pocket Studio",
+    "tagline": "Desktop bridge for Pocket",
+    "noDevice": "No device",
+    "activeOperations": "{count} running"
+  },
+  "nav": {
+    "device": "Device",
+    "store": "App Store",
+    "logs": "Activity Log",
+    "settings": "Settings"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "required": "Required",
+    "notRequired": "Not required"
+  },
+  "demo": {
+    "title": "Demo controls",
+    "hint": "These buttons stand in for physical actions (plugging a cable, a failing exploit). No real device is touched.",
+    "show": "Show demo controls",
+    "hide": "Hide demo controls",
+    "attach": "Attach demo iPod touch 4",
+    "detach": "Detach device",
+    "enterDfu": "Simulate DFU mode",
+    "exitDfu": "Simulate leaving DFU",
+    "markJailbroken": "Mark as jailbroken",
+    "markStock": "Mark as stock",
+    "failNext": "Fail the next run of this step",
+    "noFailure": "No failure injected"
+  },
+  "notifications": {
+    "readinessFailed": "Readiness check failed. Please try again.",
+    "deviceAttached": "Detected {name}",
+    "deviceDetached": "Device disconnected",
+    "logExported": "Log exported to {path}",
+    "logExportFailed": "Log export failed",
+    "logCopied": "Copied {count} log lines to the clipboard",
+    "logCopyFailed": "Could not copy the log",
+    "preparationStartFailed": "The preparation could not be started. See the error for details.",
+    "consentExpired": "Your confirmation is older than 30 minutes. Please read the risks and disclaimer again.",
+    "cancelRequested": "Cancel requested. The operation stops at the next safe point.",
+    "cancelNotAllowed": "The current step cannot be interrupted safely. Please wait for it to finish.",
+    "cancelFailed": "Cancel failed",
+    "installNeedsPreparation": "This package needs a jailbroken device. Prepare the device first.",
+    "installStartFailed": "The install could not be started",
+    "installFinished": "Install finished",
+    "installFailed": "Install failed. See the package details for the reason."
+  },
+  "reading": {
+    "remaining": "{seconds} s of reading left",
+    "timeMet": "Reading time met",
+    "scrollToEnd": "Scroll to the end to read everything",
+    "scrolled": "Read to the end"
+  },
+  "operation": {
+    "pointOfNoReturn": "Point of no return",
+    "notCancellable": "Cannot be interrupted"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Appearance, language and about.",
+    "theme": {
+      "title": "Theme",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "title": "Language",
+      "zh-CN": "简体中文",
+      "en": "English"
+    },
+    "about": {
+      "title": "About",
+      "version": "Version",
+      "backend": "Backend",
+      "toolkit": "Device toolkit",
+      "toolkitNote": "UI demo only; no real device operations are wired up"
+    }
+  }
+}
