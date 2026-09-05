@@ -5,40 +5,202 @@
 @theme {
   --color-canvas: var(--ps-canvas);
   --color-surface: var(--ps-surface);
+  --color-raised: var(--ps-raised);
   --color-ink: var(--ps-ink);
   --color-muted: var(--ps-muted);
   --color-line: var(--ps-line);
   --color-signal: var(--ps-signal);
+  --color-on-signal: var(--ps-on-signal);
+  --color-success: var(--ps-success);
+  --color-warning: var(--ps-warning);
+  --color-danger: var(--ps-danger);
+  --color-info: var(--ps-info);
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "PingFang SC",
+    "Noto Sans CJK SC", "Segoe UI", sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius-card: 14px;
 }
 
 :root {
   color-scheme: light;
   --ps-canvas: #f3f1eb;
   --ps-surface: #fbfaf6;
+  --ps-raised: #ffffff;
   --ps-ink: #171915;
   --ps-muted: #6c7068;
   --ps-line: #d9d7cf;
   --ps-signal: #d96f1f;
+  --ps-on-signal: #fff8f0;
+  --ps-success: #2f7d4f;
+  --ps-warning: #b8860b;
+  --ps-danger: #b3261e;
+  --ps-info: #2a6f9e;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
   --ps-canvas: #111310;
   --ps-surface: #191c18;
+  --ps-raised: #22261f;
   --ps-ink: #f0f1e9;
   --ps-muted: #9ca198;
   --ps-line: #30352f;
   --ps-signal: #ff9448;
+  --ps-on-signal: #1d1208;
+  --ps-success: #6fcf97;
+  --ps-warning: #e8b84a;
+  --ps-danger: #ff7b72;
+  --ps-info: #6fb3e0;
 }
 
 html,
 body,
 #app {
   min-height: 100%;
+  height: 100%;
 }
 
 body {
   margin: 0;
   background: var(--ps-canvas);
   color: var(--ps-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Utilities used across features */
+.card {
+  background: var(--ps-surface);
+  border: 1px solid var(--ps-line);
+  border-radius: var(--radius-card);
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition;
+  @apply disabled:cursor-not-allowed disabled:opacity-45;
+}
+
+.btn-primary {
+  background: var(--ps-signal);
+  color: var(--ps-on-signal);
+}
+.btn-primary:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+.btn-secondary {
+  background: var(--ps-raised);
+  border: 1px solid var(--ps-line);
+  color: var(--ps-ink);
+}
+.btn-secondary:not(:disabled):hover {
+  border-color: var(--ps-muted);
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--ps-danger);
+  color: var(--ps-danger);
+}
+.btn-danger:not(:disabled):hover {
+  background: color-mix(in srgb, var(--ps-danger) 10%, transparent);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ps-muted);
+}
+.btn-ghost:not(:disabled):hover {
+  color: var(--ps-ink);
+  background: color-mix(in srgb, var(--ps-ink) 6%, transparent);
+}
+
+.field {
+  @apply rounded-lg px-3 py-2 text-sm outline-none;
+  background: var(--ps-raised);
+  border: 1px solid var(--ps-line);
+  color: var(--ps-ink);
+}
+.field:focus {
+  border-color: var(--ps-signal);
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border: 1px solid var(--ps-line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: var(--ps-raised);
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ps-line) transparent;
+}
+
+@keyframes ps-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse {
+  animation: ps-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ps-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: ps-rise 0.25s ease-out both;
+}
+
+@keyframes ps-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: ps-spin 0.9s linear infinite;
+}
+
+@keyframes ps-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 28px 0;
+  }
+}
+.stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 7px,
+    color-mix(in srgb, var(--ps-on-signal) 35%, transparent) 7px 14px
+  );
+  animation: ps-stripes 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse,
+  .rise,
+  .spin,
+  .stripes {
+    animation: none;
+  }
 }
