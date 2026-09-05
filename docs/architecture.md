@@ -28,7 +28,7 @@ src-tauri/src/
 └── main.rs            # anyhow 应用入口
 ```
 
-在有第一个真实实现前不创建这些模块，避免用占位抽象固定未经验证的协议设计。
+当前只有 `infrastructure/demo` 一个适配器：它实现 `DeviceInventory`、`WorkflowRunner`、`PackageCatalog` 三个 port，用压缩时间线模拟 Legacy iOS Kit 的事件流，不触碰任何硬件。真实的 USB、工具与目录适配器落地时替换它即可，port 与领域规则不变。交互流程见 [device-preparation-flow.md](device-preparation-flow.md)。
 
 ## Device lifecycle
 
