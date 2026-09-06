@@ -75,7 +75,7 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
         <h3 class="text-base font-semibold">
           {{ t("preparation.overview.whatHappens") }}
         </h3>
-        <p class="mt-1 text-sm text-muted">
+        <p v-if="plan.entryMode === 'normal'" class="mt-1 text-sm text-muted">
           {{ t("preparation.overview.intro") }}
         </p>
         <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">

@@ -81,6 +81,7 @@ it("shows the DFU limitations and omits the button prerequisite in its overview"
     allConfirmed: false,
   });
   expect(text(root)).toContain("preparation.overview.dfuEntry");
+  expect(text(root)).not.toContain("preparation.overview.intro");
   expect(text(root)).toContain("preparation.overview.facts.requiredTarget");
   expect(text(root)).not.toContain(
     "preparation.prerequisites.workingButtons.title",
