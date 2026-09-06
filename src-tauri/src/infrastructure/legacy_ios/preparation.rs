@@ -16,6 +16,7 @@ use crate::{
 use legacy_ios_core::{
     BoardConfig, ConnectionId, DeviceIdentity, DeviceMode, Ecid, ProductType, Soc, Udid,
 };
+use legacy_ios_exploits::{A4Limera1n, A4Limera1nError};
 use legacy_ios_services::{
     DeviceInspection, HostKeyPolicy, JailbreakStatus, NormalMux, RamdiskSsh, ScpPath, SshPassword,
     SshTarget, SystemMux,
@@ -24,7 +25,8 @@ use legacy_ios_transport::{
     DeviceLocator, IbootClient, NusbDeviceLocator, RecoveryDeviceInfo, parse_iboot_serial,
 };
 use legacy_ios_workflows::{
-    ExploitPolicy, RamdiskBootPlan, RamdiskBootPreparation, RamdiskBootRequest, boot_ramdisk,
+    ExploitPolicy, RamdiskBootPlan, RamdiskBootPreparation, RamdiskBootProgress,
+    RamdiskBootRequest, boot_ramdisk,
 };
 use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::time::{Instant, timeout};
@@ -222,9 +224,12 @@ impl Target {
             StepId::EnterDfu => self.wait_for_dfu().await?,
             StepId::ExploitBootrom => {
                 self.port = find_dfu(self.ecid).await?.0;
-                let client = IbootClient::open(Some(self.ecid))
-                    .await
-                    .map_err(super::limera1n::open_failure)?;
+                let client = IbootClient::open(Some(self.ecid)).await.map_err(|error| {
+                    PreparationError::Exploit {
+                        stage: "prepareDevice",
+                        reason: error.diagnostic_code(),
+                    }
+                })?;
                 let info = client.device_info();
                 if client.mode() != DeviceMode::Dfu {
                     return Err(failure(OperationErrorCode::DeviceChanged));
@@ -239,18 +244,47 @@ impl Target {
                     .ok_or(failure(OperationErrorCode::BuildFailed))?
                     .payload
                     .clone();
-                super::limera1n::exploit(client, self.ecid, &payload).await?;
+                A4Limera1n::new(payload)
+                    .map_err(exploit_error)?
+                    .exploit(client)
+                    .await
+                    .map_err(exploit_error)?;
             }
             StepId::BootRamdisk => {
-                boot_ramdisk(
-                    self.boot
-                        .as_ref()
-                        .ok_or(failure(OperationErrorCode::BuildFailed))?,
-                    self.ecid,
-                    &mut |_| {},
+                let mut stage = "connectBootDevice";
+                let result = timeout(
+                    Duration::from_secs(110),
+                    boot_ramdisk(
+                        self.boot
+                            .as_ref()
+                            .ok_or(failure(OperationErrorCode::BuildFailed))?,
+                        self.ecid,
+                        &mut |progress| match progress {
+                            RamdiskBootProgress::SendingComponent { name, .. } => {
+                                stage = match name {
+                                    "iBSS" => "sendIbss",
+                                    "iBEC" => "sendIbec",
+                                    "RestoreRamDisk" => "sendRamdisk",
+                                    "RestoreDeviceTree" => "sendDeviceTree",
+                                    "RestoreKernelCache" => "sendKernel",
+                                    _ => "bootComponent",
+                                };
+                            }
+                            RamdiskBootProgress::SendingCommand { name } => stage = name,
+                            _ => {}
+                        },
+                    ),
                 )
-                .await
-                .map_err(|_| failure(OperationErrorCode::RamdiskBootFailed))?;
+                .await;
+                result
+                    .map_err(|_| PreparationError::Ramdisk {
+                        stage,
+                        reason: "timeoutOrCancelled",
+                    })?
+                    .map_err(|error| PreparationError::Ramdisk {
+                        stage,
+                        reason: error.diagnostic_code(),
+                    })?;
             }
             StepId::MountFilesystem => {
                 let ssh = self.connect_ramdisk().await?;
@@ -557,6 +591,13 @@ fn matching_udid(
         return Err(failure(OperationErrorCode::DeviceChanged));
     }
     Ok(first)
+}
+
+fn exploit_error(error: A4Limera1nError) -> PreparationError {
+    PreparationError::Exploit {
+        stage: error.stage(),
+        reason: error.reason(),
+    }
 }
 
 #[cfg(test)]

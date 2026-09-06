@@ -189,11 +189,10 @@ impl Resources {
                     tracing::info!("adding SpringBoard ramdisk configuration");
                     hfs.untar(&self.files["sbplist.tar"]).map_err(build_error)?;
                     let ssh_tar = gunzip(&self.files["ssh.tar.gz"])?;
-                    // The pinned upstream archive starts with './'. The HFS
-                    // importer rejects an empty normalized path; the image's
-                    // existing root directory must retain its own metadata.
+                    // The library importer preserves the root metadata and
+                    // stock directory symlinks while merging upstream archives.
                     tracing::info!("adding SSH ramdisk payload");
-                    merge_ssh_archive(&mut hfs, &ssh_tar)?;
+                    hfs.untar(&ssh_tar).map_err(build_error)?;
                     tracing::info!("renaming ramdisk reboot tools");
                     hfs.move_entry("/sbin/reboot", "/sbin/reboot_bak")
                         .map_err(build_error)?;
@@ -208,7 +207,9 @@ impl Resources {
             };
             std::fs::write(work.path().join(name), output).map_err(build_error)?;
         }
-        let payload = a4_payload(self.files["limera1n-shellcode.bin"].clone())?;
+        let payload =
+            legacy_ios_exploits::patch_a4_shellcode(self.files["limera1n-shellcode.bin"].clone())
+                .map_err(build_error)?;
         Ok(BootAssets {
             work,
             payload,
@@ -257,87 +258,14 @@ fn gunzip(data: &[u8]) -> Result<Vec<u8>, PreparationError> {
     Ok(output)
 }
 
-// axi0mX/ipwndfu limera1n.py, constants_574_4 at the manifest-pinned commit.
-// The DFU adapter adds the compact heap headers; this returns only shellcode.
-fn a4_payload(mut shellcode: Vec<u8>) -> Result<Vec<u8>, PreparationError> {
-    let constants: [u32; 22] = [
-        0x84039800, 1024, 0x84dc, 0x8403c000, 0x4e8d, 0x690d, 0x8402e0e0, 0x90c9, 0x4c85,
-        0x84000000, 0x2c000, 0x8402dbcc, 0x3b95, 0x65786563, 0x7469, 0x5a5d, 0x7451, 0x68, 0x64,
-        0x412d, 0x46db, 0x47db,
-    ];
-    let start = shellcode
-        .len()
-        .checked_sub(constants.len() * 4)
-        .ok_or(failure(OperationErrorCode::BuildFailed))?;
-    for (index, constant) in constants.into_iter().enumerate() {
-        let bytes = &mut shellcode[start + index * 4..start + (index + 1) * 4];
-        if bytes != (0xbad00001 + index as u32).to_le_bytes() {
-            return Err(failure(OperationErrorCode::BuildFailed));
-        }
-        bytes.copy_from_slice(&constant.to_le_bytes());
-    }
-    Ok(shellcode)
-}
-
 fn build_error(error: impl std::fmt::Display) -> PreparationError {
     tracing::warn!(%error, "ramdisk construction failed");
     failure(OperationErrorCode::BuildFailed)
 }
 
-fn merge_ssh_archive(hfs: &mut HfsImage, bytes: &[u8]) -> Result<(), PreparationError> {
-    let mut archive = tar::Archive::new(bytes);
-    for entry in archive.entries().map_err(build_error)? {
-        let mut entry = entry.map_err(build_error)?;
-        let path = entry.path().map_err(build_error)?.into_owned();
-        if path == Path::new(".") && entry.header().entry_type().is_dir() {
-            continue;
-        }
-        let mapped = map_ramdisk_path(hfs, &path)?;
-        let mut header = entry.header().clone();
-        header.set_path(mapped).map_err(build_error)?;
-        header.set_cksum();
-        let mut single = tar::Builder::new(Vec::new());
-        single.append(&header, &mut entry).map_err(build_error)?;
-        let data = single.into_inner().map_err(build_error)?;
-        hfs.untar(&data).map_err(|error| {
-            tracing::warn!(path = %path.display(), %error, "SSH archive entry failed");
-            build_error(error)
-        })?;
-    }
-    Ok(())
-}
-
-fn map_ramdisk_path(hfs: &HfsImage, path: &Path) -> Result<PathBuf, PreparationError> {
-    let mut normalized = PathBuf::new();
-    for component in path.components() {
-        match component {
-            std::path::Component::CurDir => {}
-            std::path::Component::Normal(name) => normalized.push(name),
-            _ => return Err(failure(OperationErrorCode::BuildFailed)),
-        }
-    }
-    // HFS import does not follow directory symlinks. Preserve the stock iOS
-    // root links while merging the SSH archive into their existing targets.
-    for (link, target) in [
-        ("etc", "private/etc"),
-        ("var", "private/var"),
-        ("tmp", "private/var/tmp"),
-    ] {
-        if let Ok(tail) = normalized.strip_prefix(link) {
-            let actual = hfs.read(&format!("/{link}")).map_err(build_error)?;
-            if actual.strip_prefix(b"/").unwrap_or(&actual) != target.as_bytes() {
-                return Err(failure(OperationErrorCode::BuildFailed));
-            }
-            return Ok(Path::new(target).join(tail));
-        }
-    }
-    Ok(normalized)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hfsplus::testutil::HfsPlusImageBuilder;
 
     #[test]
     fn rejects_corrupt_or_truncated_cached_inputs() {
@@ -351,57 +279,6 @@ mod tests {
             verify(b"trust", &digest, 7),
             Err(failure(OperationErrorCode::ChecksumMismatch))
         );
-        assert!(a4_payload(vec![0; 368]).is_err());
-    }
-
-    #[test]
-    fn merges_ssh_etc_into_private_etc_and_preserves_the_root_symlink() {
-        let mut builder = HfsPlusImageBuilder::new();
-        builder.add_file("seed", b"seed", 0o644);
-        // hfsplus's read-only fixture has no allocation bitmap. Supply a
-        // writable bitmap and spare blocks before exercising the real merger.
-        let mut data = builder.build();
-        data.resize(8 * 4096, 0);
-        for (offset, value) in [
-            (44, 8u32),
-            (48, 1),
-            (112 + 12, 1),
-            (112 + 16, 6),
-            (112 + 20, 1),
-        ] {
-            data[1024 + offset..1024 + offset + 4].copy_from_slice(&value.to_be_bytes());
-        }
-        data[1024 + 112..1024 + 120].copy_from_slice(&1u64.to_be_bytes());
-        data[6 * 4096] = 0xfb;
-        let header = data[1024..1536].to_vec();
-        data[8 * 4096 - 1024..8 * 4096 - 512].copy_from_slice(&header);
-        let mut hfs = HfsImage::parse(data).unwrap();
-        hfs.grow(1024 * 1024).unwrap();
-        hfs.mkdir("/private").unwrap();
-        hfs.mkdir("/private/etc").unwrap();
-        hfs.add_symlink("/etc", "private/etc").unwrap();
-        let mut archive = tar::Builder::new(Vec::new());
-        for path in ["./", "./etc/"] {
-            let mut header = tar::Header::new_ustar();
-            header.set_entry_type(tar::EntryType::Directory);
-            header.set_mode(0o755);
-            header.set_size(0);
-            header.set_cksum();
-            archive
-                .append_data(&mut header, path, std::io::empty())
-                .unwrap();
-        }
-        let mut header = tar::Header::new_ustar();
-        header.set_mode(0o644);
-        header.set_size(6);
-        header.set_cksum();
-        archive
-            .append_data(&mut header, "./etc/config", &b"config"[..])
-            .unwrap();
-        merge_ssh_archive(&mut hfs, &archive.into_inner().unwrap()).unwrap();
-        assert_eq!(hfs.read("/etc").unwrap(), b"private/etc");
-        assert_eq!(hfs.read("/private/etc/config").unwrap(), b"config");
-        assert!(map_ramdisk_path(&hfs, Path::new("../outside")).is_err());
-        assert!(map_ramdisk_path(&hfs, Path::new("/outside")).is_err());
+        assert!(legacy_ios_exploits::patch_a4_shellcode(vec![0; 368]).is_err());
     }
 }

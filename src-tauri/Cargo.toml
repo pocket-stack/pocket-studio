@@ -15,20 +15,19 @@ tauri-build = { version = "2.5.6", features = [] }
 
 [dependencies]
 anyhow = "1.0.100"
-nusb = "=0.2.7"
 flate2 = "1.1"
 sha2 = "0.10"
 tempfile = "3.20"
-tar = "0.4"
 serde_json = "1.0"
-legacy-ios-firmware = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs", rev = "42b423fbfdcda66f1fb7cca2b605654dd905087e" }
-legacy-ios-image = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs", rev = "42b423fbfdcda66f1fb7cca2b605654dd905087e" }
-legacy-ios-workflows = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs", rev = "42b423fbfdcda66f1fb7cca2b605654dd905087e" }
+legacy-ios-exploits = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/exploits" }
+legacy-ios-firmware = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/firmware" }
+legacy-ios-image = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/image" }
+legacy-ios-workflows = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/workflows" }
 idevice = { version = "=0.1.65", default-features = false }
-legacy-ios-assets = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs", rev = "42b423fbfdcda66f1fb7cca2b605654dd905087e" }
-legacy-ios-core = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs", rev = "42b423fbfdcda66f1fb7cca2b605654dd905087e" }
-legacy-ios-services = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs", rev = "42b423fbfdcda66f1fb7cca2b605654dd905087e", features = ["legacy-tls"] }
-legacy-ios-transport = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs", rev = "42b423fbfdcda66f1fb7cca2b605654dd905087e" }
+legacy-ios-assets = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/assets" }
+legacy-ios-core = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/core" }
+legacy-ios-services = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/services", features = ["legacy-tls"] }
+legacy-ios-transport = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/transport" }
 serde = { version = "1.0.228", features = ["derive"] }
 tauri = { version = "2.11.5", features = [] }
 thiserror = "2.0.17"
@@ -39,4 +38,3 @@ uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 serde_json = "1.0"
-hfsplus = { version = "0.2.4", features = ["testutil"] }

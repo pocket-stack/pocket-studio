@@ -146,7 +146,23 @@
       "trigger": "触发漏洞",
       "reconnect": "重新连接设备",
       "finalize": "完成 DFU 传输",
-      "verifyPwned": "检查 pwned DFU 标记"
+      "verifyPwned": "检查 pwned DFU 标记",
+      "connectBootDevice": "连接 ramdisk 引导设备",
+      "sendIbss": "上传 iBSS 并重新枚举",
+      "sendIbec": "上传 iBEC",
+      "sendRamdisk": "上传 SSH ramdisk",
+      "sendDeviceTree": "上传设备树",
+      "sendKernel": "上传内核",
+      "bootComponent": "上传引导组件",
+      "runIbec": "运行 iBEC",
+      "ramdiskDelay": "读取 ramdisk 启动延迟",
+      "activateRamdisk": "激活 ramdisk",
+      "activateDeviceTree": "激活设备树",
+      "bootArguments": "设置内核启动参数",
+      "bootKernel": "启动内核",
+      "ticket": "加载引导票据",
+      "trustCache": "加载信任缓存",
+      "bootCommand": "执行引导命令"
     },
     "usbReasons": {
       "timeoutOrCancelled": "USB 控制传输超时或被取消",
@@ -156,7 +172,8 @@
       "unexpectedReply": "设备身份或响应不符合预期",
       "reconnectTimeout": "等待设备重新出现超时",
       "notPwned": "设备仍未出现 pwned DFU 标记",
-      "transport": "USB 传输发生错误"
+      "transport": "USB 传输发生错误",
+      "missingComponent": "缺少引导所需的镜像组件"
     }
   }
 }

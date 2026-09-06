@@ -34,6 +34,11 @@ pub trait PreparationDriver: Send + Sync {
 
 #[derive(Debug, Clone, Copy, thiserror::Error, PartialEq, Eq)]
 pub enum PreparationError {
+    #[error("ramdisk boot failed at {stage}: {reason}")]
+    Ramdisk {
+        stage: &'static str,
+        reason: &'static str,
+    },
     #[error("bootrom preparation failed at {stage}: {reason}")]
     Exploit {
         stage: &'static str,
@@ -73,7 +78,7 @@ impl PreparationError {
             Self::InvalidConsent => "invalidConsent",
             Self::NotCancellable => "notCancellable",
             Self::UnknownOperation => "unknownOperation",
-            Self::Step(_) | Self::Exploit { .. } => "preparationFailed",
+            Self::Step(_) | Self::Exploit { .. } | Self::Ramdisk { .. } => "preparationFailed",
         }
     }
 }
@@ -322,7 +327,8 @@ impl PreparationService {
             }
             Err(error) => {
                 let diagnostic = match error {
-                    PreparationError::Exploit { stage, reason } => Some(OperationDiagnostic {
+                    PreparationError::Exploit { stage, reason }
+                    | PreparationError::Ramdisk { stage, reason } => Some(OperationDiagnostic {
                         stage: stage.into(),
                         reason: reason.into(),
                     }),
@@ -330,6 +336,7 @@ impl PreparationService {
                 };
                 let code = match error {
                     PreparationError::Exploit { .. } => OperationErrorCode::ExploitFailed,
+                    PreparationError::Ramdisk { .. } => OperationErrorCode::RamdiskBootFailed,
                     PreparationError::Step(code) => code,
                     PreparationError::AlreadyJailbroken => OperationErrorCode::AlreadyJailbroken,
                     PreparationError::DeviceNotFound => OperationErrorCode::DeviceDisconnected,
@@ -522,13 +529,16 @@ mod tests {
             Box::pin(async move {
                 self.calls.lock().unwrap().push(step);
                 if self.fail == Some(step) {
-                    return Err(if step == StepId::ExploitBootrom {
-                        PreparationError::Exploit {
+                    return Err(match step {
+                        StepId::ExploitBootrom => PreparationError::Exploit {
                             stage: "sendPayload",
                             reason: "timeoutOrCancelled",
-                        }
-                    } else {
-                        PreparationError::Step(OperationErrorCode::WriteFailed)
+                        },
+                        StepId::BootRamdisk => PreparationError::Ramdisk {
+                            stage: "sendIbss",
+                            reason: "access",
+                        },
+                        _ => PreparationError::Step(OperationErrorCode::WriteFailed),
                     });
                 }
                 if self.block == Some(step) {
@@ -729,6 +739,37 @@ mod tests {
             entry.params.as_ref().unwrap()["reason"],
             "timeoutOrCancelled"
         );
+    }
+
+    #[tokio::test]
+    async fn ramdisk_failure_keeps_usb_diagnostics_and_stops_before_mounting() {
+        let (service, sink, driver) = setup(Some(StepId::BootRamdisk), None);
+        service.start(consent(&service).await).await.unwrap();
+        wait(&sink, |event| {
+            matches!(event, OperationEvent::Failed { .. })
+        })
+        .await;
+        assert!(sink.events.lock().unwrap().iter().any(|event| matches!(
+            event,
+            OperationEvent::Failed { error, .. }
+                if error.code == OperationErrorCode::RamdiskBootFailed
+                    && error.diagnostic.as_ref().is_some_and(|detail|
+                        detail.stage == "sendIbss" && detail.reason == "access")
+        )));
+        assert!(
+            !driver
+                .calls
+                .lock()
+                .unwrap()
+                .contains(&StepId::MountFilesystem)
+        );
+        let entries = service.log.entries();
+        let entry = entries
+            .iter()
+            .find(|entry| entry.code == "log.preparation.usbFailed")
+            .unwrap();
+        assert_eq!(entry.params.as_ref().unwrap()["stage"], "sendIbss");
+        assert_eq!(entry.params.as_ref().unwrap()["reason"], "access");
     }
 
     #[tokio::test]

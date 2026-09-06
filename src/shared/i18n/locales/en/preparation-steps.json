@@ -158,7 +158,23 @@
       "trigger": "Trigger exploit",
       "reconnect": "Reconnect device",
       "finalize": "Finalize DFU transfer",
-      "verifyPwned": "Check pwned DFU marker"
+      "verifyPwned": "Check pwned DFU marker",
+      "connectBootDevice": "Connect ramdisk boot device",
+      "sendIbss": "Upload iBSS and re-enumerate",
+      "sendIbec": "Upload iBEC",
+      "sendRamdisk": "Upload SSH ramdisk",
+      "sendDeviceTree": "Upload device tree",
+      "sendKernel": "Upload kernel",
+      "bootComponent": "Upload boot component",
+      "runIbec": "Run iBEC",
+      "ramdiskDelay": "Read ramdisk boot delay",
+      "activateRamdisk": "Activate ramdisk",
+      "activateDeviceTree": "Activate device tree",
+      "bootArguments": "Set kernel boot arguments",
+      "bootKernel": "Boot kernel",
+      "ticket": "Load boot ticket",
+      "trustCache": "Load trust cache",
+      "bootCommand": "Run boot command"
     },
     "usbReasons": {
       "timeoutOrCancelled": "USB control transfer timed out or was cancelled",
@@ -168,7 +184,8 @@
       "unexpectedReply": "Unexpected device identity or response",
       "reconnectTimeout": "Timed out waiting for the device to return",
       "notPwned": "Device still has no pwned DFU marker",
-      "transport": "USB transport error"
+      "transport": "USB transport error",
+      "missingComponent": "A required boot image component is missing"
     }
   }
 }

@@ -28,7 +28,7 @@ src-tauri/src/
 └── main.rs            # anyhow 应用入口
 ```
 
-当前原生接入由 `infrastructure/legacy_ios` 实现 `application::discovery::DeviceProbe`。它使用固定版本的 Legacy-iOS-Kit-rs 库，不调用外部 CLI。`DeviceDiscovery` 串行执行刷新、缓存设备事实、计算接入报告，并发送带版本的完整 `DiscoverySnapshot`；后台轮询与手动检测共享这条链路。
+当前原生接入由 `infrastructure/legacy_ios` 实现 `application::discovery::DeviceProbe`。它使用本地路径依赖的 Legacy-iOS-Kit-rs 库，不调用外部 CLI。`DeviceDiscovery` 串行执行刷新、缓存设备事实、计算接入报告，并发送带版本的完整 `DiscoverySnapshot`；后台轮询与手动检测共享这条链路。
 
 Tauri 命令读取真实 inventory，并将显式准备请求交给 `PreparationService`。安装、卸载等未实现操作返回稳定错误 `operationUnavailable`；`Studio` 不连接模拟工作流驱动。浏览器单独使用 `simulatedGateway.ts`，保留完整交互演示。界面通过 gateway capabilities 显示实际可用功能。
 
@@ -112,4 +112,4 @@ Vue 顶部区域只是一条应用工具栏，不绘制红绿灯、最小化、�
 
 `application/preparation.rs` 负责方案缓存、限时且一次性的授权、互斥、取消边界及事件。`PreparationDriver` 只读捕获目标；`PreparationTarget` 在 native 适配器内部保留 UDID / ECID，并在写入前重新验证。平台选择继续由 `HostEnvironment` 定义，所有平台使用现有系统 usbmux；不隐式修改驱动或提权。
 
-`infrastructure/legacy_ios/preparation_resources.rs` 负责固定资源清单、校验与电脑上的临时镜像构建；`preparation.rs` 负责具体 USB / SSH 操作。发现不调用这两个执行入口。详见 [原生准备流程](native-preparation.md)。
+`infrastructure/legacy_ios/preparation_resources.rs` 负责固定资源清单、校验与电脑上的临时镜像构建；`preparation.rs` 将应用方案、设备身份、用户授权和步骤事件接入库的 USB / SSH 操作。A4 利用、USB 复位、HFS 归档导入及 ramdisk 引导状态机均在库中实现；Studio 不保留第二套协议实现。发现不调用这两个执行入口。详见 [原生准备流程](native-preparation.md)。

@@ -25,16 +25,16 @@ Rust 校验所有风险和前提、方案 ID、条款版本、阅读时长、阅
 
 ## 资源与实现依据
 
-- [Legacy-iOS-Kit-rs 42b423f](https://github.com/HalfSweet/Legacy-iOS-Kit-rs/tree/42b423fbfdcda66f1fb7cca2b605654dd905087e)：USB 传输、镜像处理、HFS 及 ramdisk 启动。
+- 本地 `../../../GitHub/Legacy-iOS-Kit-rs`（相对 `src-tauri`）：USB 传输、A4 利用、镜像处理、HFS 及 ramdisk 启动。当前直接修改并构建此库，不要求先推送远程仓库。
 - [Legacy iOS Kit 1ff4be0 的 device_ramdisk](https://github.com/LukeZGD/Legacy-iOS-Kit/blob/1ff4be07ea2946ccaeff2db60c4426488b8f6e32/restore.sh)：n81 / 10B500 组件、boot args、SSH ramdisk 组合与越狱资源次序。
 - [固定固件密钥元数据](https://github.com/LukeZGD/Legacy-iOS-Kit-Keys/blob/af6bf5934dc61ed557a967a3f42ab7fb8ed8c45e/iPod4%2C1/10B500/index.html)。元数据也经过 SHA-256 校验，不输出其内容。
-- [ipwndfu 0e28932 的 A4 载荷参数](https://github.com/axi0mX/ipwndfu/blob/0e28932ec6a2a570b10fd77e50bda4216418cd98/limera1n.py)：下载同版本 shellcode 后验证占位符，再应用 `constants_574_4`。Studio 的 DFU 适配器在其前方添加 16 个 64 字节堆头，A4 入口地址为 `0x84000401`。
+- [ipwndfu 0e28932 的 A4 载荷参数](https://github.com/axi0mX/ipwndfu/blob/0e28932ec6a2a570b10fd77e50bda4216418cd98/limera1n.py)：下载同版本 shellcode 后验证占位符，再应用 `constants_574_4`。库的 `A4Limera1n` 在其前方添加 16 个 64 字节堆头，A4 入口地址为 `0x84000401`。
 
 `preparation-assets.json` 固定来源 URL、大小及 SHA-256。Apple 完整 IPSW 为 888,894,104 字节，来源是 Apple HTTPS；在原始下载的 SHA-1 与公开固件记录一致后计算并固定 SHA-256，各组件另有摘要。其余安装包沿用库的固定资源目录。二进制、固件、密钥和 SSH 资源均在运行时下载，不随仓库分发；来源项目的许可仍适用。
 
-固定版本的远程 ZIP 读取器在真实 Apple IPSW 验证中返回 `invalid remote ZIP archive`，因此这里使用完整固件下载与摘要校验后再读取组件。没有静默回退为未验证下载。首次需要约 889 MB 固件空间，之后复用校验缓存；临时构建目录由具体操作拥有并自动删除。
+此前远程 ZIP 读取器把 HEAD 响应的空正文长度当成固件长度，导致 `invalid remote ZIP archive`；本地库已修正为读取有效的 `Content-Length` 头，并添加本地 HTTP 回归测试。Studio 仍使用完整固件下载与摘要校验后再读取组件，以保留当前整包认证边界。没有静默回退为未验证下载。首次需要约 889 MB 固件空间，之后复用校验缓存；临时构建目录由具体操作拥有并自动删除。
 
-SSH tar 含 `./` 根目录条目和 `etc/` 等目录，而 stock ramdisk 的 `/etc`、`/var`、`/tmp` 是符号链接。适配器跳过根目录元数据，在检查 stock 链接目标后将条目映射到 `/private` 下的真实目录，保留 stock 链接，拒绝绝对路径与父目录路径。此兼容问题有独立回归测试。
+SSH tar 含 `./` 根目录条目和 `etc/` 等目录，而 stock ramdisk 的 `/etc`、`/var`、`/tmp` 是符号链接。库的 `HfsImage::untar` 跳过根目录元数据，仅在镜像内解析目录链接，保留 stock 链接。归档成员仍拒绝绝对路径与父目录路径；链接解析限制在镜像根目录内，并拒绝循环链接。Studio 直接调用库接口，此兼容问题的回归测试也已移入 image crate。
 
 库的 firmware crate 固定 `serde_json = 1.0.140`；锁文件将 Tauri 的兼容传递依赖 `serde_with` 固定到 3.14.1，以解决 3.17.0 要求更高 serde_json 的冲突。
 
@@ -44,7 +44,7 @@ macOS、Linux、Windows 都使用已有系统 usbmux 与共享 Rust USB / SSH �
 
 已完成 macOS 正常模式及 DFU 真机只读检测与方案预检，以及真实固件下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包校验。自动测试覆盖授权时序与重放、并发互斥、取消边界、失败终止、事件字段、资源损坏及 HFS 目录链接兼容。
 
-旧版 limera1n 执行曾在 USB 控制传输阶段失败，后续只读 GETSTATE 也观察到 IOKit `0xe0004051` 事务超时；当前修正后的利用链、ramdisk 启动、越狱写入和重启验证尚未完成真机验收。三平台的真实写入均不应被视为硬件验证通过。后续验收需要用户在桌面应用亲自确认备份与风险、启动操作并按引导进入 DFU。
+旧版 limera1n 执行曾在 USB 控制传输阶段失败，后续只读 GETSTATE 也观察到 IOKit `0xe0004051` 事务超时。此前紧凑 A4 流程已观察到真机 PWND 标记，随后 ramdisk 上传停在 DFU 状态 8；本次修复后仍需完成库集成后的完整引导、越狱写入和重启验收。三平台的真实写入均不应被视为硬件验证通过。后续验收需要用户在桌面应用亲自确认备份与风险、启动操作并按引导进入 DFU。
 
 以下诊断工具位于 Git 忽略的 `src-tauri/examples/`，不随仓库分发；仅在本机保留对应文件时可运行。只验证电脑上的资源步骤：
 
@@ -64,7 +64,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices -- --pla
 
 ## macOS A4 利用流程对齐
 
-以本地 Legacy-iOS-Kit 的 `restore.sh`（A4 / macOS 分支调用 `ipwnder -pv`）和其 `ipwnder_lite` 原始实现为对照，Studio 在 `infrastructure/legacy_ios/limera1n.rs` 协调以下序列：USB 重置/重新枚举并绑定原 ECID → 一次发送紧凑堆头与载荷 → 1 字节预备读取 → 短时传输与触发 → 再次重新枚举 → 结束传输与三次状态请求 → 最后重新枚举并验证 PWND 标记。底层继续使用 Legacy-iOS-Kit-rs 的 Rust USB API；没有调用本地主机可执行文件，也没有修改旁边正在开发的 Rust 仓库。
+以本地 Legacy-iOS-Kit 的 `restore.sh`（A4 / macOS 分支调用 `ipwnder -pv`）和其 `ipwnder_lite` 原始实现为对照，本地库在 `crates/exploits/src/a4_limera1n.rs` 协调以下序列：USB 重置/重新枚举并绑定原 ECID → 一次发送紧凑堆头与载荷 → 1 字节预备读取 → 短时传输与触发 → 再次重新枚举 → 结束传输与三次状态请求 → 最后重新枚举并验证 PWND 标记。Studio 直接调用 `A4Limera1n`，原有临时实现及直接 nusb 依赖已移除；库的 facade 同样对 A4 选择这一入口。整个流程不调用本地主机可执行文件。
 
 旧路径采用另一种大缓冲区堆喷布局，缺少前置重连，且触发和结束传输之间未重新枚举。紧凑布局与当前固定的 ipwndfu 载荷配套。原版的参考实现见 [ipwnder_lite limera1n](https://github.com/dora2ios/ipwnder_lite/blob/cf6d1e6e60727e79c281cd559ebcafd43149e4c1/src/exploit/limera1n.c)。
 
@@ -72,6 +72,8 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices -- --pla
 
 回归测试独立列出 USB 请求顺序、长度和超时边界，覆盖载荷布局、预备读取失败、载荷发送失败、最终无 PWND 证据以及诊断信息不能在应用层丢失。
 
-另外，固定版本的 `IbootClient::reset()` 在调用 nusb 重置时仍持有已 claim 的接口。真机重现会得到“cannot perform this operation while interfaces are claimed”，旧利用路径忽略了该错误。适配器现先丢弃 IbootClient（释放接口），再按原 ECID 找到 USB 设备，以不占用接口的新句柄执行重枚举，然后重新连接；没有更改系统服务或驱动。
+另外，原先的 `IbootClient::reset()` 和 `upload_image()` 在调用 nusb 重置时仍持有已 claim 的接口。真机重现会得到“cannot perform this operation while interfaces are claimed”，导致上传后的 DFU 状态 8 无法继续。库现统一先释放接口，再通过保留的设备句柄执行复位；上传路径复用这一实现并保留错误。ramdisk 引导在重枚举前等待 1 秒，并继续按原 ECID 重连；没有更改系统服务或驱动。
+
+库向嵌入方报告组件上传、引导命令和脱敏错误分类。Studio 将其映射为中英文的具体阶段（例如上传 iBSS、运行 iBEC、激活 ramdisk、启动内核），保留在失败事件和导出日志中。安装归档的设备端命令也已同步到库：仅在 tar 成功后清理临时包，避免清理成功掩盖安装失败。
 
 2026-09-07 的同链路真机诊断中，修正前 GETSTATE 约 2.2 秒超时，释放接口并重新枚举后约 0.9 毫秒返回状态 5。该检查只进行了 USB 重枚举和状态读取，没有发送利用载荷或写入设备文件系统。此结果验证了控制通信恢复，尚不代表完整利用、ramdisk 启动或安装成功。

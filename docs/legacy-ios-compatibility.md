@@ -12,7 +12,7 @@
 
 ## Studio 的处理
 
-兼容逻辑现已移入 Legacy-iOS-Kit-rs 并推送至 `42b423f`。Studio 固定依赖该提交、启用 `legacy-tls`，通过库的 `NormalDevice::inspect()` 获取配对信息和越狱证据；应用内重复的 TLS 与检测实现已移除。仍不运行 restore.sh 或外部设备工具。
+兼容逻辑现已移入 Legacy-iOS-Kit-rs 并推送至 `42b423f`。Studio 现使用包含该提交及准备流程修复的本地库、启用 `legacy-tls`，通过库的 `NormalDevice::inspect()` 获取配对信息和越狱证据；应用内重复的 TLS 与检测实现已移除。仍不运行 restore.sh 或外部设备工具。
 
 会话只读取已有配对记录。ValidatePair 请求仅包含公开证书、HostID 与 SystemBUID，不包含私钥或 EscrowBag。私钥只在本机 TLS 认证时使用。USB 会话按设备版本选定协议，不会在握手失败后盲目降级；服务器证书必须与已配对设备证书完全匹配。
 
