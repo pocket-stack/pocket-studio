@@ -20,3 +20,5 @@ src-tauri/gen/
 # Logs and coverage
 *.log
 coverage/
+
+.design/
