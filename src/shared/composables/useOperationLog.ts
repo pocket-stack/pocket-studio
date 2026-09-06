@@ -5,6 +5,7 @@ import {
   type LogEntry,
   type LogLevel,
   type LogSource,
+  type Unsubscribe,
 } from "../gateway";
 import { notify } from "./useNotifications";
 
@@ -18,7 +19,11 @@ const exporting = ref(false);
 const exportText = ref<string | null>(null);
 const storageFailed = ref(false);
 const query = ref("");
-const storageKey = "pocket-studio.operation-history.v1";
+const storageKey = useGateway().capabilities.demo
+  ? "pocket-studio.operation-history.v1"
+  : "pocket-studio.operation-history.native.v1";
+const entryId = (id: string) =>
+  useGateway().capabilities.demo ? `${runId}/${id}` : id;
 const runId = crypto.randomUUID().slice(0, 8);
 function persist(): void {
   try {
@@ -71,6 +76,7 @@ function serializeLogs(items: readonly LogEntry[]): string {
     .join("\n");
 }
 let initialized = false;
+let stop: Unsubscribe | undefined;
 
 const MAX_ENTRIES = 2000;
 
@@ -79,23 +85,30 @@ async function initialize(): Promise<void> {
   initialized = true;
   const gateway = useGateway();
   entries.value = loadHistory();
-  gateway.logs.onEntry((entry) => {
-    entries.value.push({ ...entry, id: `${runId}/${entry.id}` });
-    if (entries.value.length > MAX_ENTRIES)
-      entries.value.splice(0, entries.value.length - MAX_ENTRIES);
+  try {
+    stop ??= await gateway.logs.onEntry((entry) => {
+      if (entries.value.some((existing) => existing.id === entryId(entry.id)))
+        return;
+      entries.value.push({ ...entry, id: entryId(entry.id) });
+      if (entries.value.length > MAX_ENTRIES)
+        entries.value.splice(0, entries.value.length - MAX_ENTRIES);
+      persist();
+    });
+    const existing = await gateway.logs.list();
+    const known = new Set(entries.value.map((entry) => entry.id));
+    entries.value = [
+      ...existing
+        .filter((entry) => !known.has(entryId(entry.id)))
+        .map((entry) => ({ ...entry, id: entryId(entry.id) })),
+      ...entries.value,
+    ]
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-MAX_ENTRIES);
     persist();
-  });
-  const existing = await gateway.logs.list();
-  const known = new Set(entries.value.map((entry) => entry.id));
-  entries.value = [
-    ...existing
-      .filter((entry) => !known.has(`${runId}/${entry.id}`))
-      .map((entry) => ({ ...entry, id: `${runId}/${entry.id}` })),
-    ...entries.value,
-  ]
-    .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(-MAX_ENTRIES);
-  persist();
+  } catch {
+    initialized = false;
+    notify("error", "notifications.logLoadFailed");
+  }
 }
 
 function toggleLevel(level: LogLevel): void {
@@ -109,7 +122,7 @@ async function exportLogs(): Promise<void> {
   exporting.value = true;
   try {
     exportText.value = serializeLogs(entries.value);
-    // The native demo has no file-save integration. Its export remains reviewable
+    // Native exports remain reviewable
     // and copyable in a dialog; browser previews additionally download the file.
     if (useGateway().flavor === "browser") {
       const url = URL.createObjectURL(

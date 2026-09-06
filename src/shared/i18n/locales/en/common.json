@@ -48,7 +48,8 @@
     "installNeedsPreparation": "This package needs a jailbroken device. Prepare the device first.",
     "installStartFailed": "The install could not be started",
     "installFinished": "Install finished",
-    "installFailed": "Install failed. See the package details for the reason."
+    "installFailed": "Install failed. See the package details for the reason.",
+    "logLoadFailed": "Operation history could not be loaded. Please retry."
   },
   "reading": {
     "remaining": "{seconds} s of reading left",
@@ -76,12 +77,7 @@
     },
     "about": {
       "title": "About",
-      "version": "Version",
-      "backend": "Backend",
-      "toolkit": "Device toolkit",
-      "toolkitNote": "UI demo only; no real device operations are wired up",
-      "browser": "Browser simulation",
-      "native": "Tauri demo driver"
+      "version": "Version"
     }
   }
 }

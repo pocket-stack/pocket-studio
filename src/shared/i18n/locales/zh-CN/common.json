@@ -48,7 +48,8 @@
     "installNeedsPreparation": "该软件需要已越狱的设备，请先完成设备准备。",
     "installStartFailed": "无法开始安装",
     "installFinished": "安装完成",
-    "installFailed": "安装失败，请在详情中查看原因。"
+    "installFailed": "安装失败，请在详情中查看原因。",
+    "logLoadFailed": "操作日志加载失败，请稍后重试。"
   },
   "reading": {
     "remaining": "还需阅读 {seconds} 秒",
@@ -76,12 +77,7 @@
     },
     "about": {
       "title": "关于",
-      "version": "版本",
-      "backend": "后端",
-      "toolkit": "设备工具链",
-      "toolkitNote": "当前为界面演示，未接入真实设备操作",
-      "browser": "浏览器模拟",
-      "native": "Tauri 演示驱动"
+      "version": "版本"
     }
   }
 }

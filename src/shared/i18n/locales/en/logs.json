@@ -25,7 +25,10 @@
       "attached": "Device attached: {model}",
       "detached": "Device detached",
       "modeChanged": "Device mode changed to {mode}",
-      "readinessChecked": "Readiness check result: {status}"
+      "readinessChecked": "Readiness check result: {status}",
+      "inventoryUpdated": "USB inventory updated: {count} device(s).",
+      "diagnostic": "Connection diagnostic: {issue}",
+      "scanCompleted": "Scan completed: {count} device(s)."
     },
     "preparation": {
       "planned": "Preparation plan {plan} created",

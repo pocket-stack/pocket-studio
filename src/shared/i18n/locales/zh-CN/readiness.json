@@ -1,19 +1,21 @@
 {
   "readiness": {
     "title": "接入条件检测",
-    "subtitle": "所有检测均为只读操作，不会修改设备。",
+    "subtitle": "查看设备是否满足 Pocket 生态接入条件。",
     "recheck": "重新检测",
     "checking": "正在读取设备状态…",
     "checkedAt": "检测于 {time}",
     "status": {
       "ready": "已就绪",
       "needsPreparation": "需要准备",
-      "unsupported": "不支持"
+      "unsupported": "不支持",
+      "needsAttention": "待确认"
     },
     "summary": {
-      "ready": "设备已越狱，可以直接安装 Pocket 生态软件。",
+      "ready": "已验证越狱访问、配对连接及 SSH 服务。",
       "needsPreparation": "设备型号与系统受支持，但尚未越狱，需要先完成准备流程。",
-      "unsupported": "当前设备或系统版本暂不受支持。"
+      "unsupported": "当前设备或系统版本暂不受支持。",
+      "needsAttention": "部分接入条件尚未确认。请查看各项检测结果和连接诊断。"
     },
     "checks": {
       "platformSupported": {
@@ -32,7 +34,7 @@
       },
       "osVersionSupported": {
         "title": "系统版本",
-        "pass": "当前演示为 iPod4,1 / iOS 6.1.6；兼容性以具体型号与版本为准。",
+        "pass": "当前型号与系统版本在支持范围内。",
         "fail": "该系统版本不在支持范围内。",
         "warn": "该系统版本支持有限。",
         "unknown": "无法读取系统版本。"
@@ -46,17 +48,17 @@
       },
       "jailbroken": {
         "title": "越狱状态",
-        "pass": "检测到 Cydia 与越狱环境。",
+        "pass": "已检测到越狱组件与可用的设备服务。",
         "fail": "设备未越狱，Pocket 运行时需要越狱环境。",
         "warn": "检测到部分越狱痕迹。",
-        "unknown": "无法确认越狱状态。"
+        "unknown": "未取得足够的越狱证据。AFC2 不可用并不能证明设备未越狱。"
       },
       "sshAvailable": {
         "title": "SSH 服务",
-        "pass": "OpenSSH 可用。",
+        "pass": "SSH 服务响应正常。",
         "fail": "OpenSSH 不可用。",
         "warn": "SSH 服务响应异常。",
-        "unknown": "越狱后再检测。"
+        "unknown": "未能验证 SSH 服务，未尝试登录或执行命令。"
       },
       "batteryLevel": {
         "title": "电量",
@@ -71,6 +73,13 @@
         "fail": "按键损坏，无法进入 DFU 模式。",
         "warn": "按键状态待确认。",
         "unknown": "需要用户在准备流程中确认电源键与 Home 键可用。"
+      },
+      "normalMode": {
+        "title": "设备模式",
+        "pass": "设备处于正常模式。",
+        "fail": "请先让设备回到正常系统；此处不会自动退出恢复或 DFU 模式。",
+        "warn": "设备模式需要确认。",
+        "unknown": "无法确认设备模式。"
       }
     },
     "guidance": {

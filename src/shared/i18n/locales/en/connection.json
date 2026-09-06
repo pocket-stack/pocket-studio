@@ -1,0 +1,23 @@
+{
+  "connection": {
+    "unknownValue": "Unavailable",
+    "diagnosticsTitle": "Connection diagnostics",
+    "scanFailed": "Device discovery failed. Check the connection and scan again.",
+    "readinessPendingTitle": "Readiness needs confirmation",
+    "unsupportedTitle": "This device is not supported yet",
+    "emptyBody": "Connect a device over USB to read its identity and readiness automatically. Keep the device unlocked.",
+    "storageTitle": "Device data partition",
+    "packagesUnavailable": "No apps are available for this device.",
+    "issues": {
+      "usbUnavailable": "USB enumeration is unavailable. Check the cable and USB access permissions.",
+      "macosMuxUnavailable": "The macOS device service is unavailable. Check the USB connection and whether Finder can identify the device.",
+      "linuxMuxUnavailable": "usbmuxd is unavailable. Install and enable it, and grant your user access to Apple USB devices.",
+      "windowsMuxUnavailable": "Apple Mobile Device Service is unavailable. Install the Apple device driver and ensure its service is running.",
+      "deviceInfoUnavailable": "Some device information could not be read. Unlock and scan again; Recovery and DFU modes expose limited information.",
+      "pairingUnavailable": "Existing paired access could not be verified. Keep the device unlocked and check pairing in the system device manager.",
+      "pairingSessionFailed": "Could not connect to the device. Keep it unlocked, reconnect the USB cable, and try again.",
+      "probeTimeout": "The device did not respond. Check the connection and try again."
+    },
+    "installedUnavailable": "The app list on this device is unavailable."
+  }
+}

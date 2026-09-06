@@ -1,0 +1,23 @@
+{
+  "connection": {
+    "unknownValue": "未读取",
+    "diagnosticsTitle": "连接诊断",
+    "scanFailed": "设备扫描失败。请检查连接后点击重新检测。",
+    "readinessPendingTitle": "接入条件尚待确认",
+    "unsupportedTitle": "当前设备暂不支持",
+    "emptyBody": "通过 USB 连接设备，Pocket Studio 会自动读取设备信息和接入条件。请保持设备解锁。",
+    "storageTitle": "设备数据分区",
+    "packagesUnavailable": "暂无适用于此设备的应用。",
+    "issues": {
+      "usbUnavailable": "无法枚举 USB 设备，请检查连接和系统的 USB 访问权限。",
+      "macosMuxUnavailable": "无法连接 macOS 的设备通信服务。请检查 USB 连接，并确认访达能识别设备。",
+      "linuxMuxUnavailable": "无法连接 usbmuxd。请安装并启用 usbmuxd，确认当前用户有 Apple USB 设备的访问权限。",
+      "windowsMuxUnavailable": "无法连接 Apple Mobile Device Service。请安装 Apple 设备驱动并确认该服务正在运行。",
+      "deviceInfoUnavailable": "部分设备信息未能读取。请解锁设备后重新检测；恢复或 DFU 模式下可读取的信息有限。",
+      "pairingUnavailable": "暂时无法验证电脑与设备的配对访问。请保持设备解锁，并通过系统设备管理程序检查已有配对。",
+      "pairingSessionFailed": "无法与设备建立连接。请保持设备解锁，重新连接 USB 后再试。",
+      "probeTimeout": "设备响应超时，请检查连接后重试。"
+    },
+    "installedUnavailable": "暂时无法读取设备上的应用。"
+  }
+}

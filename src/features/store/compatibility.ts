@@ -18,7 +18,8 @@ export function evaluateCompatibility(
   device: DeviceSummary | null,
   readiness: ReadinessReport | null,
 ): CompatibilityVerdict {
-  if (!device) return "noDevice";
+  if (!device || !device.modelIdentifier || !device.osVersion)
+    return "noDevice";
   const { compatibility } = entry;
   if (
     compatibility.platform !== device.platform ||

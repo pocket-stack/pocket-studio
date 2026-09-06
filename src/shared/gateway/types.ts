@@ -6,28 +6,52 @@
  */
 
 export type Platform = "ios";
-export type DeviceMode = "normal" | "recovery" | "dfu";
+export type DeviceMode = "normal" | "recovery" | "dfu" | "wtf" | "kis";
 export type Transport = "usb" | "network";
 
 export interface DeviceSummary {
   id: string;
   platform: Platform;
-  modelIdentifier: string;
+  modelIdentifier: string | null;
   marketingName: string;
-  chip: string;
-  boardConfig: string;
-  osVersion: string;
-  buildNumber: string;
-  udidMasked: string;
-  ecidMasked: string;
-  serialMasked: string;
-  storageGb: number;
-  batteryPercent: number;
+  chip: string | null;
+  boardConfig: string | null;
+  osVersion: string | null;
+  buildNumber: string | null;
+  udidMasked: string | null;
+  ecidMasked: string | null;
+  serialMasked: string | null;
+  storageGb: number | null;
+  storageTotalBytes: number | null;
+  storageFreeBytes: number | null;
+  batteryPercent: number | null;
   mode: DeviceMode;
   transport: Transport;
 }
 
+export type DiscoveryIssueCode =
+  | "usbUnavailable"
+  | "macosMuxUnavailable"
+  | "linuxMuxUnavailable"
+  | "windowsMuxUnavailable"
+  | "deviceInfoUnavailable"
+  | "pairingUnavailable"
+  | "pairingSessionFailed"
+  | "probeTimeout";
+export interface DiscoveryIssue {
+  code: DiscoveryIssueCode;
+  deviceId: string | null;
+}
+export interface DiscoverySnapshot {
+  revision: number;
+  devices: DeviceSummary[];
+  reports: ReadinessReport[];
+  issues: DiscoveryIssue[];
+  checkedAt: number;
+}
+
 export type DeviceEvent =
+  | { type: "snapshot"; snapshot: DiscoverySnapshot }
   | { type: "attached"; device: DeviceSummary }
   | { type: "detached"; deviceId: string }
   | { type: "modeChanged"; deviceId: string; mode: DeviceMode };
@@ -40,7 +64,8 @@ export type ReadinessCheckId =
   | "jailbroken"
   | "sshAvailable"
   | "batteryLevel"
-  | "physicalButtons";
+  | "physicalButtons"
+  | "normalMode";
 
 export type CheckStatus = "pass" | "fail" | "warn" | "unknown";
 
@@ -51,7 +76,8 @@ export interface ReadinessCheck {
   value?: string;
 }
 
-export type ReadinessStatus = "ready" | "needsPreparation" | "unsupported";
+export type ReadinessStatus =
+  "ready" | "needsPreparation" | "needsAttention" | "unsupported";
 export type WorkflowKind = "jailbreak";
 
 export interface ReadinessReport {
@@ -274,10 +300,17 @@ export interface DemoControls {
 
 export interface StudioGateway {
   readonly flavor: "tauri" | "browser";
+  readonly capabilities: {
+    demo: boolean;
+    preparation: boolean;
+    packages: boolean;
+  };
   devices: {
-    list(): Promise<DeviceSummary[]>;
+    list(): Promise<DiscoverySnapshot>;
     checkReadiness(deviceId: string): Promise<ReadinessReport>;
-    onEvent(handler: (event: DeviceEvent) => void): Unsubscribe;
+    onEvent(
+      handler: (event: DeviceEvent) => void,
+    ): Unsubscribe | Promise<Unsubscribe>;
   };
   preparation: {
     plan(deviceId: string): Promise<PreparationPlan>;
@@ -296,7 +329,9 @@ export interface StudioGateway {
   logs: {
     list(): Promise<LogEntry[]>;
     export(): Promise<string>;
-    onEntry(handler: (entry: LogEntry) => void): Unsubscribe;
+    onEntry(
+      handler: (entry: LogEntry) => void,
+    ): Unsubscribe | Promise<Unsubscribe>;
   };
   demo: DemoControls;
 }

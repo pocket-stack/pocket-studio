@@ -15,8 +15,16 @@ import ReadinessPanel from "./ReadinessPanel.vue";
 defineProps<{ section: "summary" | "conditions" | "environment" }>();
 const emit = defineEmits<{ openStore: []; showConditions: []; openLogs: [] }>();
 const { t } = useI18n();
-const { device, readiness, checking, checkReadiness, isReady } =
-  useDeviceSession();
+const {
+  device,
+  readiness,
+  checking,
+  checkReadiness,
+  isReady,
+  issues,
+  lastError,
+  refresh,
+} = useDeviceSession();
 const preparation = usePreparation();
 const gateway = useGateway();
 const store = useStore();
@@ -41,11 +49,29 @@ const storage = computed(() => [
   },
 ]);
 function startPreparation(): void {
-  if (device.value) void preparation.open(device.value.id);
+  if (device.value && gateway.capabilities.preparation)
+    void preparation.open(device.value.id);
 }
 </script>
 
 <template>
+  <section
+    v-if="issues.length || lastError"
+    role="status"
+    class="mb-4 rounded-lg border border-warning/35 bg-warning/5 p-3 text-[12px]"
+  >
+    <h2 class="mb-1 font-medium">{{ t("connection.diagnosticsTitle") }}</h2>
+    <p v-if="lastError" class="text-muted">{{ t("connection.scanFailed") }}</p>
+    <p
+      v-for="item in issues.filter(
+        (item) => !item.deviceId || !device || item.deviceId === device.id,
+      )"
+      :key="`${item.code}-${item.deviceId}`"
+      class="leading-6 text-muted"
+    >
+      {{ t(`connection.issues.${item.code}`) }}
+    </p>
+  </section>
   <div
     v-if="!device"
     class="flex min-h-full flex-col items-center justify-center gap-[19px] p-8 text-center motion-safe:animate-rise"
@@ -63,7 +89,13 @@ function startPreparation(): void {
       {{ t("device.empty.title") }}
     </h1>
     <p class="max-w-[520px] text-[12px] leading-[1.9] text-muted">
-      {{ t("device.empty.body") }}
+      {{
+        t(
+          gateway.capabilities.demo
+            ? "device.empty.body"
+            : "connection.emptyBody",
+        )
+      }}
     </p>
     <div class="flex flex-col gap-2.5 text-left text-[11px] text-muted">
       <span
@@ -75,9 +107,14 @@ function startPreparation(): void {
     <div class="flex gap-3">
       <button
         class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
-        @click="gateway.demo.attachDevice()"
+        :disabled="checking"
+        @click="
+          gateway.capabilities.demo ? gateway.demo.attachDevice() : refresh()
+        "
       >
-        <AppIcon name="usb" :size="15" />{{ t("demo.attach") }}</button
+        <AppIcon name="usb" :size="15" />{{
+          t(gateway.capabilities.demo ? "demo.attach" : "studio.detectDevice")
+        }}</button
       ><button
         class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
         @click="emit('openStore')"
@@ -85,7 +122,6 @@ function startPreparation(): void {
         {{ t("studio.browseStore") }}
       </button>
     </div>
-    <small class="text-muted">{{ t("studio.supportedDemo") }}</small>
   </div>
   <div
     v-else
@@ -103,7 +139,10 @@ function startPreparation(): void {
         @details="emit('showConditions')"
         @open-store="emit('openStore')"
       />
-      <section class="mt-auto pt-6 text-[11px]">
+      <section
+        v-if="gateway.capabilities.demo"
+        class="mt-auto pt-6 text-[11px]"
+      >
         <div class="flex items-center justify-between first:hidden">
           <h3 class="font-medium">{{ t("studio.storage") }}</h3>
           <span>{{
@@ -127,7 +166,7 @@ function startPreparation(): void {
             :key="segment.key"
             class="w-(--segment-width) border-r-2 border-canvas bg-(--segment-color) transition-[width] duration-600 last:border-0"
             :style="{
-              '--segment-width': `${(segment.size / device.storageGb) * 100}%`,
+              '--segment-width': `${(segment.size / (device.storageGb || 1)) * 100}%`,
               '--segment-color': segment.color,
             }"
             :title="`${t(`studio.storageTypes.${segment.key}`)} ${segment.size.toFixed(1)} GB`"
@@ -152,6 +191,34 @@ function startPreparation(): void {
           }}</small>
         </div>
       </section>
+      <section
+        v-if="
+          !gateway.capabilities.demo &&
+          device.storageTotalBytes &&
+          device.storageFreeBytes != null
+        "
+        class="mt-auto pt-6 text-[11px] text-muted"
+      >
+        <div class="mb-2 flex justify-between">
+          <span>{{ t("connection.storageTitle") }}</span
+          ><span>{{
+            t("studio.storageAvailable", {
+              free: (device.storageFreeBytes / 1e9).toFixed(1),
+              total: (device.storageTotalBytes / 1e9).toFixed(1),
+            })
+          }}</span>
+        </div>
+        <div
+          class="h-[22px] overflow-hidden rounded-md border border-line bg-track"
+        >
+          <span
+            class="block h-full w-(--used-width) bg-signal/65"
+            :style="{
+              '--used-width': `${Math.min(100, Math.max(0, (1 - device.storageFreeBytes / device.storageTotalBytes) * 100))}%`,
+            }"
+          />
+        </div>
+      </section>
     </template>
     <template v-else-if="section === 'conditions'"
       ><div class="px-0 pt-0 pb-3.5">
@@ -169,6 +236,16 @@ function startPreparation(): void {
         @prepare="startPreparation"
         @open-store="emit('openStore')"
     /></template>
+    <section v-else-if="!gateway.capabilities.preparation">
+      <h1 class="mb-4 text-[22px] font-semibold">
+        {{ t("studio.sections.environment") }}
+      </h1>
+      <ReadinessPanel
+        :report="readiness"
+        :checking="checking"
+        @recheck="checkReadiness"
+      />
+    </section>
     <PreparationWorkspace
       v-else-if="preparation.stage.value !== 'closed'"
       @open-store="emit('openStore')"

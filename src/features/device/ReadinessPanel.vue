@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import type { ReadinessReport } from "../../shared/gateway";
+import { useGateway, type ReadinessReport } from "../../shared/gateway";
 import { useOperations } from "../../shared/composables/useOperations";
 import AppIcon from "../../shared/ui/AppIcon.vue";
 const props = defineProps<{
@@ -16,6 +16,7 @@ const emit = defineEmits<{
   openStore: [];
 }>();
 const { t, d } = useI18n();
+const gateway = useGateway();
 const { active } = useOperations();
 const checks = computed(
   () =>
@@ -49,7 +50,11 @@ const passCount = computed(
             t(
               report?.status === "ready"
                 ? "studio.readinessReady"
-                : "studio.readinessTitle",
+                : report?.status === "needsAttention"
+                  ? "connection.readinessPendingTitle"
+                  : report?.status === "unsupported"
+                    ? "connection.unsupportedTitle"
+                    : "studio.readinessTitle",
             )
           }}
         </h2>
@@ -105,7 +110,10 @@ const passCount = computed(
     >
       <div class="flex flex-wrap gap-2">
         <button
-          v-if="report?.status === 'needsPreparation'"
+          v-if="
+            report?.status === 'needsPreparation' &&
+            gateway.capabilities.preparation
+          "
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           :disabled="checking || !!active.length"
           @click="emit('prepare')"
@@ -113,7 +121,9 @@ const passCount = computed(
           {{ t("studio.beginPreparation")
           }}<AppIcon name="arrowRight" :size="14" /></button
         ><button
-          v-else-if="report?.status === 'ready'"
+          v-else-if="
+            report?.status === 'ready' && gateway.capabilities.packages
+          "
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('openStore')"
         >

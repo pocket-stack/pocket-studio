@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGateway } from "../../shared/gateway";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "./useStore";
@@ -14,6 +15,7 @@ import PackageArtwork from "./PackageArtwork.vue";
 const emit = defineEmits<{ openStore: []; detail: [id: string] }>();
 const { t, d } = useI18n();
 const store = useStore();
+const gateway = useGateway();
 const { active } = useOperations();
 const { device, isReady } = useDeviceSession();
 const sort = ref("name");
@@ -41,7 +43,20 @@ const totalSize = computed(() =>
 );
 </script>
 <template>
-  <div class="mx-auto min-h-full max-w-[1360px] motion-safe:animate-rise">
+  <section
+    v-if="!gateway.capabilities.packages"
+    class="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center"
+  >
+    <AppIcon name="grid" :size="32" class="text-muted" />
+    <h1 class="text-xl font-semibold">{{ t("studio.installedApps") }}</h1>
+    <p class="max-w-[500px] text-sm leading-7 text-muted">
+      {{ t("connection.installedUnavailable") }}
+    </p>
+  </section>
+  <div
+    v-else
+    class="mx-auto min-h-full max-w-[1360px] motion-safe:animate-rise"
+  >
     <header class="flex items-center gap-5 mb-[15px] justify-end">
       <div class="hidden">
         <p class="text-[10px] tracking-[0.04em] text-muted">

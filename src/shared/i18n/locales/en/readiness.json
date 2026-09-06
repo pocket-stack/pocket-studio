@@ -1,19 +1,21 @@
 {
   "readiness": {
     "title": "Readiness check",
-    "subtitle": "Every check is read-only and does not modify the device.",
+    "subtitle": "Check whether this device meets the requirements for Pocket.",
     "recheck": "Check again",
     "checking": "Reading device state…",
     "checkedAt": "Checked at {time}",
     "status": {
       "ready": "Ready",
       "needsPreparation": "Needs preparation",
-      "unsupported": "Unsupported"
+      "unsupported": "Unsupported",
+      "needsAttention": "Needs attention"
     },
     "summary": {
-      "ready": "The device is jailbroken and can run Pocket software right away.",
+      "ready": "Jailbreak access, paired access, and SSH have been verified.",
       "needsPreparation": "The model and OS version are supported, but the device is not jailbroken yet. Preparation is required first.",
-      "unsupported": "This device or OS version is not supported yet."
+      "unsupported": "This device or OS version is not supported yet.",
+      "needsAttention": "Some readiness conditions are still unknown. Review the checks and connection diagnostics."
     },
     "checks": {
       "platformSupported": {
@@ -32,7 +34,7 @@
       },
       "osVersionSupported": {
         "title": "OS version",
-        "pass": "Demo target: iPod4,1 / iOS 6.1.6. Compatibility depends on the exact model and version.",
+        "pass": "This model and OS version are supported.",
         "fail": "This OS version is outside the supported range.",
         "warn": "Limited support for this OS version.",
         "unknown": "OS version could not be read."
@@ -46,17 +48,17 @@
       },
       "jailbroken": {
         "title": "Jailbreak",
-        "pass": "Cydia and a jailbroken environment were detected.",
+        "pass": "Jailbreak components and device services were detected.",
         "fail": "The device is not jailbroken. The Pocket runtime needs a jailbroken environment.",
         "warn": "Partial jailbreak traces were detected.",
-        "unknown": "Jailbreak state could not be confirmed."
+        "unknown": "There is insufficient jailbreak evidence. An unavailable AFC2 service does not prove the device is stock."
       },
       "sshAvailable": {
         "title": "SSH",
-        "pass": "OpenSSH is reachable.",
+        "pass": "The SSH service is responding.",
         "fail": "OpenSSH is not reachable.",
         "warn": "SSH responded unexpectedly.",
-        "unknown": "Checked again after the jailbreak."
+        "unknown": "SSH could not be verified. No login or command was attempted."
       },
       "batteryLevel": {
         "title": "Battery",
@@ -71,6 +73,13 @@
         "fail": "Buttons are broken; DFU mode cannot be entered.",
         "warn": "Button state needs confirmation.",
         "unknown": "You will confirm during preparation that the Power and Home buttons work."
+      },
+      "normalMode": {
+        "title": "Device mode",
+        "pass": "The device is in Normal mode.",
+        "fail": "Return the device to Normal mode. Recovery and DFU modes are never exited automatically.",
+        "warn": "The device mode needs confirmation.",
+        "unknown": "The device mode is unknown."
       }
     },
     "guidance": {

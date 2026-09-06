@@ -7,6 +7,8 @@ export function useLogMessage() {
   return (entry: LogEntry): string => {
     if (!te(entry.code)) return entry.message;
     const params = { ...entry.params };
+    if (params.issue && te(`connection.issues.${params.issue}`))
+      params.issue = t(`connection.issues.${params.issue}`);
     if (params.status && te(`readiness.status.${params.status}`))
       params.status = t(`readiness.status.${params.status}`);
     if (params.mode && te(`device.mode.${params.mode}`))

@@ -75,7 +75,7 @@ describe("device simulation", () => {
   });
   async function connect(): Promise<string> {
     await gateway.demo.attachDevice();
-    return (await gateway.devices.list())[0]!.id;
+    return (await gateway.devices.list()).devices[0]!.id;
   }
   it("discovery and readiness never start a preparation", async () => {
     const id = await connect();

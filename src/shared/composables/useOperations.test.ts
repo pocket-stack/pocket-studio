@@ -6,7 +6,7 @@ it("retains initial DFU events emitted before the command returns its handle", a
   const gateway = useGateway();
   const operations = useOperations();
   await gateway.demo.attachDevice();
-  const id = (await gateway.devices.list())[0]!.id;
+  const id = (await gateway.devices.list()).devices[0]!.id;
   const plan = await gateway.preparation.plan(id);
   const handle = await gateway.preparation.start({
     planId: plan.id,

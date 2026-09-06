@@ -1,3 +1,5 @@
+import enConnection from "./locales/en/connection.json";
+import zhConnection from "./locales/zh-CN/connection.json";
 import { createI18n } from "vue-i18n";
 
 import enStudio from "./locales/en/studio.json";
@@ -52,6 +54,7 @@ function isTree(value: unknown): value is MessageTree {
 
 const messages = {
   en: mergeMessages(
+    enConnection,
     enStudio,
     enCommon,
     enDevice,
@@ -64,6 +67,7 @@ const messages = {
     enLogs,
   ),
   "zh-CN": mergeMessages(
+    zhConnection,
     zhStudio,
     zhCommon,
     zhDevice,

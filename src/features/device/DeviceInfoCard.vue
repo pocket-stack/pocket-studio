@@ -7,7 +7,7 @@ import DeviceIllustration from "../../shared/ui/DeviceIllustration.vue";
 import StatusPill from "../../shared/ui/StatusPill.vue";
 const props = defineProps<{ device: DeviceSummary }>();
 const { t } = useI18n();
-const { isReady } = useDeviceSession();
+const { isReady, readiness } = useDeviceSession();
 const screen = computed(() =>
   props.device.mode === "dfu"
     ? "off"
@@ -16,18 +16,43 @@ const screen = computed(() =>
       : "home",
 );
 const rows = computed(() => [
-  { key: "storage", value: `${props.device.storageGb} GB` },
-  { key: "battery", value: `${props.device.batteryPercent}%` },
+  {
+    key: "storage",
+    value:
+      props.device.storageTotalBytes == null
+        ? t("connection.unknownValue")
+        : `${(props.device.storageTotalBytes / 1e9).toFixed(1)} GB`,
+  },
+  {
+    key: "battery",
+    value:
+      props.device.batteryPercent == null
+        ? t("connection.unknownValue")
+        : `${props.device.batteryPercent}%`,
+  },
   {
     key: "os",
-    value: `iOS ${props.device.osVersion} (${props.device.buildNumber})`,
+    value: props.device.osVersion
+      ? `iOS ${props.device.osVersion}${props.device.buildNumber ? ` (${props.device.buildNumber})` : ""}`
+      : t("connection.unknownValue"),
   },
   {
     key: "model",
-    value: `${props.device.modelIdentifier} · ${props.device.boardConfig}`,
+    value:
+      [props.device.modelIdentifier, props.device.boardConfig]
+        .filter(Boolean)
+        .join(" · ") || t("connection.unknownValue"),
   },
-  { key: "serial", value: props.device.serialMasked, mono: true },
-  { key: "udid", value: props.device.udidMasked, mono: true },
+  {
+    key: "serial",
+    value: props.device.serialMasked ?? t("connection.unknownValue"),
+    mono: true,
+  },
+  {
+    key: "udid",
+    value: props.device.udidMasked ?? t("connection.unknownValue"),
+    mono: true,
+  },
 ]);
 </script>
 <template>
@@ -47,10 +72,10 @@ const rows = computed(() => [
     <div class="min-w-0 flex-1">
       <div class="m-0 flex items-center gap-3 max-[800px]:flex-wrap">
         <h1 class="text-[26px] leading-[1.3] font-semibold tracking-[-0.26px]">
-          {{ t("studio.deviceName") }}
+          {{ device.marketingName }}
         </h1>
         <StatusPill :tone="isReady ? 'success' : 'warning'" dot>{{
-          t(isReady ? "studio.pocketReady" : "studio.needsPreparation")
+          t(`readiness.status.${readiness?.status ?? "needsAttention"}`)
         }}</StatusPill>
       </div>
       <dl

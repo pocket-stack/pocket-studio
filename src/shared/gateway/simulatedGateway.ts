@@ -158,14 +158,22 @@ export function createSimulatedGateway(): StudioGateway {
   function readiness(current: DeviceSummary): ReadinessReport {
     const checks: ReadinessCheck[] = [
       { id: "platformSupported", status: "pass", value: "iOS" },
-      { id: "modelSupported", status: "pass", value: current.modelIdentifier },
-      { id: "osVersionSupported", status: "pass", value: current.osVersion },
+      {
+        id: "modelSupported",
+        status: "pass",
+        value: current.modelIdentifier ?? undefined,
+      },
+      {
+        id: "osVersionSupported",
+        status: "pass",
+        value: current.osVersion ?? undefined,
+      },
       { id: "pairingTrusted", status: "pass" },
       { id: "jailbroken", status: jailbroken ? "pass" : "fail" },
       { id: "sshAvailable", status: jailbroken ? "pass" : "unknown" },
       {
         id: "batteryLevel",
-        status: current.batteryPercent >= 50 ? "pass" : "warn",
+        status: (current.batteryPercent ?? 0) >= 50 ? "pass" : "warn",
         value: `${current.batteryPercent}%`,
       },
       { id: "physicalButtons", status: "unknown" },
@@ -483,9 +491,16 @@ export function createSimulatedGateway(): StudioGateway {
 
   const gateway: StudioGateway = {
     flavor: "browser",
+    capabilities: { demo: true, preparation: true, packages: true },
     devices: {
       async list() {
-        return device ? [device] : [];
+        return {
+          revision: 0,
+          devices: device ? [device] : [],
+          reports: device ? [readiness(device)] : [],
+          issues: [],
+          checkedAt: Date.now(),
+        };
       },
       async checkReadiness(deviceId) {
         const current = requireDevice(deviceId);
@@ -615,11 +630,15 @@ export function createSimulatedGateway(): StudioGateway {
             "A normal-mode device is required",
           );
         if (
-          !entry.compatibility.models.includes(current.modelIdentifier) ||
-          compareVersions(current.osVersion, entry.compatibility.minOsVersion) <
-            0 ||
-          compareVersions(current.osVersion, entry.compatibility.maxOsVersion) >
-            0
+          !entry.compatibility.models.includes(current.modelIdentifier ?? "") ||
+          compareVersions(
+            current.osVersion ?? "",
+            entry.compatibility.minOsVersion,
+          ) < 0 ||
+          compareVersions(
+            current.osVersion ?? "",
+            entry.compatibility.maxOsVersion,
+          ) > 0
         )
           throw new GatewayError(
             "incompatiblePackage",
@@ -699,7 +718,7 @@ export function createSimulatedGateway(): StudioGateway {
           "device",
           "log.device.attached",
           "device attached over USB",
-          { model: device.modelIdentifier },
+          { model: demoDevice.modelIdentifier },
         );
       },
       async detachDevice() {

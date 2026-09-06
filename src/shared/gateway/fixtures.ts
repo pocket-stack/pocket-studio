@@ -8,12 +8,10 @@ import type {
 } from "./types";
 
 /**
- * Demo fixtures mirrored from `src-tauri/src/infrastructure/demo/fixtures.rs`.
- * They exist so the webview can be developed in a plain browser without the
- * native layer; the Tauri build serves the same data from Rust.
+ * Browser-only fixtures. Native windows use the real Legacy iOS Kit adapter.
  */
 
-export const demoDevice: DeviceSummary = {
+export const demoDevice = {
   id: "usb-ipod4-demo",
   platform: "ios",
   modelIdentifier: "iPod4,1",
@@ -26,10 +24,12 @@ export const demoDevice: DeviceSummary = {
   ecidMasked: "0000…A7F2",
   serialMasked: "C3T…P4",
   storageGb: 32,
+  storageTotalBytes: 32_000_000_000,
+  storageFreeBytes: 19_400_000_000,
   batteryPercent: 78,
   mode: "normal",
   transport: "usb",
-};
+} satisfies DeviceSummary;
 
 export const jailbreakRisks: Risk[] = [
   { id: "bootloop", severity: "high" },

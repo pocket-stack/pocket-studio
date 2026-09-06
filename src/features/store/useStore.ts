@@ -43,7 +43,7 @@ watch(
 
 async function refreshInstalled(): Promise<void> {
   const current = device.value;
-  if (!current) {
+  if (!current || !useGateway().capabilities.packages) {
     installed.value = [];
     return;
   }

@@ -3,11 +3,9 @@ import { useI18n } from "vue-i18n";
 
 import { saveLocale, type AppLocale } from "../../shared/i18n";
 import { useTheme, type ThemePreference } from "../../shared/theme";
-import { useGateway } from "../../shared/gateway";
 
 const { t, locale } = useI18n();
 const theme = useTheme();
-const gateway = useGateway();
 
 const themes: ThemePreference[] = ["system", "light", "dark"];
 const locales: AppLocale[] = ["zh-CN", "en"];
@@ -70,18 +68,6 @@ function chooseLocale(next: AppLocale): void {
       <dl class="mt-3 grid grid-cols-[140px_1fr] gap-y-1 text-muted">
         <dt>{{ t("settings.about.version") }}</dt>
         <dd class="font-mono text-ink">0.1.0</dd>
-        <dt>{{ t("settings.about.backend") }}</dt>
-        <dd class="font-mono text-ink">
-          {{
-            gateway.flavor === "tauri"
-              ? t("settings.about.native")
-              : t("settings.about.browser")
-          }}
-        </dd>
-        <dt>{{ t("settings.about.toolkit") }}</dt>
-        <dd class="text-ink">
-          Legacy iOS Kit (Rust) — {{ t("settings.about.toolkitNote") }}
-        </dd>
       </dl>
     </section>
   </div>

@@ -5,7 +5,6 @@ import {
   GatewayError,
   type DeviceEvent,
   type LogEntry,
-  type OperationEvent,
   type StudioGateway,
   type Unsubscribe,
 } from "./types";
@@ -38,27 +37,31 @@ async function call<T>(
   }
 }
 
-function subscribe<T>(
+async function subscribe<T>(
   eventName: string,
   handler: (payload: T) => void,
-): Unsubscribe {
-  let disposed = false;
-  let unlisten: (() => void) | undefined;
+): Promise<Unsubscribe> {
+  try {
+    return await listen<T>(eventName, (event) => handler(event.payload));
+  } catch {
+    throw new GatewayError(
+      "eventSubscriptionFailed",
+      "Native event subscription failed",
+    );
+  }
+}
 
-  void listen<T>(eventName, (event) => handler(event.payload)).then((stop) => {
-    if (disposed) stop();
-    else unlisten = stop;
-  });
-
-  return () => {
-    disposed = true;
-    unlisten?.();
-  };
+async function unavailable(): Promise<never> {
+  throw new GatewayError(
+    "operationUnavailable",
+    "This operation is unavailable",
+  );
 }
 
 export function createTauriGateway(): StudioGateway {
   return {
     flavor: "tauri",
+    capabilities: { demo: false, preparation: false, packages: false },
     devices: {
       list: () => call("list_devices"),
       checkReadiness: (deviceId) => call("check_readiness", { deviceId }),
@@ -69,12 +72,7 @@ export function createTauriGateway(): StudioGateway {
       start: (consent) => call("start_preparation", { consent }),
     },
     store: {
-      uninstall: async () => {
-        throw new GatewayError(
-          "demoOnly",
-          "Uninstall is only available in the UI simulation",
-        );
-      },
+      uninstall: unavailable,
       catalog: () => call("list_catalog"),
       installed: (deviceId) => call("list_installed", { deviceId }),
       install: (deviceId, packageId) =>
@@ -82,8 +80,9 @@ export function createTauriGateway(): StudioGateway {
     },
     operations: {
       cancel: (operationId) => call("cancel_operation", { operationId }),
-      onEvent: (handler) =>
-        subscribe<OperationEvent>("studio://operation", handler),
+      // No native workflow is enabled yet. Retain the subscription contract
+      // without opening an unused event channel during read-only discovery.
+      onEvent: () => () => {},
     },
     logs: {
       list: () => call("list_logs"),
@@ -91,12 +90,11 @@ export function createTauriGateway(): StudioGateway {
       onEntry: (handler) => subscribe<LogEntry>("studio://log", handler),
     },
     demo: {
-      attachDevice: () => call("demo_attach_device"),
-      detachDevice: () => call("demo_detach_device"),
-      setDeviceMode: (mode) => call("demo_set_device_mode", { mode }),
-      setJailbroken: (jailbroken) =>
-        call("demo_set_jailbroken", { jailbroken }),
-      failNextStep: (stepId) => call("demo_fail_next_step", { stepId }),
+      attachDevice: unavailable,
+      detachDevice: unavailable,
+      setDeviceMode: unavailable,
+      setJailbroken: unavailable,
+      failNextStep: unavailable,
     },
   };
 }

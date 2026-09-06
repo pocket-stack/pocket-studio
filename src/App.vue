@@ -64,7 +64,7 @@ const lcdTitle = computed(() => {
           name: t(`catalog.${operation.subject}.name`),
         });
   return session.device.value
-    ? t("studio.deviceName")
+    ? session.device.value.marketingName
     : t("device.empty.title");
 });
 const lcdSubtitle = computed(() => {
@@ -76,7 +76,9 @@ const lcdSubtitle = computed(() => {
   return session.checking.value
     ? t("readiness.checking")
     : session.device.value
-      ? t(session.isReady.value ? "studio.allReady" : "studio.needsPreparation")
+      ? t(
+          `readiness.status.${session.readiness.value?.status ?? "needsAttention"}`,
+        )
       : t("studio.connectHint");
 });
 const modalOpen = computed(
@@ -116,7 +118,7 @@ function showPackage(packageId: string | null): void {
   navigationHistory.navigate({ view: "store", packageId });
 }
 function startPreparation(): void {
-  if (session.device.value) {
+  if (session.device.value && gateway.capabilities.preparation) {
     showDevice("environment");
     void preparation.open(session.device.value.id);
   }
@@ -128,11 +130,12 @@ function showActivity(): void {
 }
 async function detect(): Promise<void> {
   if (deviceMenu.value) deviceMenu.value.open = false;
-  if (!session.device.value) await gateway.demo.attachDevice();
-  else await session.checkReadiness();
+  if (gateway.capabilities.demo && !session.device.value)
+    await gateway.demo.attachDevice();
+  else await session.refresh();
 }
 async function eject(): Promise<void> {
-  if (active.value.length) return;
+  if (active.value.length || !gateway.capabilities.demo) return;
   if (deviceMenu.value) deviceMenu.value.open = false;
   await gateway.demo.detachDevice();
 }
@@ -144,11 +147,13 @@ watch(preparation.stage, (stage) => {
   if (stage === "overview" || stage === "starting") showDevice("environment");
 });
 onMounted(async () => {
-  await log.initialize();
-  await session.initialize();
-  await store.initialize();
-  // Current gateways only introduce demo fixtures; no hardware is accessed.
-  if (!session.device.value) await gateway.demo.attachDevice();
+  await Promise.allSettled([
+    log.initialize(),
+    session.initialize(),
+    store.initialize(),
+  ]);
+  if (gateway.capabilities.demo && !session.device.value)
+    await gateway.demo.attachDevice();
 });
 </script>
 
@@ -250,7 +255,7 @@ onMounted(async () => {
                 class="block text-[12px] font-semibold whitespace-nowrap text-ink"
                 >{{
                   session.device.value
-                    ? t("studio.deviceName")
+                    ? session.device.value.marketingName
                     : t("app.noDevice")
                 }}</b
               ><small
@@ -274,30 +279,42 @@ onMounted(async () => {
             <p class="text-[10px] tracking-[0.04em] text-muted p-[7px]">
               {{ t("studio.connectedDevices") }}
             </p>
-            <div
-              class="flex w-full items-center gap-2.5 rounded p-[9px] text-[12px]"
+            <button
+              v-for="connected in session.devices.value"
+              :key="connected.id"
+              class="flex w-full items-center gap-2.5 rounded p-[9px] text-left text-[12px] hover:bg-track disabled:opacity-40"
+              :disabled="preparing"
+              :aria-pressed="session.device.value?.id === connected.id"
+              @click="session.select(connected.id)"
             >
-              <AppIcon name="device" /><span>{{
-                session.device.value
-                  ? t("studio.deviceName")
-                  : t("app.noDevice")
-              }}</span
-              ><AppIcon
-                v-if="session.device.value"
+              <AppIcon name="device" />
+              <span class="min-w-0 flex-1 truncate">{{
+                connected.marketingName
+              }}</span>
+              <AppIcon
+                v-if="session.device.value?.id === connected.id"
                 name="check"
-                class="ml-auto text-signal"
+                class="text-signal"
                 :size="15"
               />
-            </div>
+            </button>
+            <p
+              v-if="!session.devices.value.length"
+              class="p-[9px] text-xs text-muted"
+            >
+              {{ t("app.noDevice") }}
+            </p>
             <hr class="border-line" />
             <button
               class="flex w-full items-center gap-2.5 rounded p-[9px] text-[12px] hover:bg-track disabled:opacity-40"
+              :disabled="session.scanning.value"
               @click="detect"
             >
               <AppIcon name="refresh" :size="15" />{{
                 t("studio.detectDevice")
               }}</button
             ><button
+              v-if="gateway.capabilities.demo"
               class="flex w-full items-center gap-2.5 rounded p-[9px] text-[12px] hover:bg-track disabled:opacity-40"
               :disabled="!session.device.value || !!active.length"
               @click="eject"
@@ -358,7 +375,7 @@ onMounted(async () => {
         >
           {{ t("studio.installedApps")
           }}<span class="ml-auto text-[10px]">{{
-            store.installed.value.length
+            gateway.capabilities.packages ? store.installed.value.length : "—"
           }}</span>
         </button>
         <button
@@ -474,10 +491,8 @@ onMounted(async () => {
       >
         <AppIcon name="download" :size="13" />{{ t("studio.queue") }}
         {{ active.length + store.queuedIds.value.length }}</button
-      ><span class="block text-[10px] whitespace-nowrap max-[600px]:hidden">{{
-        t("studio.simulationNotice")
-      }}</span
       ><button
+        v-if="gateway.capabilities.demo"
         class="flex items-center gap-[5px] border-l border-line pl-3 whitespace-nowrap"
         @click="demoOpen = true"
       >
@@ -498,6 +513,7 @@ onMounted(async () => {
     ><SettingsView
   /></StudioDialog>
   <StudioDialog
+    v-if="gateway.capabilities.demo"
     :open="demoOpen"
     :title="t('demo.title')"
     compact

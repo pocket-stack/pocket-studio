@@ -7,7 +7,9 @@
     "mode": {
       "normal": "正常模式",
       "recovery": "恢复模式",
-      "dfu": "DFU 模式"
+      "dfu": "DFU 模式",
+      "wtf": "WTF 模式",
+      "kis": "KIS 模式"
     },
     "transport": {
       "usb": "USB",

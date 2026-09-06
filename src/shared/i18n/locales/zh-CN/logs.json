@@ -25,7 +25,10 @@
       "attached": "检测到设备接入：{model}",
       "detached": "设备已断开",
       "modeChanged": "设备模式切换为 {mode}",
-      "readinessChecked": "接入条件检测结果：{status}"
+      "readinessChecked": "接入条件检测结果：{status}",
+      "inventoryUpdated": "USB 设备列表已更新：{count} 台设备。",
+      "diagnostic": "连接诊断：{issue}",
+      "scanCompleted": "检测完成：发现 {count} 台设备。"
     },
     "preparation": {
       "planned": "已生成准备方案 {plan}",
