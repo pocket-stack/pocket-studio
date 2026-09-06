@@ -18,6 +18,7 @@ const container = ref<HTMLElement | null>(null);
 const elapsed = ref(0);
 const scrolledToEnd = ref(false);
 let timer: number | undefined;
+let resizeObserver: ResizeObserver | undefined;
 
 const remaining = computed(() =>
   Math.max(0, props.minimumSeconds - elapsed.value),
@@ -34,16 +35,24 @@ function measureScroll(): void {
 }
 
 function tick(): void {
-  if (document.hasFocus() && !timeSatisfied.value) elapsed.value += 1;
+  if (
+    document.visibilityState === "visible" &&
+    document.hasFocus() &&
+    !timeSatisfied.value
+  )
+    elapsed.value += 1;
 }
 
 onMounted(() => {
   timer = window.setInterval(tick, 1000);
   requestAnimationFrame(measureScroll);
+  resizeObserver = new ResizeObserver(measureScroll);
+  if (container.value) resizeObserver.observe(container.value);
 });
 
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer);
+  resizeObserver?.disconnect();
 });
 
 watch(ready, (value) => {
@@ -57,8 +66,9 @@ defineExpose({ elapsed });
   <div class="flex min-h-0 flex-1 flex-col gap-3">
     <div
       ref="container"
-      class="scroll-thin card min-h-0 flex-1 overflow-y-auto px-6 py-5 leading-relaxed"
+      class="min-h-0 flex-1 overflow-y-auto leading-relaxed [scrollbar-width:thin] [scrollbar-color:var(--color-line)_transparent] border border-line rounded bg-canvas px-3.5 py-0"
       tabindex="0"
+      :aria-label="t('reading.scrollToEnd')"
       @scroll="measureScroll"
     >
       <slot />

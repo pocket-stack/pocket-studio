@@ -42,7 +42,7 @@ defineProps<{
     <!-- power button (top edge) -->
     <g :class="pressPower ? 'text-signal' : 'text-muted'">
       <rect x="124" y="8" width="30" height="7" rx="3.5" fill="currentColor" />
-      <g v-if="pressPower" class="pulse">
+      <g v-if="pressPower" class="motion-safe:animate-device-pulse">
         <circle
           cx="139"
           cy="11"
@@ -144,7 +144,7 @@ defineProps<{
         stroke-width="1.5"
         opacity="0.7"
       />
-      <g v-if="pressHome" class="pulse">
+      <g v-if="pressHome" class="motion-safe:animate-device-pulse">
         <circle
           cx="90"
           cy="288"

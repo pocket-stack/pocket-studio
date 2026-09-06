@@ -35,7 +35,7 @@ const { t } = useI18n();
         <AppIcon v-else-if="step.status === 'failed'" name="cross" :size="14" />
         <span
           v-else-if="step.status === 'running'"
-          class="spin block h-3 w-3 rounded-full border-2 border-on-signal border-t-transparent"
+          class="block h-3 w-3 rounded-full border-2 border-on-signal border-t-transparent motion-safe:animate-studio-spin"
         />
         <span v-else>{{ index + 1 }}</span>
       </span>

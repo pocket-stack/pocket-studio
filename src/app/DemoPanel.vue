@@ -12,7 +12,11 @@ import AppIcon from "../shared/ui/AppIcon.vue";
  */
 const { t } = useI18n();
 const gateway = useGateway();
-const { device } = useDeviceSession();
+const { device, checkReadiness } = useDeviceSession();
+async function setJailbroken(value: boolean): Promise<void> {
+  await gateway.demo.setJailbroken(value);
+  await checkReadiness();
+}
 
 const failStep = ref<StepId | "">("");
 const failureSteps: StepId[] = [
@@ -43,42 +47,42 @@ async function armFailure(): Promise<void> {
     <p class="text-muted">{{ t("demo.hint") }}</p>
     <div class="grid grid-cols-2 gap-1.5">
       <button
-        class="btn btn-secondary px-2 py-1 text-xs"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
         :disabled="!!device"
         @click="gateway.demo.attachDevice()"
       >
         {{ t("demo.attach") }}
       </button>
       <button
-        class="btn btn-secondary px-2 py-1 text-xs"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
         :disabled="!device"
         @click="gateway.demo.detachDevice()"
       >
         {{ t("demo.detach") }}
       </button>
       <button
-        class="btn btn-secondary px-2 py-1 text-xs"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
         :disabled="!device"
         @click="gateway.demo.setDeviceMode('dfu')"
       >
         {{ t("demo.enterDfu") }}
       </button>
       <button
-        class="btn btn-secondary px-2 py-1 text-xs"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
         :disabled="!device"
         @click="gateway.demo.setDeviceMode('normal')"
       >
         {{ t("demo.exitDfu") }}
       </button>
       <button
-        class="btn btn-secondary px-2 py-1 text-xs"
-        @click="gateway.demo.setJailbroken(true)"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+        @click="setJailbroken(true)"
       >
         {{ t("demo.markJailbroken") }}
       </button>
       <button
-        class="btn btn-secondary px-2 py-1 text-xs"
-        @click="gateway.demo.setJailbroken(false)"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+        @click="setJailbroken(false)"
       >
         {{ t("demo.markStock") }}
       </button>
@@ -87,12 +91,16 @@ async function armFailure(): Promise<void> {
       <span class="text-muted">{{ t("demo.failNext") }}</span>
       <select
         v-model="failStep"
-        class="field py-1 text-xs"
+        class="rounded-lg border border-line bg-raised px-3 py-2 text-sm text-ink focus:border-signal leading-[1.428571]"
         @change="armFailure"
       >
         <option value="">{{ t("demo.noFailure") }}</option>
         <option v-for="step in failureSteps" :key="step" :value="step">
-          {{ step }}
+          {{
+            t(
+              `${["download", "verify", "install"].includes(step) ? "store.steps" : "preparation.steps"}.${step}.title`,
+            )
+          }}
         </option>
       </select>
     </label>

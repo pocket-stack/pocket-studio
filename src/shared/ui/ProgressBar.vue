@@ -33,9 +33,14 @@ const barClass = computed(() => {
     aria-valuemax="100"
   >
     <div
-      class="h-full rounded-full transition-[width] duration-300 ease-out"
-      :class="[barClass, active ? 'stripes' : '']"
-      :style="{ width }"
+      class="h-full rounded-full transition-[width] duration-300 ease-out w-(--progress-width)"
+      :class="[
+        barClass,
+        active
+          ? 'bg-[repeating-linear-gradient(-45deg,transparent_0_7px,color-mix(in_srgb,var(--color-on-signal)_35%,transparent)_7px_14px)] motion-safe:animate-progress-stripes'
+          : '',
+      ]"
+      :style="{ '--progress-width': width }"
     />
   </div>
 </template>

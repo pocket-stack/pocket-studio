@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-@theme {
+@theme inline {
   --color-canvas: var(--ps-canvas);
   --color-surface: var(--ps-surface);
   --color-raised: var(--ps-raised);
@@ -15,62 +15,130 @@
   --color-warning: var(--ps-warning);
   --color-danger: var(--ps-danger);
   --color-info: var(--ps-info);
+  --color-chrome: var(--ps-chrome);
+  --color-sidebar: var(--ps-sidebar);
+  --color-track: var(--ps-track);
+  --color-lcd: var(--ps-lcd);
+}
+
+@theme {
   --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, "PingFang SC",
+    "SF Pro Text", "Helvetica Neue", -apple-system, "PingFang SC",
     "Noto Sans CJK SC", "Segoe UI", sans-serif;
   --font-mono:
-    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius-card: 14px;
+    "SFMono-Regular", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius-card: 8px;
+  --animate-rise: ps-rise 0.25s ease-out both;
+  --animate-studio-spin: ps-spin 0.9s linear infinite;
+  --animate-device-pulse: ps-pulse 1.4s ease-in-out infinite;
+  --animate-progress-stripes: ps-stripes 0.8s linear infinite;
+
+  @keyframes ps-rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes ps-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes ps-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes ps-stripes {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 28px 0;
+    }
+  }
 }
 
 :root {
   color-scheme: light;
-  --ps-canvas: #f3f1eb;
-  --ps-surface: #fbfaf6;
-  --ps-raised: #ffffff;
-  --ps-ink: #171915;
-  --ps-muted: #6c7068;
-  --ps-line: #d9d7cf;
-  --ps-signal: #d96f1f;
-  --ps-on-signal: #fff8f0;
-  --ps-success: #2f7d4f;
-  --ps-warning: #b8860b;
+  --ps-canvas: #fff;
+  --ps-surface: #f2f2f2;
+  --ps-raised: #fff;
+  --ps-ink: #1d1d1f;
+  --ps-muted: #6e6e6e;
+  --ps-line: #d6d6d6;
+  --ps-signal: #2f6fd6;
+  --ps-on-signal: #fff;
+  --ps-success: #4c9175;
+  --ps-warning: #a67728;
   --ps-danger: #b3261e;
-  --ps-info: #2a6f9e;
+  --ps-info: #426da5;
+  --ps-chrome: #f6f6f6;
+  --ps-sidebar: #f2f2f2;
+  --ps-track: #e8e8e8;
+  --ps-lcd: #e8e8e8;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ps-canvas: #111310;
-  --ps-surface: #191c18;
-  --ps-raised: #22261f;
-  --ps-ink: #f0f1e9;
-  --ps-muted: #9ca198;
-  --ps-line: #30352f;
-  --ps-signal: #ff9448;
-  --ps-on-signal: #1d1208;
+  --ps-canvas: #1c1d20;
+  --ps-surface: #27282c;
+  --ps-raised: #2b2f35;
+  --ps-ink: #ededee;
+  --ps-muted: #a6a7ac;
+  --ps-line: #414249;
+  --ps-signal: #8ab4ef;
+  --ps-on-signal: #151c26;
   --ps-success: #6fcf97;
   --ps-warning: #e8b84a;
   --ps-danger: #ff7b72;
   --ps-info: #6fb3e0;
+  --ps-chrome: #292a2e;
+  --ps-sidebar: #242529;
+  --ps-track: #34353a;
+  --ps-lcd: #202125;
 }
 
-html,
-body,
-#app {
-  min-height: 100%;
-  height: 100%;
+@layer base {
+  html,
+  body,
+  #app {
+    @apply h-full min-h-full;
+  }
+  body {
+    @apply m-0 overflow-hidden bg-canvas font-sans text-[13px] text-ink antialiased;
+  }
+  button,
+  summary {
+    @apply cursor-pointer;
+  }
+  button:disabled {
+    @apply cursor-not-allowed;
+  }
+  button,
+  summary,
+  a,
+  input,
+  select {
+    @apply [-webkit-tap-highlight-color:transparent];
+  }
+  :where(button, a, summary, input, select, [tabindex]):focus-visible {
+    @apply outline-2 outline-offset-[3px] outline-signal;
+  }
+  input[type="checkbox"] {
+    @apply size-[15px] shrink-0;
+  }
 }
 
-body {
-  margin: 0;
-  background: var(--ps-canvas);
-  color: var(--ps-ink);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-}
-
+/* Compatibility for views migrated in the following commits. */
 /* Utilities used across features */
 .card {
   background: var(--ps-surface);

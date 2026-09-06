@@ -25,7 +25,12 @@ const icons = {
   <div
     class="pointer-events-none fixed right-4 bottom-4 z-50 flex w-80 flex-col gap-2"
   >
-    <TransitionGroup name="toast">
+    <TransitionGroup
+      enter-active-class="transition-[opacity,transform] duration-200 ease-[ease] motion-reduce:transition-none"
+      leave-active-class="transition-[opacity,transform] duration-200 ease-[ease] motion-reduce:transition-none"
+      enter-from-class="translate-y-2 opacity-0"
+      leave-to-class="translate-y-2 opacity-0"
+    >
       <div
         v-for="item in items"
         :key="item.id"
@@ -42,17 +47,3 @@ const icons = {
     </TransitionGroup>
   </div>
 </template>
-
-<style scoped>
-.toast-enter-active,
-.toast-leave-active {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translateY(8px);
-}
-</style>
