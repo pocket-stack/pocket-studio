@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-
+import {
+  createStudioNavigation,
+  type DeviceSection,
+  type StudioView,
+} from "./app/useStudioNavigation";
 import DemoPanel from "./app/DemoPanel.vue";
 import NotificationStack from "./app/NotificationStack.vue";
 import DeviceView from "./features/device/DeviceView.vue";
@@ -13,174 +17,493 @@ import StoreView from "./features/store/StoreView.vue";
 import InstalledView from "./features/store/InstalledView.vue";
 import { useStore } from "./features/store/useStore";
 import { useDeviceSession } from "./shared/composables/useDeviceSession";
+import { useLogMessage } from "./shared/composables/useLogMessage";
 import { useOperationLog } from "./shared/composables/useOperationLog";
-import { useOperations } from "./shared/composables/useOperations";
+import {
+  operationProgress,
+  useOperations,
+} from "./shared/composables/useOperations";
+import { useGateway } from "./shared/gateway";
 import AppIcon from "./shared/ui/AppIcon.vue";
-import StatusPill from "./shared/ui/StatusPill.vue";
+import StudioDialog from "./shared/ui/StudioDialog.vue";
 
-type View = "device" | "store" | "installed" | "logs" | "settings";
-
-const { t } = useI18n();
-const view = ref<View>("device");
+const { t, d } = useI18n();
+const renderLog = useLogMessage();
+const lastDeviceSection = ref<DeviceSection>("summary");
+const mainContent = ref<HTMLElement | null>(null);
 const demoOpen = ref(false);
-const deviceSection = ref<"summary" | "conditions" | "environment">("summary");
+const settingsOpen = ref(false);
+const deviceMenu = ref<HTMLDetailsElement | null>(null);
+const logsExpanded = ref(false);
 const session = useDeviceSession();
-const store = useStore();
 const preparation = usePreparation();
+const store = useStore();
+const log = useOperationLog();
+const gateway = useGateway();
 const { active } = useOperations();
+const current = computed(() => active.value[0]);
 const preparing = computed(
   () =>
     ["starting", "awaitingDfu", "running"].includes(preparation.stage.value) ||
     active.value.some((operation) => operation.kind === "preparation"),
 );
-watch(preparation.stage, (stage) => {
-  if (stage === "overview" || stage === "starting") {
-    view.value = "device";
-    deviceSection.value = "environment";
-  }
+const latestLog = computed(() => log.entries.value.at(-1));
+const latestMessage = computed(() => {
+  const entry = latestLog.value;
+  return entry ? renderLog(entry) : t("studio.logIdle");
 });
-
-const navigation: Array<{ id: View; icon: string }> = [
+const progress = computed(() =>
+  current.value ? operationProgress(current.value) : 100,
+);
+const lcdTitle = computed(() => {
+  const operation = current.value;
+  if (operation)
+    return operation.kind === "preparation"
+      ? t("studio.preparing")
+      : t("studio.installing", {
+          name: t(`catalog.${operation.subject}.name`),
+        });
+  return session.device.value
+    ? t("studio.deviceName")
+    : t("device.empty.title");
+});
+const lcdSubtitle = computed(() => {
+  const operation = current.value;
+  if (operation?.currentStepId)
+    return t(
+      `${operation.kind === "preparation" ? "preparation.steps" : "store.steps"}.${operation.currentStepId}.title`,
+    );
+  return session.checking.value
+    ? t("readiness.checking")
+    : session.device.value
+      ? t(session.isReady.value ? "studio.allReady" : "studio.needsPreparation")
+      : t("studio.connectHint");
+});
+const modalOpen = computed(
+  () =>
+    preparation.consentVisible.value || settingsOpen.value || demoOpen.value,
+);
+const navigationHistory = createStudioNavigation(
+  () => !preparing.value && !modalOpen.value,
+);
+const view = computed(() => navigationHistory.current.value.view);
+const deviceSection = computed(() =>
+  navigationHistory.current.value.view === "device"
+    ? navigationHistory.current.value.section
+    : lastDeviceSection.value,
+);
+watch(navigationHistory.current, async (location) => {
+  if (location.view === "device") lastDeviceSection.value = location.section;
+  if (location.view === "store") store.select(location.packageId);
+  await nextTick();
+  mainContent.value?.scrollTo({ top: 0 });
+});
+const navigation: Array<{ id: StudioView; icon: string }> = [
   { id: "device", icon: "device" },
-  { id: "store", icon: "store" },
   { id: "installed", icon: "grid" },
   { id: "logs", icon: "logs" },
-  { id: "settings", icon: "settings" },
+  { id: "store", icon: "store" },
 ];
-
-function startPreparationFromStore(): void {
-  if (session.device.value) void preparation.open(session.device.value.id);
+function showDevice(section: DeviceSection): void {
+  navigationHistory.navigate({ view: "device", section });
 }
-
-onMounted(() => {
-  void session.initialize();
-  void store.initialize();
-  void useOperationLog().initialize();
+function showPage(page: StudioView): void {
+  if (page === "device") showDevice(lastDeviceSection.value);
+  else if (page === "store") showPackage(store.selectedId.value);
+  else navigationHistory.navigate({ view: page });
+}
+function showPackage(packageId: string | null): void {
+  navigationHistory.navigate({ view: "store", packageId });
+}
+function startPreparation(): void {
+  if (session.device.value) {
+    showDevice("environment");
+    void preparation.open(session.device.value.id);
+  }
+}
+function showActivity(): void {
+  if (current.value?.kind === "preparation") showDevice("environment");
+  else if (current.value?.subject) showPackage(current.value.subject);
+  else showDevice("summary");
+}
+async function detect(): Promise<void> {
+  if (deviceMenu.value) deviceMenu.value.open = false;
+  if (!session.device.value) await gateway.demo.attachDevice();
+  else await session.checkReadiness();
+}
+async function eject(): Promise<void> {
+  if (active.value.length) return;
+  if (deviceMenu.value) deviceMenu.value.open = false;
+  await gateway.demo.detachDevice();
+}
+function search(): void {
+  if (preparing.value) return;
+  showPackage(null);
+}
+watch(preparation.stage, (stage) => {
+  if (stage === "overview" || stage === "starting") showDevice("environment");
+});
+onMounted(async () => {
+  await log.initialize();
+  await session.initialize();
+  await store.initialize();
+  // Current gateways only introduce demo fixtures; no hardware is accessed.
+  if (!session.device.value) await gateway.demo.attachDevice();
 });
 </script>
 
 <template>
-  <div class="flex h-screen">
-    <aside class="flex w-60 shrink-0 flex-col border-r border-line bg-surface">
-      <div class="flex items-center gap-2 px-5 py-5">
-        <span
-          class="flex h-8 w-8 items-center justify-center rounded-lg bg-signal text-on-signal"
-        >
-          <AppIcon name="bolt" :size="18" />
-        </span>
-        <div>
-          <div class="text-sm font-semibold">{{ t("app.name") }}</div>
-          <div class="text-[11px] text-muted">{{ t("app.tagline") }}</div>
-        </div>
-      </div>
-
-      <nav class="flex flex-col gap-1 px-3">
-        <button
-          v-for="item in navigation"
-          :key="item.id"
-          :disabled="preparing && item.id !== 'device'"
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition"
-          :class="
-            view === item.id
-              ? 'bg-signal/12 font-medium text-signal'
-              : 'text-muted hover:bg-ink/5 hover:text-ink'
-          "
-          @click="view = item.id"
-        >
-          <AppIcon :name="item.icon" />
-          {{
-            item.id === "installed"
-              ? t("studio.nav.installed")
-              : t(`nav.${item.id}`)
-          }}
-          <span
-            v-if="item.id === 'logs' && active.length"
-            class="ml-auto h-2 w-2 rounded-full bg-signal pulse"
-          />
-        </button>
-      </nav>
-      <nav
-        v-if="view === 'device'"
-        class="mt-5 flex flex-col gap-1 px-3"
-        :aria-label="t('studio.deviceNavigation')"
+  <div class="flex h-dvh flex-col" :inert="modalOpen">
+    <header
+      class="flex h-[52px] shrink-0 items-center justify-between gap-3 border-b border-line bg-chrome px-4 max-[600px]:gap-2 max-[600px]:px-2.5"
+    >
+      <div
+        class="flex shrink-0 items-center gap-[9px] max-[800px]:gap-1.5 max-[600px]:gap-1"
       >
-        <button
-          v-for="section in ['summary', 'conditions', 'environment'] as const"
-          :key="section"
-          class="rounded px-3 py-2 text-left text-sm disabled:opacity-45"
-          :class="
-            deviceSection === section
-              ? 'bg-signal/12 text-signal'
-              : 'text-muted'
-          "
-          :disabled="preparing && section !== 'environment'"
-          @click="deviceSection = section"
-        >
-          {{ t(`studio.sections.${section}`) }}
-        </button>
-      </nav>
-
-      <div class="mt-auto flex flex-col gap-3 border-t border-line p-4">
-        <div class="flex items-center gap-2 text-xs">
-          <StatusPill v-if="session.device.value" tone="success" dot>{{
-            session.device.value.modelIdentifier
-          }}</StatusPill>
-          <StatusPill v-else tone="neutral" dot>{{
-            t("app.noDevice")
-          }}</StatusPill>
-          <StatusPill v-if="active.length" tone="signal">{{
-            t("app.activeOperations", { count: active.length })
-          }}</StatusPill>
-        </div>
-        <button
-          class="btn btn-ghost justify-start px-2 text-xs"
-          @click="demoOpen = !demoOpen"
-        >
-          <AppIcon name="lab" :size="14" />
-          {{ demoOpen ? t("demo.hide") : t("demo.show") }}
-        </button>
         <div
-          v-if="demoOpen"
-          class="rise rounded-xl border border-dashed border-line p-3"
+          class="flex items-center gap-0.5"
+          role="group"
+          :aria-label="t('studio.historyNavigation')"
         >
-          <DemoPanel />
+          <button
+            class="relative inline-flex size-[30px] items-center justify-center rounded border border-transparent bg-transparent p-0 text-muted transition-[background-color,color] duration-150 enabled:hover:bg-track enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-35 aria-[current=page]:border-signal/14 aria-[current=page]:bg-signal/13 aria-[current=page]:text-signal aria-[current=page]:enabled:hover:bg-signal/20 aria-[current=page]:enabled:hover:text-signal max-[800px]:w-7 max-[600px]:h-7 max-[600px]:w-6"
+            :disabled="!navigationHistory.canGoBack.value"
+            :title="t('studio.navigateBack')"
+            :aria-label="t('studio.navigateBack')"
+            @click="navigationHistory.back"
+          >
+            <AppIcon
+              name="chevronRight"
+              :size="16"
+              class="rotate-180 max-[600px]:size-[17px]"
+            />
+          </button>
+          <button
+            class="relative inline-flex size-[30px] items-center justify-center rounded border border-transparent bg-transparent p-0 text-muted transition-[background-color,color] duration-150 enabled:hover:bg-track enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-35 aria-[current=page]:border-signal/14 aria-[current=page]:bg-signal/13 aria-[current=page]:text-signal aria-[current=page]:enabled:hover:bg-signal/20 aria-[current=page]:enabled:hover:text-signal max-[800px]:w-7 max-[600px]:h-7 max-[600px]:w-6"
+            :disabled="!navigationHistory.canGoForward.value"
+            :title="t('studio.navigateForward')"
+            :aria-label="t('studio.navigateForward')"
+            @click="navigationHistory.forward"
+          >
+            <AppIcon
+              class="max-[600px]:size-[17px]"
+              name="chevronRight"
+              :size="16"
+            />
+          </button>
         </div>
+        <span class="h-5 w-px bg-line" aria-hidden="true" />
+        <nav
+          class="flex items-center gap-0.5"
+          :aria-label="t('studio.navigation')"
+        >
+          <button
+            v-for="item in navigation"
+            :key="item.id"
+            class="relative inline-flex size-[30px] items-center justify-center rounded border border-transparent bg-transparent p-0 text-muted transition-[background-color,color] duration-150 enabled:hover:bg-track enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-35 aria-[current=page]:border-signal/14 aria-[current=page]:bg-signal/13 aria-[current=page]:text-signal aria-[current=page]:enabled:hover:bg-signal/20 aria-[current=page]:enabled:hover:text-signal max-[800px]:w-7 max-[600px]:h-7 max-[600px]:w-6"
+            :disabled="!navigationHistory.enabled.value"
+            :title="t(`studio.nav.${item.id}`)"
+            :aria-label="t(`studio.nav.${item.id}`)"
+            :aria-current="view === item.id ? 'page' : undefined"
+            @click="showPage(item.id)"
+          >
+            <AppIcon
+              class="max-[600px]:size-[17px]"
+              :name="item.icon"
+              :size="20"
+            />
+          </button>
+        </nav>
       </div>
-    </aside>
+      <button
+        class="relative mx-auto flex h-[34px] w-[520px] min-w-[230px] max-w-[44%] flex-col justify-center overflow-hidden rounded-md border border-[#d0d0d0] bg-lcd px-3 pt-0 pb-[5px] text-left shadow-[inset_0_1px_3px_#00000005] hover:border-muted max-[850px]:max-w-none max-[800px]:min-w-[120px] max-[800px]:flex-1 max-[600px]:min-w-[90px]"
+        :aria-label="t('studio.activity')"
+        @click="showActivity"
+      >
+        <div
+          class="flex items-center justify-between gap-3 text-[12px] leading-[1.35] max-[600px]:text-[10px]"
+        >
+          <span
+            class="font-semibold first:shrink-0 first:truncate last:truncate last:text-right last:text-[11px] max-[600px]:last:hidden"
+            >{{ lcdTitle }}</span
+          ><span
+            class="text-muted first:shrink-0 first:truncate last:truncate last:text-right last:text-[11px] max-[600px]:last:hidden"
+            >{{ lcdSubtitle }}{{ current ? ` · ${progress}%` : "" }}</span
+          >
+        </div>
 
-    <main class="scroll-thin min-w-0 flex-1 overflow-y-auto p-8">
-      <DeviceView
-        v-if="view === 'device'"
-        :section="deviceSection"
-        @open-store="view = 'store'"
-        @open-logs="view = 'logs'"
-        @show-conditions="deviceSection = 'conditions'"
-      />
-      <StoreView
-        v-else-if="view === 'store'"
-        @prepare="startPreparationFromStore"
-        @open-package="store.select"
-        @open-installed="view = 'installed'"
-        @open-environment="
-          view = 'device';
-          deviceSection = 'environment';
-        "
-      />
-      <InstalledView
-        v-else-if="view === 'installed'"
-        @open-store="view = 'store'"
-        @detail="
-          (id) => {
-            store.select(id);
-            view = 'store';
-          }
-        "
-      />
-      <LogsView v-else-if="view === 'logs'" />
-      <SettingsView v-else />
-    </main>
-
-    <PreparationWizard />
-    <NotificationStack />
+        <div class="static mt-1 h-[3px] rounded-[2px] bg-[#c4c4c4]">
+          <span
+            :data-running="!!current"
+            class="block h-full w-(--progress-width) bg-[#719185] transition-[width] duration-250 data-[running=true]:bg-signal"
+            :style="{ '--progress-width': `${progress}%` }"
+          />
+        </div>
+      </button>
+      <div class="flex shrink-0 items-center gap-3 max-[850px]:gap-2">
+        <details ref="deviceMenu" class="group/device-menu relative">
+          <summary
+            class="flex h-[34px] min-w-[115px] list-none items-center gap-2 rounded-[5px] border border-[#d0d0d0] px-2.5 py-0 text-muted hover:bg-track group-open/device-menu:bg-track max-[850px]:min-w-auto [&::-webkit-details-marker]:hidden"
+          >
+            <AppIcon name="device" :size="21" /><span class="max-[800px]:hidden"
+              ><b
+                class="block text-[12px] font-semibold whitespace-nowrap text-ink"
+                >{{
+                  session.device.value
+                    ? t("studio.deviceName")
+                    : t("app.noDevice")
+                }}</b
+              ><small
+                class="mt-0 flex items-center gap-[5px] text-[10px] whitespace-nowrap"
+                ><i
+                  class="inline-block size-[5px] shrink-0 rounded-full"
+                  :class="session.device.value ? 'bg-success' : 'bg-muted'"
+                />{{
+                  session.device.value
+                    ? session.device.value.mode === "normal"
+                      ? t("studio.usbConnected")
+                      : t(`device.mode.${session.device.value.mode}`)
+                    : t("studio.disconnected")
+                }}</small
+              ></span
+            ><AppIcon name="chevronDown" :size="13" />
+          </summary>
+          <div
+            class="absolute top-[47px] right-0 z-20 w-[248px] rounded-lg border border-line bg-raised p-2 shadow-[0_12px_35px_#00000020]"
+          >
+            <p class="text-[10px] tracking-[0.04em] text-muted p-[7px]">
+              {{ t("studio.connectedDevices") }}
+            </p>
+            <div
+              class="flex w-full items-center gap-2.5 rounded p-[9px] text-[12px]"
+            >
+              <AppIcon name="device" /><span>{{
+                session.device.value
+                  ? t("studio.deviceName")
+                  : t("app.noDevice")
+              }}</span
+              ><AppIcon
+                v-if="session.device.value"
+                name="check"
+                class="ml-auto text-signal"
+                :size="15"
+              />
+            </div>
+            <hr class="border-line" />
+            <button
+              class="flex w-full items-center gap-2.5 rounded p-[9px] text-[12px] hover:bg-track disabled:opacity-40"
+              @click="detect"
+            >
+              <AppIcon name="refresh" :size="15" />{{
+                t("studio.detectDevice")
+              }}</button
+            ><button
+              class="flex w-full items-center gap-2.5 rounded p-[9px] text-[12px] hover:bg-track disabled:opacity-40"
+              :disabled="!session.device.value || !!active.length"
+              @click="eject"
+            >
+              <AppIcon name="eject" :size="15" />{{ t("studio.eject") }}
+            </button>
+          </div>
+        </details>
+        <label
+          class="flex h-8 w-[180px] items-center gap-[7px] rounded-2xl border border-line bg-raised px-2.5 py-0 text-muted focus-within:border-signal focus-within:ring-2 focus-within:ring-signal/15 max-[1150px]:w-[135px] max-[600px]:w-[100px]"
+          ><AppIcon name="search" :size="15" /><input
+            v-model="store.query.value"
+            class="w-full min-w-0 text-[12px] text-ink outline-none"
+            type="search"
+            :disabled="preparing"
+            :placeholder="t('studio.search')"
+            :aria-label="t('studio.search')"
+            @input="search"
+            @keydown.enter="search"
+        /></label>
+      </div>
+    </header>
+    <div class="flex min-h-0 flex-1">
+      <aside
+        v-if="view === 'device' && session.device.value"
+        class="flex w-[220px] shrink-0 flex-col border-r border-line bg-sidebar pt-3 max-[1150px]:w-[190px] max-[850px]:w-40 max-[600px]:hidden"
+      >
+        <p
+          class="mb-1 border-y border-line bg-track px-3.5 py-[3px] text-[11px] font-medium tracking-[0.03em] text-muted"
+        >
+          {{ t("studio.settingsGroup") }}
+        </p>
+        <nav :aria-label="t('studio.deviceNavigation')">
+          <button
+            v-for="section in ['summary', 'conditions', 'environment'] as const"
+            :key="section"
+            :disabled="preparing && section !== 'environment'"
+            class="group/nav-item m-0 flex w-full items-center gap-2.5 rounded-none px-3.5 py-1.5 text-left text-[13px] text-ink hover:bg-track hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 aria-[current=page]:bg-[#2f6fd6] aria-[current=page]:font-normal aria-[current=page]:text-white aria-[current=page]:hover:bg-[#2f6fd6] aria-[current=page]:hover:text-white"
+            :aria-current="deviceSection === section ? 'page' : undefined"
+            @click="showDevice(section)"
+          >
+            {{ t(`studio.sections.${section}`)
+            }}<i
+              v-if="section === 'conditions' && session.needsPreparation.value"
+              class="ml-auto bg-warning inline-block size-[5px] shrink-0 rounded-full group-aria-[current=page]/nav-item:bg-white"
+            />
+          </button>
+        </nav>
+        <p
+          class="mt-6 mb-1 border-y border-line bg-track px-3.5 py-[3px] text-[11px] font-medium tracking-[0.03em] text-muted"
+        >
+          {{ t("studio.onDevice") }}
+        </p>
+        <button
+          class="group/nav-item m-0 flex w-full items-center gap-2.5 rounded-none px-3.5 py-1.5 text-left text-[13px] text-ink hover:bg-track hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 aria-[current=page]:bg-[#2f6fd6] aria-[current=page]:font-normal aria-[current=page]:text-white aria-[current=page]:hover:bg-[#2f6fd6] aria-[current=page]:hover:text-white"
+          :disabled="preparing"
+          @click="showPage('installed')"
+        >
+          {{ t("studio.installedApps")
+          }}<span class="ml-auto text-[10px]">{{
+            store.installed.value.length
+          }}</span>
+        </button>
+        <button
+          class="group/nav-item m-0 flex w-full items-center gap-2.5 rounded-none px-3.5 py-1.5 text-left text-[13px] text-ink hover:bg-track hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 aria-[current=page]:bg-[#2f6fd6] aria-[current=page]:font-normal aria-[current=page]:text-white aria-[current=page]:hover:bg-[#2f6fd6] aria-[current=page]:hover:text-white"
+          :disabled="preparing"
+          @click="showPage('logs')"
+        >
+          {{ t("nav.logs") }}
+        </button>
+        <div class="mt-auto pb-[15px]">
+          <div
+            class="mx-2 mt-0 mb-2.5 flex items-center gap-2 border-b border-line px-0.5 py-3.5 text-[11px] text-muted"
+          >
+            <AppIcon name="usb" :size="14" /><span>{{
+              session.device.value
+                ? t("studio.usbConnected")
+                : t("studio.disconnected")
+            }}</span
+            ><i
+              class="ml-auto inline-block size-[5px] shrink-0 rounded-full"
+              :class="session.device.value ? 'bg-success' : 'bg-muted'"
+            />
+          </div>
+          <button
+            class="group/nav-item m-0 flex w-full items-center gap-2.5 rounded-none px-3.5 py-1.5 text-left text-[13px] text-ink hover:bg-track hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 aria-[current=page]:bg-[#2f6fd6] aria-[current=page]:font-normal aria-[current=page]:text-white aria-[current=page]:hover:bg-[#2f6fd6] aria-[current=page]:hover:text-white"
+            @click="settingsOpen = true"
+          >
+            <AppIcon name="settings" :size="16" />{{ t("studio.preferences") }}
+          </button>
+        </div>
+      </aside>
+      <main
+        ref="mainContent"
+        class="min-w-0 flex-1 overflow-y-auto p-5 [scrollbar-width:thin] [scrollbar-color:var(--color-line)_transparent]"
+        :class="{ 'pl-8 max-[600px]:pl-5': view === 'device' }"
+      >
+        <DeviceView
+          v-if="view === 'device'"
+          :section="deviceSection"
+          @open-logs="showPage('logs')"
+          @open-store="showPage('store')"
+          @show-conditions="showDevice('conditions')"
+        />
+        <StoreView
+          v-else-if="view === 'store'"
+          @prepare="startPreparation"
+          @open-package="showPackage"
+          @open-installed="showPage('installed')"
+          @open-environment="showDevice('environment')"
+        />
+        <InstalledView
+          v-else-if="view === 'installed'"
+          @open-store="showPage('store')"
+          @detail="showPackage"
+        />
+        <LogsView v-else />
+      </main>
+    </div>
+    <section
+      v-if="logsExpanded"
+      class="max-h-[190px] overflow-y-auto border-t border-line bg-surface px-[25px] py-[15px] text-[11px]"
+    >
+      <div class="flex items-center justify-between">
+        <b>{{ t("studio.recentActivity") }}</b
+        ><button
+          class="inline-flex items-center gap-[5px] text-[11px] text-signal hover:underline hover:underline-offset-[3px]"
+          @click="
+            showPage('logs');
+            logsExpanded = false;
+          "
+        >
+          {{ t("studio.allLogs") }}<AppIcon name="arrowRight" :size="12" />
+        </button>
+      </div>
+      <div
+        v-for="entry in log.entries.value.slice(-5)"
+        :key="entry.id"
+        class="mt-[9px] flex gap-[15px] text-[10px]"
+      >
+        <time class="font-mono text-muted">{{
+          d(entry.timestamp, "time")
+        }}</time
+        ><span
+          :class="entry.level === 'error' ? 'text-danger' : 'text-muted'"
+          >{{ entry.level.toUpperCase() }}</span
+        ><span>{{ renderLog(entry) }}</span>
+      </div>
+    </section>
+    <footer
+      class="flex h-[34px] shrink-0 items-center gap-3 border-t border-line bg-chrome px-[15px] py-0 text-[11px] text-muted"
+    >
+      <button
+        class="flex min-w-0 flex-1 items-center gap-[9px] text-left"
+        :aria-expanded="logsExpanded"
+        @click="logsExpanded = !logsExpanded"
+      >
+        <AppIcon name="terminal" :size="14" /><b
+          class="font-medium whitespace-nowrap text-ink"
+          >{{ t("nav.logs") }}</b
+        ><time
+          v-if="latestLog"
+          class="font-mono text-[10px] max-[600px]:hidden"
+          >{{ d(latestLog.timestamp, "time") }}</time
+        ><span class="truncate">{{ latestMessage }}</span
+        ><AppIcon
+          :name="logsExpanded ? 'chevronDown' : 'chevronUp'"
+          :size="13"
+        /></button
+      ><button
+        class="inline-flex shrink-0 items-center gap-[5px] text-[10px] whitespace-nowrap text-muted enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
+        :disabled="!navigationHistory.enabled.value"
+        @click="showPage('installed')"
+      >
+        <AppIcon name="download" :size="13" />{{ t("studio.queue") }}
+        {{ active.length + store.queuedIds.value.length }}</button
+      ><span class="block text-[10px] whitespace-nowrap max-[600px]:hidden">{{
+        t("studio.simulationNotice")
+      }}</span
+      ><button
+        class="flex items-center gap-[5px] border-l border-line pl-3 whitespace-nowrap"
+        @click="demoOpen = true"
+      >
+        <AppIcon name="lab" :size="13" />{{ t("demo.title") }}</button
+      ><button
+        class="inline-flex items-center justify-center rounded p-[5px] text-muted hover:bg-track hover:text-ink"
+        :aria-label="t('studio.preferences')"
+        @click="settingsOpen = true"
+      >
+        <AppIcon name="settings" :size="14" />
+      </button>
+    </footer>
   </div>
+  <StudioDialog
+    :open="settingsOpen"
+    :title="t('studio.preferences')"
+    @close="settingsOpen = false"
+    ><SettingsView
+  /></StudioDialog>
+  <StudioDialog
+    :open="demoOpen"
+    :title="t('demo.title')"
+    compact
+    @close="demoOpen = false"
+    ><DemoPanel
+  /></StudioDialog>
+  <PreparationWizard />
+  <NotificationStack />
 </template>
