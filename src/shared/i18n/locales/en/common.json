@@ -36,7 +36,7 @@
     "readinessFailed": "Readiness check failed. Please try again.",
     "deviceAttached": "Detected {name}",
     "deviceDetached": "Device disconnected",
-    "logExported": "Log exported to {path}",
+    "logExported": "Log file generated: {path}",
     "logExportFailed": "Log export failed",
     "logCopied": "Copied {count} log lines to the clipboard",
     "logCopyFailed": "Could not copy the log",
@@ -79,7 +79,9 @@
       "version": "Version",
       "backend": "Backend",
       "toolkit": "Device toolkit",
-      "toolkitNote": "UI demo only; no real device operations are wired up"
+      "toolkitNote": "UI demo only; no real device operations are wired up",
+      "browser": "Browser simulation",
+      "native": "Tauri demo driver"
     }
   }
 }

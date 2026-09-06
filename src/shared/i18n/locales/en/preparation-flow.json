@@ -1,7 +1,7 @@
 {
   "preparation": {
     "title": "Device preparation: jailbreak iPod touch 4",
-    "subtitle": "Ramdisk method · limera1n · no data loss · untethered",
+    "subtitle": "iPod4,1 · iOS 6.1.6 · SSH ramdisk · Simulation",
     "planning": "Building the preparation plan…",
     "planFailed": "The plan could not be created. Make sure the device is still connected.",
     "starting": "Recording your consent and starting…",
@@ -15,7 +15,7 @@
     },
     "overview": {
       "whatHappens": "What will happen",
-      "intro": "Pocket Studio guides the device into DFU mode, uses the bootrom exploit to boot a patched SSH ramdisk, then writes the untether and Cydia to the device. The OS is not reflashed and no data is erased.",
+      "intro": "This demo shows DFU, bootrom entry, SSH ramdisk, and jailbreak environment installation. A real run modifies the system; although erasure is not intended, boot failures and data loss remain possible.",
       "facts": {
         "method": "Method",
         "exploit": "Exploit",
@@ -33,7 +33,7 @@
         "tethered": "Tethered"
       },
       "dataLoss": {
-        "none": "No data is erased",
+        "none": "No planned erasure; backup required",
         "full": "All data is erased"
       },
       "minutes": "about {minutes} min",
@@ -49,11 +49,11 @@
       },
       "workingButtons": {
         "title": "Power and Home buttons work",
-        "detail": "DFU mode depends on both buttons. Broken buttons require a DFU IPSW, which erases the device."
+        "detail": "This demo requires working buttons. The Rust toolkit has not implemented DFU IPSW; no broken-button alternative is offered."
       },
       "backupCompleted": {
         "title": "Device data is backed up",
-        "detail": "This method keeps your data, but any restore that becomes necessary will erase everything."
+        "detail": "Recovery can erase data. Make an independent backup before real operations."
       },
       "stableCable": {
         "title": "Reliable cable, directly into the computer",
@@ -68,7 +68,7 @@
       "start": "Start guide",
       "retry": "Try again",
       "restart": "Start over",
-      "alreadyInDfu": "The device is already in DFU mode",
+      "alreadyInDfu": "Simulate DFU detection",
       "deviceState": "Current device state",
       "disconnected": "No device detected",
       "autoAdvance": "The flow continues automatically once DFU mode is detected.",
@@ -80,7 +80,7 @@
       "phase": {
         "idle": {
           "title": "Ready to enter DFU mode",
-          "body": "After you press Start there is a 3 second countdown. Then follow the animation and timer exactly. The button sequence takes about 16 seconds."
+          "body": "After a 3-second countdown, hold Power and Home for 10 seconds, then release Power and hold Home for 8 seconds. The first phase is 8 seconds when starting in Recovery."
         },
         "countdown": {
           "title": "Get your fingers ready",
@@ -105,9 +105,9 @@
       },
       "summary": {
         "plug": "Keep the device connected to the computer.",
-        "holdBoth": "Hold Power and Home together for 8 seconds.",
+        "holdBoth": "Hold Power and Home together for {seconds} seconds.",
         "releasePower": "Release Power, keep holding Home for 8 seconds.",
-        "blackScreen": "A black screen means success. An Apple logo means the buttons were held too long."
+        "blackScreen": "DFU keeps the display black, but success must be confirmed by device detection."
       },
       "troubleshooting": {
         "title": "Trouble?",
@@ -134,7 +134,7 @@
       "elapsed": "Elapsed {time}",
       "cancel": "Cancel",
       "cancelHint": "The current step can be interrupted safely.",
-      "cannotCancelNow": "The current step is writing to the device and cannot be interrupted.",
+      "cannotCancelNow": "This step cannot be interrupted safely. Please wait.",
       "keepConnected": {
         "title": "Do not unplug or shut down",
         "body": "The device screen goes black and the device reboots a few times. This is expected.",
@@ -143,8 +143,8 @@
     },
     "result": {
       "success": {
-        "title": "Jailbreak complete",
-        "body": "The device rebooted and passed verification. Cydia and SSH are available, and the device now meets the Pocket requirements."
+        "title": "Preparation demo complete",
+        "body": "The simulated device has rebooted and passed readiness checks. You can now try app installation. No real device was modified."
       },
       "failed": {
         "title": "The flow failed",
@@ -152,7 +152,7 @@
       },
       "cancelled": {
         "title": "Flow cancelled",
-        "body": "The flow stopped at a safe point and the device was not modified. If it is still in DFU mode, hold Power and Home for about 15 seconds to leave it."
+        "body": "The demo stopped at a cancellable step. No real device operation was performed."
       },
       "failedAt": "Failed at \"{step}\" (attempt {attempt})",
       "recoveryTitle": "Suggested next steps",

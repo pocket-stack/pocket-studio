@@ -32,14 +32,14 @@
       },
       "osVersionSupported": {
         "title": "系统版本",
-        "pass": "iOS 版本在 Legacy iOS Kit 的越狱支持范围内（3.1.3 – 9.3.4）。",
+        "pass": "当前演示为 iPod4,1 / iOS 6.1.6；兼容性以具体型号与版本为准。",
         "fail": "该系统版本不在支持范围内。",
         "warn": "该系统版本支持有限。",
         "unknown": "无法读取系统版本。"
       },
       "pairingTrusted": {
         "title": "配对信任",
-        "pass": "设备已信任这台电脑。",
+        "pass": "已建立电脑与设备的配对连接。",
         "fail": "设备尚未信任这台电脑。",
         "warn": "配对记录可能已过期。",
         "unknown": "无法确认配对状态。"
@@ -76,13 +76,13 @@
     "guidance": {
       "jailbreak": {
         "title": "需要越狱后才能接入 Pocket 生态",
-        "body": "Pocket Studio 可以使用 Legacy iOS Kit 的 ramdisk 方式为 iPod touch 4 进行无损、完美越狱（untethered）。整个流程会先说明风险并要求你逐项确认，然后再引导你进入 DFU 模式。",
-        "point1": "不会清除设备数据，但仍强烈建议先备份。",
+        "body": "本演示展示 Legacy iOS Kit 的 ramdisk 准备流程。先阅读并确认风险，再通过电源键和 Home 键动画了解 DFU 操作。",
+        "point1": "此方式不以擦除数据为目标，但故障恢复可能导致数据丢失，请先备份。",
         "point2": "需要电源键与 Home 键均可正常使用。",
         "point3": "过程中请勿拔线、勿让电脑休眠，全程约需 5 分钟。",
         "action": "开始越狱准备"
       },
-      "ready": "设备已满足所有接入条件。可以前往应用商店安装 Pocket 运行时。"
+      "ready": "设备已满足核心接入条件，可以前往应用商店。"
     }
   }
 }

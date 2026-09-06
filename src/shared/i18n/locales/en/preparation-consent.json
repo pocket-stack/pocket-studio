@@ -23,7 +23,7 @@
         },
         "dataLossOnRecovery": {
           "title": "A restore erases all data",
-          "body": "This method itself keeps your data, but any failure that requires a restore wipes the device. Apple no longer signs iOS 6, so a restore depends on SHSH blobs or community tooling.",
+          "body": "Erasure is not intended, but a failure requiring a restore can wipe the device. Returning to a specific version depends on signing, SHSH, and tool support; restoration is not guaranteed.",
           "mitigation": "Make a full backup and save the device's SHSH blobs before starting."
         },
         "interruptionHazard": {
@@ -33,7 +33,7 @@
         },
         "securityPosture": {
           "title": "A jailbreak weakens device security",
-          "body": "The jailbreak removes sandbox restrictions and installs an SSH service with the default password alpine. Anyone on the same network could log in.",
+          "body": "Jailbreaking relaxes system protections. Enabling SSH while retaining default credentials can permit unauthorized access.",
           "mitigation": "Change the root and mobile passwords right after the jailbreak and install software only from trusted sources."
         },
         "communityTooling": {
@@ -48,7 +48,7 @@
         },
         "warrantyAndSupport": {
           "title": "No official support",
-          "body": "Jailbroken devices are outside Apple's support. This device's warranty ended long ago, but you should still be aware.",
+          "body": "System modifications may affect support. Community tools cannot guarantee service from Apple or third parties.",
           "mitigation": "None."
         }
       }
@@ -56,7 +56,7 @@
     "disclaimer": {
       "title": "Disclaimer",
       "version": "Version {version}",
-      "preamble": "Read the following terms in full before continuing. You can tick the agreement and type the confirmation word only after the reading time has elapsed and you have scrolled to the end.",
+      "preamble": "Read these terms in full. Agreement unlocks only after both the reading time and scrolling requirements are met.",
       "sections": [
         {
           "heading": "Nature of the operation",
@@ -64,7 +64,7 @@
         },
         {
           "heading": "Responsibility",
-          "body": "You confirm that you initiate this operation yourself and accept all consequences, including but not limited to an unbootable device, data loss, weakened security and malfunction. Pocket Studio, PocketJS and the authors of Legacy iOS Kit accept no liability."
+          "body": "Confirmation in this interface is for demonstration only and does not authorize real operations. Terms and liability for real operations must be reviewed and presented separately before integration."
         },
         {
           "heading": "Device ownership",
@@ -76,7 +76,7 @@
         },
         {
           "heading": "What can be undone",
-          "body": "Every step before \"Install untether\" can be cancelled without modifying the device. Once writing starts, interrupting may cause damage that cannot be undone."
+          "body": "Cancellation is available only at steps marked safe to interrupt. Starting with ramdisk boot, some steps cannot be cancelled. Interrupting writes can cause boot failure."
         },
         {
           "heading": "Records and logs",

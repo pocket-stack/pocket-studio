@@ -25,11 +25,11 @@
     },
     "empty": {
       "title": "Waiting for a device",
-      "body": "Pocket Studio is listening on USB. Once a device is connected it identifies the model and OS version and checks whether the device meets the Pocket requirements.",
+      "body": "Pocket Studio identifies connected USB devices and checks readiness. This is a UI demo; use the button below to simulate a connection.",
       "step1": "Connect the device to this computer with a reliable cable.",
-      "step2": "If the device asks to trust this computer, tap Trust.",
+      "step2": "Unlock the device and keep it connected for pairing.",
       "step3": "Keep the device unlocked on the home screen. Identification usually takes a few seconds.",
-      "listening": "Listening on USB…"
+      "listening": "Waiting for a simulated connection…"
     },
     "next": {
       "title": "The device is ready for Pocket",

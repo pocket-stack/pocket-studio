@@ -1,7 +1,7 @@
 {
   "preparation": {
     "title": "设备准备：越狱 iPod touch 4",
-    "subtitle": "Ramdisk 方式 · limera1n · 无损 · 完美越狱",
+    "subtitle": "iPod4,1 · iOS 6.1.6 · SSH ramdisk · 流程演示",
     "planning": "正在生成准备方案…",
     "planFailed": "无法生成准备方案，请确认设备仍然连接。",
     "starting": "正在记录确认并启动流程…",
@@ -15,7 +15,7 @@
     },
     "overview": {
       "whatHappens": "将要发生什么",
-      "intro": "Pocket Studio 会引导设备进入 DFU 模式，利用 bootrom 漏洞启动一个打过补丁的 SSH ramdisk，然后把 untether 与 Cydia 写入设备。过程不会重刷系统，也不会清除数据。",
+      "intro": "本演示依次展示 DFU、bootrom 引导、SSH ramdisk 与越狱环境安装。真实流程会修改系统；不以擦除为目标，但仍有启动异常与数据丢失风险。",
       "facts": {
         "method": "方式",
         "exploit": "漏洞利用",
@@ -33,7 +33,7 @@
         "tethered": "不完美越狱"
       },
       "dataLoss": {
-        "none": "不清除数据",
+        "none": "不以擦除为目标，仍需备份",
         "full": "清除全部数据"
       },
       "minutes": "约 {minutes} 分钟",
@@ -49,11 +49,11 @@
       },
       "workingButtons": {
         "title": "电源键与 Home 键正常",
-        "detail": "进入 DFU 模式必须依赖这两个按键。按键损坏时需要改用 DFU IPSW，这会清除数据。"
+        "detail": "当前演示仅支持正常按键。Rust 工具链尚未实现 DFU IPSW，不提供损坏按键的替代流程。"
       },
       "backupCompleted": {
         "title": "已备份设备数据",
-        "detail": "虽然此方式不会清除数据，但一旦需要恢复系统，所有数据都会丢失。"
+        "detail": "故障恢复可能擦除数据。开始真实操作前应完成独立备份。"
       },
       "stableCable": {
         "title": "使用可靠的数据线直连电脑",
@@ -68,7 +68,7 @@
       "start": "开始引导",
       "retry": "重新尝试",
       "restart": "重新开始",
-      "alreadyInDfu": "设备已经在 DFU 模式",
+      "alreadyInDfu": "模拟已进入 DFU",
       "deviceState": "当前设备状态",
       "disconnected": "未检测到设备",
       "autoAdvance": "检测到 DFU 模式后会自动进入下一步。",
@@ -80,7 +80,7 @@
       "phase": {
         "idle": {
           "title": "准备进入 DFU 模式",
-          "body": "点击「开始引导」后会有 3 秒倒计时，然后请严格按照屏幕上的动画与计时按键。整个按键过程约 16 秒。"
+          "body": "点击开始后有 3 秒准备时间。正常模式同时按住电源键与 Home 键 10 秒，然后松开电源键，继续按住 Home 键 8 秒。恢复模式第一段为 8 秒。"
         },
         "countdown": {
           "title": "准备好手指",
@@ -105,9 +105,9 @@
       },
       "summary": {
         "plug": "设备保持通过数据线连接电脑。",
-        "holdBoth": "同时按住电源键与 Home 键 8 秒。",
+        "holdBoth": "同时按住电源键与 Home 键 {seconds} 秒。",
         "releasePower": "松开电源键，Home 键继续按住 8 秒。",
-        "blackScreen": "屏幕保持全黑即为成功；出现苹果标志说明按键时间过长。"
+        "blackScreen": "DFU 屏幕保持全黑，以连接检测为准；黑屏本身并不代表成功。"
       },
       "troubleshooting": {
         "title": "遇到问题？",
@@ -134,7 +134,7 @@
       "elapsed": "已用时 {time}",
       "cancel": "取消流程",
       "cancelHint": "当前步骤可以安全中断。",
-      "cannotCancelNow": "当前步骤正在写入设备，无法中断。",
+      "cannotCancelNow": "当前步骤不支持安全中断，请等待。",
       "keepConnected": {
         "title": "请勿拔线、勿关闭电脑",
         "body": "流程中设备会黑屏、重启数次，这些都是正常现象。",
@@ -143,8 +143,8 @@
     },
     "result": {
       "success": {
-        "title": "越狱完成",
-        "body": "设备已重启并通过验证，Cydia 与 SSH 已可用。设备现在满足 Pocket 生态的接入条件。"
+        "title": "准备演示完成",
+        "body": "模拟设备已重启并通过环境验证，现在可以体验应用安装。未修改任何真实设备。"
       },
       "failed": {
         "title": "流程失败",
@@ -152,7 +152,7 @@
       },
       "cancelled": {
         "title": "流程已取消",
-        "body": "流程在安全点停止，设备未被修改。如果设备仍处于 DFU 模式，同时按住电源键和 Home 键约 15 秒即可退出。"
+        "body": "演示已在允许取消的阶段停止。未执行任何真实设备操作。"
       },
       "failedAt": "失败于「{step}」（第 {attempt} 次尝试）",
       "recoveryTitle": "建议的处理方式",

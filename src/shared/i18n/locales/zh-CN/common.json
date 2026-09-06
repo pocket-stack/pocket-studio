@@ -36,7 +36,7 @@
     "readinessFailed": "接入条件检测失败，请重新检测。",
     "deviceAttached": "已检测到 {name}",
     "deviceDetached": "设备已断开连接",
-    "logExported": "日志已导出到 {path}",
+    "logExported": "日志文件已生成：{path}",
     "logExportFailed": "日志导出失败",
     "logCopied": "已复制 {count} 条日志到剪贴板",
     "logCopyFailed": "复制日志失败",
@@ -79,7 +79,9 @@
       "version": "版本",
       "backend": "后端",
       "toolkit": "设备工具链",
-      "toolkitNote": "当前为界面演示，未接入真实设备操作"
+      "toolkitNote": "当前为界面演示，未接入真实设备操作",
+      "browser": "浏览器模拟",
+      "native": "Tauri 演示驱动"
     }
   }
 }
