@@ -63,6 +63,22 @@ stateDiagram-v2
 
 平台差异不得进入领域模型、应用用例或 Vue 组件。
 
+### Window chrome
+
+窗口边框与标题栏由 Tauri 的原生窗口管理，`decorations: true`；macOS 使用 `titleBarStyle: Visible`。
+Vue 顶部区域只是一条应用工具栏，不绘制红绿灯、最小化、最大化或关闭按钮。
+原生标题栏显示应用名；Vue 工具栏合并历史导航、四个页面图标、任务 LCD、设备选择与搜索。浏览器预览也使用同一条工具栏，不模拟窗口按钮。
+
+页面历史由 `src/app/useStudioNavigation.ts` 管理，只记录页面、设备子页与应用 ID。前进 / 后退不调用设备操作或重放同意记录；准备流程与模态期间统一锁定导航。
+
+| 平台    | 窗口控制行为                                                    |
+| ------- | --------------------------------------------------------------- |
+| macOS   | 原生红绿灯及系统缩放、全屏、拖动行为                            |
+| Windows | 原生标题栏的最小化、最大化 / 还原、关闭与系统窗口行为           |
+| Linux   | 由 Tauri/GTK 与桌面环境提供窗口装饰，按钮位置与行为遵循桌面配置 |
+
+不通过 user-agent 判断系统，不在 WebView 内模拟另一个系统的按钮布局。
+
 ## Error and observability policy
 
 - domain、application 和 infrastructure 库错误使用 `thiserror`。
