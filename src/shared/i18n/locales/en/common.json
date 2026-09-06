@@ -25,7 +25,6 @@
     "hide": "Hide demo controls",
     "attach": "Attach demo iPod touch 4",
     "detach": "Detach device",
-    "enterDfu": "Simulate DFU mode",
     "exitDfu": "Simulate leaving DFU",
     "markJailbroken": "Mark as jailbroken",
     "markStock": "Mark as stock",
@@ -54,8 +53,7 @@
   "reading": {
     "remaining": "{seconds} s of reading left",
     "timeMet": "Reading time met",
-    "scrollToEnd": "Scroll to the end to read everything",
-    "scrolled": "Read to the end"
+    "content": "Reading content"
   },
   "operation": {
     "pointOfNoReturn": "Point of no return",

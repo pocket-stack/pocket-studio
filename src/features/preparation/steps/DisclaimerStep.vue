@@ -12,8 +12,6 @@ const { t, tm } = useI18n();
 
 const readingReady = ref(false);
 const elapsed = ref(0);
-const agreed = ref(false);
-const canAccept = computed(() => readingReady.value && agreed.value);
 const sections = computed(
   () =>
     tm("preparation.disclaimer.sections") as Array<{
@@ -62,31 +60,14 @@ function onReady(seconds: number): void {
       </div>
     </ForcedReading>
 
-    <div
-      class="flex flex-col gap-3 p-4 rounded-lg border border-line bg-surface"
-      :class="readingReady ? '' : 'opacity-50'"
-    >
-      <label
-        class="flex items-center gap-2 text-sm"
-        :class="readingReady ? 'cursor-pointer' : 'cursor-not-allowed'"
-      >
-        <input
-          v-model="agreed"
-          type="checkbox"
-          class="accent-signal"
-          :disabled="!readingReady"
-        />
-        {{ t("preparation.disclaimer.agree") }}
-      </label>
-      <p v-if="startError" class="text-xs text-danger">
-        {{
-          t(
-            `preparation.startErrors.${startError}`,
-            t("preparation.startErrors.unknown"),
-          )
-        }}
-      </p>
-    </div>
+    <p v-if="startError" class="text-xs text-danger">
+      {{
+        t(
+          `preparation.startErrors.${startError}`,
+          t("preparation.startErrors.unknown"),
+        )
+      }}
+    </p>
 
     <footer class="flex items-center justify-between">
       <button
@@ -98,7 +79,7 @@ function onReady(seconds: number): void {
       </button>
       <button
         class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06] px-3 py-1.5 text-[12px]"
-        :disabled="!canAccept"
+        :disabled="!readingReady"
         @click="emit('accept', elapsed)"
       >
         <AppIcon name="bolt" :size="16" />

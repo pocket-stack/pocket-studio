@@ -12,10 +12,10 @@ it("retains initial DFU events emitted before the command returns its handle", a
     planId: plan.id,
     prerequisitesConfirmed: plan.prerequisites,
     acknowledgedRiskIds: plan.risks.map((risk) => risk.id),
-    riskReadingSeconds: 15,
-    risksAcknowledgedAt: Date.now() - 22_000,
+    riskReadingSeconds: 5,
+    risksAcknowledgedAt: Date.now() - 6_000,
     disclaimerVersion: plan.disclaimerVersion,
-    disclaimerReadingSeconds: 20,
+    disclaimerReadingSeconds: 5,
     disclaimerAcceptedAt: Date.now() - 1000,
   });
   trackOperation(handle);

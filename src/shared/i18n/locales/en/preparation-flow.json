@@ -65,10 +65,9 @@
       }
     },
     "dfu": {
-      "start": "Start guide",
+      "start": "Powered off — start guide",
       "retry": "Try again",
       "restart": "Start over",
-      "alreadyInDfu": "Simulate DFU detection",
       "deviceState": "Current device state",
       "disconnected": "No device detected",
       "autoAdvance": "The flow continues automatically once DFU mode is detected.",
@@ -79,20 +78,16 @@
       },
       "phase": {
         "idle": {
-          "title": "Ready to enter DFU mode",
-          "body": "After a 3-second countdown, hold Power and Home for 10 seconds, then release Power and hold Home for 8 seconds. The first phase is 8 seconds when starting in Recovery."
-        },
-        "countdown": {
-          "title": "Get your fingers ready",
-          "body": "When the countdown ends, hold the top Power button and the Home button at the same time."
+          "title": "Completely power off the device first",
+          "body": "Keep USB connected, shut the device down completely and wait for the screen to go dark. When ready, start the guide and hold Power and Home for 10 seconds, then release Power and keep holding Home for 8 seconds."
         },
         "holdBoth": {
           "title": "Hold Power + Home",
-          "body": "Keep both held until the timer ends. The screen turning off is expected."
+          "body": "Hold the top Power button and Home together for 10 seconds, until the countdown ends."
         },
         "holdHome": {
           "title": "Release Power, keep holding Home",
-          "body": "Release only the top Power button. Keep holding Home until the timer ends."
+          "body": "Release only Power. Keep holding Home for 8 seconds, until the countdown ends."
         },
         "detecting": {
           "title": "You can let go. Detecting…",
@@ -100,11 +95,11 @@
         },
         "timeout": {
           "title": "DFU mode was not detected",
-          "body": "The device did not show up in DFU mode. Check the troubleshooting list and try again."
+          "body": "Power the device off completely again, keep USB connected and retry the 10-second then 8-second button sequence."
         }
       },
       "summary": {
-        "plug": "Keep the device connected to the computer.",
+        "plug": "Keep USB connected and completely power off the device first.",
         "holdBoth": "Hold Power and Home together for {seconds} seconds.",
         "releasePower": "Release Power, keep holding Home for 8 seconds.",
         "blackScreen": "DFU keeps the display black, but success must be confirmed by device detection."

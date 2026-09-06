@@ -123,13 +123,6 @@ function togglePrerequisite(id: PrerequisiteId): void {
   confirmedPrerequisites.value = [...next];
 }
 
-function toggleRisk(id: RiskId): void {
-  const next = new Set(acknowledgedRisks.value);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  acknowledgedRisks.value = [...next];
-}
-
 function proceedToRisks(): void {
   if (!plan.value || stage.value !== "overview") return;
   if (confirmedPrerequisites.value.length !== plan.value.prerequisites.length)
@@ -147,7 +140,7 @@ function acknowledgeRisks(readingSeconds: number): void {
     readingSeconds < plan.value.minimumReadingSeconds.risks
   )
     return;
-  if (acknowledgedRisks.value.length !== plan.value.risks.length) return;
+  acknowledgedRisks.value = plan.value.risks.map((risk) => risk.id);
   riskReadingSeconds.value = readingSeconds;
   risksAcknowledgedAt.value = Date.now();
   useOperationLog().recordUiEvent(
@@ -157,7 +150,6 @@ function acknowledgeRisks(readingSeconds: number): void {
       plan: plan.value.id,
       readingSeconds: String(readingSeconds),
       risks: acknowledgedRisks.value.join(","),
-      scrolledToEnd: "true",
     },
   );
   stage.value = "disclaimer";
@@ -228,7 +220,6 @@ async function acceptDisclaimer(readingSeconds: number): Promise<void> {
       plan: plan.value.id,
       version: plan.value.disclaimerVersion,
       readingSeconds: String(readingSeconds),
-      scrolledToEnd: "true",
     },
   );
   await launch();
@@ -300,22 +291,15 @@ export function usePreparation() {
     startError: readonly(startError),
     attempt: readonly(attempt),
     confirmedPrerequisites: readonly(confirmedPrerequisites),
-    acknowledgedRisks: readonly(acknowledgedRisks),
     operation,
     allPrerequisitesConfirmed: computed(
       () =>
         plan.value !== null &&
         confirmedPrerequisites.value.length === plan.value.prerequisites.length,
     ),
-    allRisksAcknowledged: computed(
-      () =>
-        plan.value !== null &&
-        acknowledgedRisks.value.length === plan.value.risks.length,
-    ),
     open,
     close,
     togglePrerequisite,
-    toggleRisk,
     proceedToRisks,
     acknowledgeRisks,
     acceptDisclaimer,

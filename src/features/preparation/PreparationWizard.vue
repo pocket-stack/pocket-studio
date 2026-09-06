@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import AppIcon from "../../shared/ui/AppIcon.vue";
 import RiskStep from "./steps/RiskStep.vue";
 import DisclaimerStep from "./steps/DisclaimerStep.vue";
+import { useGateway } from "../../shared/gateway";
 import { usePreparation } from "./usePreparation";
 const { t } = useI18n();
 const preparation = usePreparation();
@@ -64,9 +65,6 @@ watch(preparation.consentVisible, async (visible) => {
       <RiskStep
         v-if="preparation.stage.value === 'risks'"
         :plan="preparation.plan.value"
-        :acknowledged="preparation.acknowledgedRisks.value"
-        :all-acknowledged="preparation.allRisksAcknowledged.value"
-        @toggle="preparation.toggleRisk"
         @next="preparation.acknowledgeRisks"
         @back="preparation.close"
       /><DisclaimerStep
@@ -76,7 +74,10 @@ watch(preparation.consentVisible, async (visible) => {
         @accept="preparation.acceptDisclaimer"
         @back="preparation.backToRisks"
       />
-      <p class="text-[10px] leading-[1.7] text-muted">
+      <p
+        v-if="useGateway().capabilities.demo"
+        class="text-[10px] leading-[1.7] text-muted"
+      >
         {{ t("studio.consentDemo") }}
       </p>
     </div>

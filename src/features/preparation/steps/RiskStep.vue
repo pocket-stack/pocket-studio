@@ -2,22 +2,15 @@
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 
-import type {
-  PreparationPlan,
-  RiskId,
-  RiskSeverity,
-} from "../../../shared/gateway";
+import type { PreparationPlan, RiskSeverity } from "../../../shared/gateway";
 import ForcedReading from "../../../shared/ui/ForcedReading.vue";
 import AppIcon from "../../../shared/ui/AppIcon.vue";
 import StatusPill from "../../../shared/ui/StatusPill.vue";
 
 defineProps<{
   plan: PreparationPlan;
-  acknowledged: readonly RiskId[];
-  allAcknowledged: boolean;
 }>();
 const emit = defineEmits<{
-  toggle: [id: RiskId];
   next: [readingSeconds: number];
   back: [];
 }>();
@@ -81,21 +74,6 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
             }}</span>
             {{ t(`preparation.risks.items.${risk.id}.mitigation`) }}
           </p>
-          <label
-            class="mt-3 flex items-center gap-2 text-[12px] leading-[1.428571]"
-            :class="
-              readingReady ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-            "
-          >
-            <input
-              type="checkbox"
-              class="accent-signal"
-              :disabled="!readingReady"
-              :checked="acknowledged.includes(risk.id)"
-              @change="emit('toggle', risk.id)"
-            />
-            {{ t("preparation.risks.acknowledgeOne") }}
-          </label>
         </article>
         <p class="pt-2 text-center text-xs text-muted">
           {{ t("preparation.risks.endOfList") }}
@@ -112,15 +90,9 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
         {{ t("common.back") }}
       </button>
       <div class="flex items-center gap-3">
-        <span class="text-muted text-[10px] leading-[1.333333]">{{
-          t("preparation.risks.progress", {
-            done: acknowledged.length,
-            total: plan.risks.length,
-          })
-        }}</span>
         <button
           class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06] px-3 py-1.5 text-[12px]"
-          :disabled="!readingReady || !allAcknowledged"
+          :disabled="!readingReady"
           @click="emit('next', elapsed)"
         >
           {{ t("preparation.risks.continue") }}

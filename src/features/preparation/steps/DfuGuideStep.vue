@@ -1,43 +1,32 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
-import { useDeviceSession } from "../../../shared/composables/useDeviceSession";
 import { useGateway } from "../../../shared/gateway";
 import DeviceIllustration from "../../../shared/ui/DeviceIllustration.vue";
 import AppIcon from "../../../shared/ui/AppIcon.vue";
 
-/**
- * Guided DFU entry for iPod touch (4th gen), following the Legacy iOS Kit
- * DFU helper timings: hold Power+Home for 10 s (8 s from Recovery), then hold Home for 8 s.
- */
-type Phase =
-  "idle" | "countdown" | "holdBoth" | "holdHome" | "detecting" | "timeout";
-
-const holdBothSeconds = ref(10);
+/** Start fully powered off, hold Power + Home for 10 s, then Home for 8 s. */
+type Phase = "idle" | "holdBoth" | "holdHome" | "detecting" | "timeout";
+const HOLD_BOTH_SECONDS = 10;
 const HOLD_HOME_SECONDS = 8;
-const COUNTDOWN_SECONDS = 3;
 const DETECT_TIMEOUT_SECONDS = 20;
 const RING_RADIUS = 54;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 const emit = defineEmits<{ cancel: [] }>();
 const { t } = useI18n();
-const { device } = useDeviceSession();
 const gateway = useGateway();
-
 const phase = ref<Phase>("idle");
 const secondsLeft = ref(0);
-
+let startedAt: number | undefined;
 let timer: number | undefined;
 let detectionTimer: number | undefined;
 
 const phaseTotal = computed(() => {
   switch (phase.value) {
-    case "countdown":
-      return COUNTDOWN_SECONDS;
     case "holdBoth":
-      return holdBothSeconds.value;
+      return HOLD_BOTH_SECONDS;
     case "holdHome":
       return HOLD_HOME_SECONDS;
     case "detecting":
@@ -46,7 +35,6 @@ const phaseTotal = computed(() => {
       return 1;
   }
 });
-
 const ringOffset = computed(
   () => RING_CIRCUMFERENCE * (1 - secondsLeft.value / phaseTotal.value),
 );
@@ -54,52 +42,49 @@ const pressPower = computed(() => phase.value === "holdBoth");
 const pressHome = computed(
   () => phase.value === "holdBoth" || phase.value === "holdHome",
 );
-const screen = computed(() => (phase.value === "idle" ? "home" : "off"));
 
 function stopTimer(): void {
-  if (detectionTimer) window.clearTimeout(detectionTimer);
+  if (detectionTimer !== undefined) window.clearTimeout(detectionTimer);
+  if (timer !== undefined) window.clearInterval(timer);
   detectionTimer = undefined;
-  if (timer) window.clearInterval(timer);
   timer = undefined;
+  startedAt = undefined;
 }
 
-function runPhase(next: Phase, seconds: number, onDone: () => void): void {
-  stopTimer();
-  phase.value = next;
-  secondsLeft.value = seconds;
-  timer = window.setInterval(() => {
-    secondsLeft.value -= 1;
-    if (secondsLeft.value <= 0) {
-      stopTimer();
-      onDone();
+function tick(): void {
+  if (startedAt === undefined) return;
+  const elapsed = (performance.now() - startedAt) / 1000;
+  const homeEndsAt = HOLD_BOTH_SECONDS + HOLD_HOME_SECONDS;
+  if (elapsed < HOLD_BOTH_SECONDS) {
+    phase.value = "holdBoth";
+    secondsLeft.value = Math.ceil(HOLD_BOTH_SECONDS - elapsed);
+  } else if (elapsed < homeEndsAt) {
+    phase.value = "holdHome";
+    secondsLeft.value = Math.ceil(homeEndsAt - elapsed);
+  } else if (elapsed < homeEndsAt + DETECT_TIMEOUT_SECONDS) {
+    if (phase.value !== "detecting" && gateway.capabilities.demo) {
+      // Browser preview only. A desktop run advances solely from native USB events.
+      detectionTimer = window.setTimeout(
+        () => void gateway.demo.setDeviceMode("dfu"),
+        1500,
+      );
     }
-  }, 1000);
-}
-
-function startDetection(): void {
-  runPhase("detecting", DETECT_TIMEOUT_SECONDS, () => {
+    phase.value = "detecting";
+    secondsLeft.value = Math.ceil(
+      homeEndsAt + DETECT_TIMEOUT_SECONDS - elapsed,
+    );
+  } else {
+    stopTimer();
     phase.value = "timeout";
-  });
-  // Demo-only: a real build observes the USB mode change from the native
-  // layer. Here the driver is told that the button sequence just finished.
-  detectionTimer = window.setTimeout(
-    () => void gateway.demo.setDeviceMode("dfu"),
-    1500,
-  );
+    secondsLeft.value = 0;
+  }
 }
 
 function start(): void {
-  holdBothSeconds.value = device.value?.mode === "recovery" ? 8 : 10;
-
-  runPhase("countdown", COUNTDOWN_SECONDS, () =>
-    runPhase("holdBoth", holdBothSeconds.value, () =>
-      runPhase("holdHome", HOLD_HOME_SECONDS, startDetection),
-    ),
-  );
-}
-
-function alreadyInDfu(): void {
-  startDetection();
+  stopTimer();
+  startedAt = performance.now();
+  tick();
+  timer = window.setInterval(tick, 100);
 }
 
 function reset(): void {
@@ -108,13 +93,27 @@ function reset(): void {
   secondsLeft.value = 0;
 }
 
-onBeforeUnmount(stopTimer);
+onMounted(() => {
+  window.addEventListener("focus", tick);
+  document.addEventListener("visibilitychange", tick);
+});
+onBeforeUnmount(() => {
+  stopTimer();
+  window.removeEventListener("focus", tick);
+  document.removeEventListener("visibilitychange", tick);
+});
 </script>
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-4">
     <p class="text-muted text-left text-[10px] leading-[1.333333]">
-      {{ t("studio.dfuDemo") }}
+      {{
+        t(
+          gateway.capabilities.demo
+            ? "studio.dfuDemo"
+            : "preparation.dfu.autoAdvance",
+        )
+      }}
     </p>
     <div class="grid min-h-0 flex-1 gap-5 max-[850px]:overflow-y-auto">
       <section
@@ -150,7 +149,7 @@ onBeforeUnmount(stopTimer);
             :width="160"
             :press-home="pressHome"
             :press-power="pressPower"
-            :screen="screen"
+            screen="off"
             cable
           />
           <div
@@ -246,13 +245,6 @@ onBeforeUnmount(stopTimer);
           >
             <AppIcon name="refresh" :size="16" />
             {{ t("preparation.dfu.restart") }}
-          </button>
-          <button
-            v-if="phase === 'idle'"
-            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink"
-            @click="alreadyInDfu"
-          >
-            {{ t("preparation.dfu.alreadyInDfu") }}
           </button>
         </div>
       </section>

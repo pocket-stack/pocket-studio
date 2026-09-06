@@ -2,8 +2,8 @@
   "preparation": {
     "risks": {
       "banner": {
-        "title": "Read and confirm each risk",
-        "body": "These are the possible consequences of jailbreaking the iPod touch 4. Every item must be ticked individually, and you can only continue after the minimum reading time and after scrolling to the end."
+        "title": "Read and confirm the risks",
+        "body": "These are the possible consequences of jailbreaking iPod touch 4. After 5 seconds, confirm all risks with the button below."
       },
       "severity": {
         "high": "High risk",
@@ -11,10 +11,8 @@
         "low": "Low risk"
       },
       "mitigation": "How to reduce it:",
-      "acknowledgeOne": "I have read and understand this risk",
       "endOfList": "— end of the list —",
-      "progress": "{done} of {total} confirmed",
-      "continue": "I confirm all risks",
+      "continue": "I understand and confirm all risks",
       "items": {
         "bootloop": {
           "title": "The device may fail to boot",
@@ -56,7 +54,7 @@
     "disclaimer": {
       "title": "Disclaimer",
       "version": "Version {version}",
-      "preamble": "Read these terms in full. Agreement unlocks only after both the reading time and scrolling requirements are met.",
+      "preamble": "Read the terms below. After 5 seconds, select Agree and start to confirm and begin.",
       "sections": [
         {
           "heading": "Nature of the operation",
@@ -84,9 +82,6 @@
         }
       ],
       "end": "— end of terms —",
-      "agree": "I have read and agree to all of the terms above",
-      "typeToConfirm": "Type the confirmation word:",
-      "typedPhrase": "AGREE",
       "acceptAndStart": "Agree and start"
     },
     "startErrors": {

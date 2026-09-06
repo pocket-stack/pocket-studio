@@ -63,13 +63,6 @@ async function armFailure(): Promise<void> {
       <button
         class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
         :disabled="!device"
-        @click="gateway.demo.setDeviceMode('dfu')"
-      >
-        {{ t("demo.enterDfu") }}
-      </button>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-        :disabled="!device"
         @click="gateway.demo.setDeviceMode('normal')"
       >
         {{ t("demo.exitDfu") }}

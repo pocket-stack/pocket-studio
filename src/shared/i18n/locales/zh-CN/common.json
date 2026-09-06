@@ -25,7 +25,6 @@
     "hide": "隐藏演示控制",
     "attach": "模拟接入 iPod touch 4",
     "detach": "模拟拔出设备",
-    "enterDfu": "模拟进入 DFU",
     "exitDfu": "模拟退出 DFU",
     "markJailbroken": "标记为已越狱",
     "markStock": "标记为未越狱",
@@ -54,8 +53,7 @@
   "reading": {
     "remaining": "还需阅读 {seconds} 秒",
     "timeMet": "阅读时间已满足",
-    "scrollToEnd": "请滚动到底部阅读全部内容",
-    "scrolled": "已阅读到底部"
+    "content": "阅读内容"
   },
   "operation": {
     "pointOfNoReturn": "不可回退",

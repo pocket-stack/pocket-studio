@@ -9,7 +9,7 @@
 iPod touch (4th generation, `iPod4,1`, A4) 运行 iOS 6.1.6，使用 Legacy iOS Kit 的
 "Jailbreak Device"（ramdisk 方式）：
 
-1. 进入 DFU 模式（正常模式同时按住电源键与 Home 键 10 秒（恢复模式 8 秒），松开电源键，继续按住 Home 键 8 秒）。
+1. 进入 DFU 模式（先完全关机，再同时按住电源键与 Home 键 10 秒，松开电源键，继续按住 Home 键 8 秒）。
 2. limera1n 利用 bootrom 漏洞进入 pwned DFU。
 3. 下载 iOS 6.1.6 固件组件与越狱载荷，构建带 SSH 的 ramdisk。
 4. 启动 ramdisk、挂载文件系统、写入 untether 与 Cydia。
@@ -24,8 +24,8 @@ stateDiagram-v2
     [*] --> closed
     closed --> overview: 用户点击「开始越狱准备」
     overview --> risks: 全部前置条件已勾选
-    risks --> disclaimer: 阅读时间 + 滚动到底 + 逐项勾选风险
-    disclaimer --> starting: 阅读时间 + 滚动到底 + 勾选同意
+    risks --> disclaimer: 等待 5 秒后统一确认风险
+    disclaimer --> starting: 等待 5 秒后点击同意并开始
     starting --> awaitingDfu: 模拟网关返回 operation, 首步 actionRequired
     awaitingDfu --> running: 检测到 DFU 模式
     awaitingDfu --> cancelled: 用户取消
@@ -43,9 +43,9 @@ stateDiagram-v2
 同意必须绑定到具体的 `PreparationPlan`：
 
 - `planId` 必须与方案一致；
-- 每个前置条件、每个风险项都必须单独确认；
+- 前置条件需确认；一次风险确认会在记录中涵盖方案的全部风险 ID；
 - `disclaimerVersion` 必须等于方案中的版本；
-- 阅读时长必须不低于方案要求的最小值。
+- 风险与免责各等待至少 5 秒，切出软件继续计时；不要求滚到底部。
 
 当前演示在 `src/shared/gateway/consent.ts` 校验两阶段确认与时长、顺序、有效期；关键边界由 `pnpm test` 覆盖。
 这仅保护演示状态流转。真实接入时必须继续由 native 层的领域规则校验，不应把前端计时当作可信安全边界。
@@ -77,8 +77,8 @@ native 通过三个事件通道向 webview 推送：
 
 ## 演示控制
 
-底部「演示控制」提供：接入/拔出设备、进入/退出 DFU、标记越狱状态、为某个步骤注入失败。
-它们对应真实世界中的物理动作，用于走通所有 UI 分支（断连、失败、不可取消等）。
+底部「演示控制」提供：接入/拔出设备、退出 DFU、标记越狱状态、为某个步骤注入失败。
+浏览器模式在按键引导完成后自动模拟 DFU 检测，不提供模拟进入按钮。这些控制对应真实世界中的物理动作，用于走通所有 UI 分支（断连、失败、不可取消等）。
 
 ## 布局对应
 

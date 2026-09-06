@@ -523,15 +523,15 @@ mod tests {
             .plans
             .get_mut(&plan.id)
             .unwrap()
-            .issued_at = now - 36_000;
+            .issued_at = now - 11_000;
         ConsentRecord {
             plan_id: plan.id,
             prerequisites_confirmed: plan.prerequisites,
             acknowledged_risk_ids: plan.risks.iter().map(|risk| risk.id).collect(),
-            risk_reading_seconds: 15,
-            risks_acknowledged_at: now - 21_000,
+            risk_reading_seconds: 5,
+            risks_acknowledged_at: now - 6_000,
             disclaimer_version: plan.disclaimer_version,
-            disclaimer_reading_seconds: 20,
+            disclaimer_reading_seconds: 5,
             disclaimer_accepted_at: now - 1_000,
         }
     }

@@ -109,7 +109,7 @@
     "dfuHome": "Home",
     "hold": "Hold",
     "release": "Release",
-    "dfuDemo": "Button sequence demo. DFU detection is simulated; do not follow along on a real device.",
+    "dfuDemo": "Browser preview: DFU is simulated after the button guide. No physical device is changed.",
     "background": "Run in background",
     "resume": "View preparation progress",
     "logSearch": "Search messages or operation IDs",
@@ -159,7 +159,7 @@
     "roadmap": {
       "confirm": {
         "title": "Review before you begin",
-        "body": "Read risks and terms separately and acknowledge every item."
+        "body": "Wait 5 seconds for each of the risks and terms, then confirm each once."
       },
       "guide": {
         "title": "Follow the DFU guide",
@@ -235,8 +235,8 @@
       "uninstalled": "Uninstalled {package} (simulation)"
     },
     "preparation": {
-      "risksAcknowledged": "Risks acknowledged after {readingSeconds} seconds of reading",
-      "disclaimerAccepted": "Demo disclaimer {version} accepted after {readingSeconds} seconds of reading"
+      "risksAcknowledged": "All risks confirmed after {readingSeconds} seconds",
+      "disclaimerAccepted": "Terms {version} accepted after {readingSeconds} seconds"
     }
   }
 }

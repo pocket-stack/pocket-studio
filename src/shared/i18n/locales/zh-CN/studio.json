@@ -109,7 +109,7 @@
     "dfuHome": "Home 键",
     "hold": "按住",
     "release": "松开",
-    "dfuDemo": "演示按键流程，完成后模拟检测 DFU；请勿在真实设备上跟随操作。",
+    "dfuDemo": "浏览器演示：按键引导结束后自动模拟检测 DFU，不会操作真实设备。",
     "background": "收起到后台",
     "resume": "继续查看准备流程",
     "logSearch": "搜索日志内容或任务编号",
@@ -159,7 +159,7 @@
     "roadmap": {
       "confirm": {
         "title": "先了解，再开始",
-        "body": "独立阅读风险与条款，逐项确认。"
+        "body": "风险与条款各等待 5 秒后，分别确认一次。"
       },
       "guide": {
         "title": "跟着动画，进入 DFU",
@@ -235,8 +235,8 @@
       "uninstalled": "已卸载 {package}（模拟）"
     },
     "preparation": {
-      "risksAcknowledged": "已逐项确认风险，阅读 {readingSeconds} 秒",
-      "disclaimerAccepted": "已同意演示条款 {version}，阅读 {readingSeconds} 秒"
+      "risksAcknowledged": "已统一确认全部风险，等待 {readingSeconds} 秒",
+      "disclaimerAccepted": "已同意条款 {version}，等待 {readingSeconds} 秒"
     }
   }
 }

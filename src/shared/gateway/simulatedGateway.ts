@@ -557,7 +557,6 @@ export function createSimulatedGateway(): StudioGateway {
               consent.disclaimerAcceptedAt,
             ).toISOString(),
             prerequisites: consent.prerequisitesConfirmed.join(","),
-            scrolledToEnd: "true",
             mode: "simulation",
           },
           operation.handle.operationId,

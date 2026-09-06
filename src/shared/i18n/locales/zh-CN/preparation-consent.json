@@ -2,8 +2,8 @@
   "preparation": {
     "risks": {
       "banner": {
-        "title": "请逐条阅读并确认以下风险",
-        "body": "以下是越狱 iPod touch 4 可能造成的后果。每一项都需要单独勾选确认，且必须达到最短阅读时间并滚动到底部后才能继续。"
+        "title": "请阅读并确认以下风险",
+        "body": "以下是越狱 iPod touch 4 可能造成的后果。5 秒后，点击下方按钮统一确认全部风险。"
       },
       "severity": {
         "high": "高风险",
@@ -11,10 +11,8 @@
         "low": "低风险"
       },
       "mitigation": "如何降低风险：",
-      "acknowledgeOne": "我已阅读并理解这一项风险",
       "endOfList": "—— 以上为全部风险项 ——",
-      "progress": "已确认 {done} / {total}",
-      "continue": "我已确认全部风险",
+      "continue": "我已理解并确认全部风险",
       "items": {
         "bootloop": {
           "title": "设备可能无法启动",
@@ -56,7 +54,7 @@
     "disclaimer": {
       "title": "免责条款",
       "version": "条款版本 {version}",
-      "preamble": "请完整阅读以下条款。阅读时间达到要求并滚动到底部后，方可勾选同意。",
+      "preamble": "请阅读以下条款。5 秒后，可点击“同意并开始”确认并启动流程。",
       "sections": [
         {
           "heading": "操作性质",
@@ -84,9 +82,6 @@
         }
       ],
       "end": "—— 条款结束 ——",
-      "agree": "我已完整阅读并同意上述全部条款",
-      "typeToConfirm": "请输入确认词：",
-      "typedPhrase": "同意",
       "acceptAndStart": "同意并开始"
     },
     "startErrors": {

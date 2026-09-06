@@ -14,10 +14,10 @@ function consentFor(plan: PreparationPlan): ConsentRecord {
     planId: plan.id,
     prerequisitesConfirmed: [...plan.prerequisites],
     acknowledgedRiskIds: plan.risks.map((risk) => risk.id),
-    riskReadingSeconds: 15,
-    risksAcknowledgedAt: Date.now() - 22_000,
+    riskReadingSeconds: 5,
+    risksAcknowledgedAt: Date.now() - 6_000,
     disclaimerVersion: plan.disclaimerVersion,
-    disclaimerReadingSeconds: 20,
+    disclaimerReadingSeconds: 5,
     disclaimerAcceptedAt: Date.now() - 1_000,
   };
 }
@@ -35,8 +35,8 @@ describe("separate consent gates", () => {
     for (const patch of [
       { acknowledgedRiskIds: [] },
       { prerequisitesConfirmed: [] },
-      { riskReadingSeconds: 14 },
-      { disclaimerReadingSeconds: 19 },
+      { riskReadingSeconds: 4 },
+      { disclaimerReadingSeconds: 4 },
       { disclaimerVersion: "old" },
     ]) {
       expect(() =>
@@ -114,10 +114,9 @@ describe("device simulation", () => {
       (entry) => entry.code === "log.preparation.consentRecorded",
     );
     expect(audit?.params).toMatchObject({
-      riskReadingSeconds: "15",
-      disclaimerReadingSeconds: "20",
+      riskReadingSeconds: "5",
+      disclaimerReadingSeconds: "5",
       disclaimerVersion: plan.disclaimerVersion,
-      scrolledToEnd: "true",
       mode: "simulation",
     });
   });
