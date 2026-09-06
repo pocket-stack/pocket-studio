@@ -1,3 +1,4 @@
+import { validateConsent } from "./consent";
 import {
   buildJailbreakPlan,
   demoCatalog,
@@ -61,22 +62,27 @@ interface RunningOperation {
   cancelRequested: boolean;
   currentStep?: PlanStep;
   finished: boolean;
+  disconnected?: boolean;
   /** Resolves a pending "enter DFU" wait; set while the runner is blocked. */
   resolveDfu?: () => void;
   rejectDisconnect?: () => void;
 }
 
 class ModeWaiters {
-  private waiters = new Set<(mode: DeviceMode) => void>();
-
-  wait(): Promise<DeviceMode> {
-    return new Promise((resolve) => this.waiters.add(resolve));
+  private waiters = new Set<(mode: DeviceMode | null) => void>();
+  wait(timeoutMs: number): Promise<DeviceMode | null> {
+    return new Promise((resolve) => {
+      const complete = (mode: DeviceMode | null) => {
+        clearTimeout(timer);
+        this.waiters.delete(complete);
+        resolve(mode);
+      };
+      const timer = setTimeout(() => complete(null), timeoutMs);
+      this.waiters.add(complete);
+    });
   }
-
   notify(mode: DeviceMode): void {
-    for (const waiter of this.waiters) {
-      waiter(mode);
-    }
+    for (const waiter of this.waiters) waiter(mode);
     this.waiters.clear();
   }
 }
@@ -90,6 +96,7 @@ export function createSimulatedGateway(): StudioGateway {
   let planSequence = 0;
   let operationSequence = 0;
   let logSequence = 0;
+  const sessionId = crypto.randomUUID().slice(0, 6);
   let failNext: StepId | null = null;
 
   const plans = new Map<string, PreparationPlan>();
@@ -131,6 +138,11 @@ export function createSimulatedGateway(): StudioGateway {
     "log.system.started",
     "Pocket Studio started (browser demo mode)",
   );
+
+  function assertIdle(): void {
+    if ([...operations.values()].some((operation) => !operation.finished))
+      throw new GatewayError("operationBusy", "The simulated device is busy");
+  }
 
   function requireDevice(deviceId: string): DeviceSummary {
     if (!device || device.id !== deviceId) {
@@ -209,12 +221,10 @@ export function createSimulatedGateway(): StudioGateway {
   async function waitForDfu(operation: RunningOperation): Promise<boolean> {
     const deadline = Date.now() + DFU_WAIT_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      if (device?.mode === "dfu") return true;
-      if (!device || operation.cancelRequested) return false;
-      const mode = await Promise.race([
-        modeWaiters.wait(),
-        sleep(500).then(() => null),
-      ]);
+      if (!device || operation.disconnected || operation.cancelRequested)
+        return false;
+      if (device.mode === "dfu") return true;
+      const mode = await modeWaiters.wait(500);
       if (mode === "dfu") return true;
     }
     return false;
@@ -354,7 +364,7 @@ export function createSimulatedGateway(): StudioGateway {
 
       for (let tick = 1; tick <= ticks; tick += 1) {
         await sleep(tickMs);
-        if (!device) {
+        if (!device || operation.disconnected) {
           fail(step, {
             code: "deviceDisconnected",
             recoverable: true,
@@ -456,7 +466,7 @@ export function createSimulatedGateway(): StudioGateway {
   ): RunningOperation {
     operationSequence += 1;
     const handle: OperationHandle = {
-      operationId: `op-${String(operationSequence).padStart(4, "0")}`,
+      operationId: `op-${sessionId}-${String(operationSequence).padStart(3, "0")}`,
       kind,
       steps,
       subject,
@@ -510,27 +520,30 @@ export function createSimulatedGateway(): StudioGateway {
         const plan = plans.get(consent.planId);
         if (!plan) throw new GatewayError("unknownPlan", "plan not found");
         requireDevice(plan.deviceId);
-        const missing = plan.risks.filter(
-          (risk) => !consent.acknowledgedRiskIds.includes(risk.id),
-        );
-        if (missing.length > 0)
-          throw new GatewayError(
-            "consentIncomplete",
-            "not all risks acknowledged",
-          );
-        if (consent.disclaimerVersion !== plan.disclaimerVersion) {
-          throw new GatewayError(
-            "disclaimerOutdated",
-            "disclaimer version mismatch",
-          );
-        }
+        validateConsent(plan, consent, Date.now());
+        assertIdle();
         const operation = newOperation("preparation", plan.steps);
         log(
           "info",
           "preparation",
           "log.preparation.consentRecorded",
           "consent recorded for plan",
-          { plan: plan.id },
+          {
+            plan: plan.id,
+            risks: consent.acknowledgedRiskIds.join(","),
+            riskReadingSeconds: String(consent.riskReadingSeconds),
+            risksAcknowledgedAt: new Date(
+              consent.risksAcknowledgedAt,
+            ).toISOString(),
+            disclaimerVersion: consent.disclaimerVersion,
+            disclaimerReadingSeconds: String(consent.disclaimerReadingSeconds),
+            disclaimerAcceptedAt: new Date(
+              consent.disclaimerAcceptedAt,
+            ).toISOString(),
+            prerequisites: consent.prerequisitesConfirmed.join(","),
+            scrolledToEnd: "true",
+            mode: "simulation",
+          },
           operation.handle.operationId,
         );
         void runOperation(
@@ -638,6 +651,10 @@ export function createSimulatedGateway(): StudioGateway {
       async detachDevice() {
         if (!device) return;
         const id = device.id;
+        plans.clear();
+        for (const operation of operations.values()) {
+          if (!operation.finished) operation.disconnected = true;
+        }
         device = null;
         modeWaiters.notify("normal");
         deviceEvents.emit({ type: "detached", deviceId: id });
