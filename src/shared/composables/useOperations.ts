@@ -34,10 +34,19 @@ export interface OperationState {
 
 const operations = reactive(new Map<string, OperationState>());
 let subscribed = false;
+// Native events can arrive before the command promise returns its handle.
+const pendingEvents = new Map<string, OperationEvent[]>();
 
 function apply(event: OperationEvent): void {
   const operation = operations.get(event.operationId);
-  if (!operation) return;
+  if (!operation) {
+    const pending = pendingEvents.get(event.operationId) ?? [];
+    pending.push(event);
+    pendingEvents.set(event.operationId, pending.slice(-100));
+    if (pendingEvents.size > 32)
+      pendingEvents.delete(pendingEvents.keys().next().value!);
+    return;
+  }
 
   switch (event.type) {
     case "started":
@@ -108,6 +117,8 @@ export function trackOperation(handle: OperationHandle): OperationState {
     startedAt: Date.now(),
   };
   operations.set(handle.operationId, state);
+  for (const event of pendingEvents.get(handle.operationId) ?? []) apply(event);
+  pendingEvents.delete(handle.operationId);
   return state;
 }
 
