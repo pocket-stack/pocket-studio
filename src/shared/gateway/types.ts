@@ -286,6 +286,7 @@ export interface StudioGateway {
   store: {
     catalog(): Promise<CatalogEntry[]>;
     installed(deviceId: string): Promise<InstalledPackage[]>;
+    uninstall(deviceId: string, packageId: string): Promise<void>;
     install(deviceId: string, packageId: string): Promise<OperationHandle>;
   };
   operations: {

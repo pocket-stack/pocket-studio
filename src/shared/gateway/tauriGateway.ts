@@ -69,6 +69,12 @@ export function createTauriGateway(): StudioGateway {
       start: (consent) => call("start_preparation", { consent }),
     },
     store: {
+      uninstall: async () => {
+        throw new GatewayError(
+          "demoOnly",
+          "Uninstall is only available in the UI simulation",
+        );
+      },
       catalog: () => call("list_catalog"),
       installed: (deviceId) => call("list_installed", { deviceId }),
       install: (deviceId, packageId) =>

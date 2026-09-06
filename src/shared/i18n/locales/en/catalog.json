@@ -39,6 +39,36 @@
       "name": "Pocket Camera Pro",
       "summary": "Advanced camera app that needs iOS 7 or later.",
       "description": "A camera app with manual exposure and RAW capture. It relies on camera APIs introduced in iOS 7 and does not support the iPod touch 4. This entry shows how incompatible packages are presented."
+    },
+    "tunnel-kit": {
+      "name": "Tunnel Kit",
+      "summary": "Connection and tunnel utilities",
+      "description": "Connection and tunnel utilities. This local fixture demonstrates app details, compatibility checks, and installation progress."
+    },
+    "sensor-tap": {
+      "name": "Sensor Tap",
+      "summary": "Explore device sensor data",
+      "description": "Explore device sensor data. This local fixture demonstrates app details, compatibility checks, and installation progress."
+    },
+    "batt-guard": {
+      "name": "Batt Guard",
+      "summary": "Battery status and usage reminders",
+      "description": "Battery status and usage reminders. This local fixture demonstrates app details, compatibility checks, and installation progress."
+    },
+    "clip-sync": {
+      "name": "Clip Sync",
+      "summary": "Organize your clipboard across devices",
+      "description": "Organize your clipboard across devices. This local fixture demonstrates app details, compatibility checks, and installation progress."
+    },
+    "photo-pull": {
+      "name": "Photo Pull",
+      "summary": "Organize photos on your device",
+      "description": "Organize photos on your device. This local fixture demonstrates app details, compatibility checks, and installation progress."
+    },
+    "font-patch": {
+      "name": "Font Patch",
+      "summary": "Adjust text display for small screens",
+      "description": "Adjust text display for small screens. This local fixture demonstrates app details, compatibility checks, and installation progress."
     }
   }
 }

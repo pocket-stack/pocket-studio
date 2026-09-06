@@ -1,4 +1,5 @@
 import { validateConsent } from "./consent";
+import { compareVersions } from "../versions";
 import {
   buildJailbreakPlan,
   demoCatalog,
@@ -559,6 +560,33 @@ export function createSimulatedGateway(): StudioGateway {
       },
     },
     store: {
+      async uninstall(deviceId, packageId) {
+        requireDevice(deviceId);
+        assertIdle();
+        const dependent = installed.find((item) =>
+          demoCatalog
+            .find((entry) => entry.id === item.packageId)
+            ?.dependencies.includes(packageId),
+        );
+        if (dependent)
+          throw new GatewayError(
+            "packageInUse",
+            "Installed packages depend on this package",
+          );
+        const index = installed.findIndex(
+          (item) => item.packageId === packageId,
+        );
+        if (index === -1)
+          throw new GatewayError("unknownPackage", "Package is not installed");
+        installed.splice(index, 1);
+        log(
+          "info",
+          "store",
+          "log.store.uninstalled",
+          `Uninstalled ${packageId} (simulation)`,
+          { package: packageId },
+        );
+      },
       async catalog() {
         await sleep(300);
         return demoCatalog;
@@ -568,7 +596,8 @@ export function createSimulatedGateway(): StudioGateway {
         return installed.slice();
       },
       async install(deviceId, packageId) {
-        requireDevice(deviceId);
+        const current = requireDevice(deviceId);
+        assertIdle();
         const entry: CatalogEntry | undefined = demoCatalog.find(
           (item) => item.id === packageId,
         );
@@ -580,6 +609,31 @@ export function createSimulatedGateway(): StudioGateway {
             "package requires a jailbroken device",
           );
         }
+        if (current.mode !== "normal")
+          throw new GatewayError(
+            "deviceNotReady",
+            "A normal-mode device is required",
+          );
+        if (
+          !entry.compatibility.models.includes(current.modelIdentifier) ||
+          compareVersions(current.osVersion, entry.compatibility.minOsVersion) <
+            0 ||
+          compareVersions(current.osVersion, entry.compatibility.maxOsVersion) >
+            0
+        )
+          throw new GatewayError(
+            "incompatiblePackage",
+            "This package is not compatible with the device",
+          );
+        if (
+          entry.dependencies.some(
+            (id) => !installed.some((item) => item.packageId === id),
+          )
+        )
+          throw new GatewayError(
+            "missingDependencies",
+            "Required dependencies are not installed",
+          );
         const operation = newOperation("install", installSteps, packageId);
         void runOperation("install", installSteps, "store", operation, () => {
           const existing = installed.findIndex(

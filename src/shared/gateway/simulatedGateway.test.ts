@@ -136,6 +136,17 @@ describe("device simulation", () => {
       ),
     ).toBe(false);
   });
+  it("rejects unsupported apps and missing dependencies before starting", async () => {
+    const id = await connect();
+    await gateway.demo.setJailbroken(true);
+    await expect(
+      gateway.store.install(id, "pocket-camera-pro"),
+    ).rejects.toMatchObject({ code: "incompatiblePackage" });
+    await expect(
+      gateway.store.install(id, "pocket-agent"),
+    ).rejects.toMatchObject({ code: "missingDependencies" });
+    expect(events).toHaveLength(0);
+  });
   it("does not register an app when integrity verification fails", async () => {
     const id = await connect();
     await gateway.demo.failNextStep("verify");

@@ -39,6 +39,36 @@
       "name": "Pocket Camera Pro",
       "summary": "高级相机应用，需要 iOS 7 或更高版本。",
       "description": "提供手动曝光与 RAW 拍摄的相机应用。由于依赖 iOS 7 引入的相机 API，不支持 iPod touch 4。此条目用于展示不兼容软件的呈现方式。"
+    },
+    "tunnel-kit": {
+      "name": "Tunnel Kit",
+      "summary": "连接与隧道工具",
+      "description": "连接与隧道工具。此软件包是本地演示数据，用于体验详情、兼容性判断与安装进度。"
+    },
+    "sensor-tap": {
+      "name": "Sensor Tap",
+      "summary": "查看设备传感器信息",
+      "description": "查看设备传感器信息。此软件包是本地演示数据，用于体验详情、兼容性判断与安装进度。"
+    },
+    "batt-guard": {
+      "name": "Batt Guard",
+      "summary": "电池状态与使用提醒",
+      "description": "电池状态与使用提醒。此软件包是本地演示数据，用于体验详情、兼容性判断与安装进度。"
+    },
+    "clip-sync": {
+      "name": "Clip Sync",
+      "summary": "在设备间整理剪贴板",
+      "description": "在设备间整理剪贴板。此软件包是本地演示数据，用于体验详情、兼容性判断与安装进度。"
+    },
+    "photo-pull": {
+      "name": "Photo Pull",
+      "summary": "轻松整理设备照片",
+      "description": "轻松整理设备照片。此软件包是本地演示数据，用于体验详情、兼容性判断与安装进度。"
+    },
+    "font-patch": {
+      "name": "Font Patch",
+      "summary": "为小屏幕调整文字显示",
+      "description": "为小屏幕调整文字显示。此软件包是本地演示数据，用于体验详情、兼容性判断与安装进度。"
     }
   }
 }

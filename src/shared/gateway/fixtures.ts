@@ -341,3 +341,27 @@ export const demoCatalog: CatalogEntry[] = [
     publishedAt: Date.UTC(2026, 7, 30),
   },
 ];
+
+// Additional local fixtures fill the two seven-column shelves in the design.
+for (const [id, category, dependencies] of [
+  ["tunnel-kit", "tool", []],
+  ["sensor-tap", "tool", ["pocket-runtime"]],
+  ["batt-guard", "tool", []],
+  ["clip-sync", "app", ["pocket-runtime"]],
+  ["photo-pull", "app", []],
+  ["font-patch", "app", []],
+] as const) {
+  demoCatalog.push({
+    id,
+    category,
+    version: "1.0.0",
+    developer: "Pocket Labs",
+    sizeBytes: 3_400_000,
+    installPolicy: "deb",
+    checksumSha256: "demo…0000",
+    signed: true,
+    compatibility: { ...ios6Compat, requiresJailbreak: true },
+    dependencies: [...dependencies],
+    publishedAt: Date.UTC(2026, 8, 1),
+  });
+}
