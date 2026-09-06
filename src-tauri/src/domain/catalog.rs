@@ -61,6 +61,7 @@ pub enum CompatibilityVerdict {
     RequiresPreparation,
     UnsupportedModel,
     UnsupportedOs,
+    UnknownDevice,
 }
 
 /// Pure compatibility rule shared by the installer gate and the UI.
@@ -69,12 +70,15 @@ pub fn evaluate(
     device: &DeviceSummary,
     jailbroken: bool,
 ) -> CompatibilityVerdict {
+    let (Some(model), Some(version)) = (&device.model_identifier, &device.os_version) else {
+        return CompatibilityVerdict::UnknownDevice;
+    };
     let compat = &entry.compatibility;
-    if compat.platform != device.platform || !compat.models.contains(&device.model_identifier) {
+    if compat.platform != device.platform || !compat.models.contains(model) {
         return CompatibilityVerdict::UnsupportedModel;
     }
-    if compare_versions(&device.os_version, &compat.min_os_version).is_lt()
-        || compare_versions(&device.os_version, &compat.max_os_version).is_gt()
+    if compare_versions(version, &compat.min_os_version).is_lt()
+        || compare_versions(version, &compat.max_os_version).is_gt()
     {
         return CompatibilityVerdict::UnsupportedOs;
     }
@@ -93,17 +97,19 @@ mod tests {
         DeviceSummary {
             id: "d".into(),
             platform: Platform::Ios,
-            model_identifier: model.into(),
+            model_identifier: Some(model.into()),
             marketing_name: String::new(),
-            chip: String::new(),
-            board_config: String::new(),
-            os_version: os.into(),
-            build_number: String::new(),
-            udid_masked: String::new(),
-            ecid_masked: String::new(),
-            serial_masked: String::new(),
-            storage_gb: 0,
-            battery_percent: 100,
+            chip: Some(String::new()),
+            board_config: Some(String::new()),
+            os_version: Some(os.into()),
+            build_number: Some(String::new()),
+            udid_masked: Some(String::new()),
+            ecid_masked: Some(String::new()),
+            serial_masked: Some(String::new()),
+            storage_gb: Some(0),
+            battery_percent: Some(100),
+            storage_total_bytes: None,
+            storage_free_bytes: None,
             mode: DeviceMode::Normal,
             transport: Transport::Usb,
         }

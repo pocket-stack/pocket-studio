@@ -12,6 +12,8 @@ pub enum DeviceMode {
     Normal,
     Recovery,
     Dfu,
+    Wtf,
+    Kis,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -28,17 +30,19 @@ pub enum Transport {
 pub struct DeviceSummary {
     pub id: String,
     pub platform: Platform,
-    pub model_identifier: String,
+    pub model_identifier: Option<String>,
     pub marketing_name: String,
-    pub chip: String,
-    pub board_config: String,
-    pub os_version: String,
-    pub build_number: String,
-    pub udid_masked: String,
-    pub ecid_masked: String,
-    pub serial_masked: String,
-    pub storage_gb: u32,
-    pub battery_percent: u8,
+    pub chip: Option<String>,
+    pub board_config: Option<String>,
+    pub os_version: Option<String>,
+    pub build_number: Option<String>,
+    pub udid_masked: Option<String>,
+    pub ecid_masked: Option<String>,
+    pub serial_masked: Option<String>,
+    pub storage_gb: Option<u32>,
+    pub storage_total_bytes: Option<u64>,
+    pub storage_free_bytes: Option<u64>,
+    pub battery_percent: Option<u8>,
     pub mode: DeviceMode,
     pub transport: Transport,
 }
@@ -46,17 +50,64 @@ pub struct DeviceSummary {
 /// Facts about the device that only a read-only probe can reveal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DeviceFacts {
-    pub jailbroken: bool,
-    pub ssh_available: bool,
-    pub pairing_trusted: bool,
+    pub jailbroken: Option<bool>,
+    pub ssh_available: Option<bool>,
+    pub pairing_trusted: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum DeviceEvent {
-    Attached { device: Box<DeviceSummary> },
-    Detached { device_id: String },
-    ModeChanged { device_id: String, mode: DeviceMode },
+    Snapshot { snapshot: DiscoverySnapshot },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DiscoveryIssueCode {
+    UsbUnavailable,
+    MacosMuxUnavailable,
+    LinuxMuxUnavailable,
+    WindowsMuxUnavailable,
+    DeviceInfoUnavailable,
+    PairingUnavailable,
+    PairingSessionFailed,
+    ProbeTimeout,
+}
+
+impl DiscoveryIssueCode {
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::UsbUnavailable => "usbUnavailable",
+            Self::MacosMuxUnavailable => "macosMuxUnavailable",
+            Self::LinuxMuxUnavailable => "linuxMuxUnavailable",
+            Self::WindowsMuxUnavailable => "windowsMuxUnavailable",
+            Self::DeviceInfoUnavailable => "deviceInfoUnavailable",
+            Self::PairingUnavailable => "pairingUnavailable",
+            Self::PairingSessionFailed => "pairingSessionFailed",
+            Self::ProbeTimeout => "probeTimeout",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryIssue {
+    pub code: DiscoveryIssueCode,
+    pub device_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoverySnapshot {
+    pub revision: u64,
+    pub devices: Vec<DeviceSummary>,
+    pub reports: Vec<super::readiness::ReadinessReport>,
+    pub issues: Vec<DiscoveryIssue>,
+    pub checked_at: u64,
 }
 
 /// Compare dotted version strings numerically (`6.1.6` > `6.1`).

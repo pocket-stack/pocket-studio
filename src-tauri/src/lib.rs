@@ -1,24 +1,33 @@
-mod application;
+pub mod application;
 mod commands;
-mod domain;
-mod infrastructure;
+pub mod domain;
+pub mod infrastructure;
 
 use std::sync::Arc;
 
 use anyhow::Context;
 use tauri::Manager;
+use tracing_subscriber::prelude::*;
 
+use application::discovery::DeviceDiscovery;
 use application::{OperationLog, Studio};
 use commands::{AppState, TauriSink};
 use domain::log::{LogLevel, LogSource};
-use infrastructure::demo::DemoDriver;
+use infrastructure::legacy_ios::LegacyIosProbe;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
+    tracing_subscriber::registry()
+        .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "pocket_studio=info".into()),
+                .unwrap_or_else(|_| "pocket_studio_lib=info".into()),
+        )
+        // The dependency prints entire protocol payloads at debug level,
+        // including pairing records. Never let RUST_LOG expose that material.
+        .with(
+            tracing_subscriber::fmt::layer().with_filter(tracing_subscriber::filter::filter_fn(
+                |metadata| !metadata.target().starts_with("idevice"),
+            )),
         )
         .try_init()
         .map_err(|error| anyhow::anyhow!("failed to initialize tracing subscriber: {error}"))?;
@@ -29,19 +38,21 @@ pub fn run() -> anyhow::Result<()> {
         .setup(|app| {
             let sink = Arc::new(TauriSink(app.handle().clone()));
             let log = Arc::new(OperationLog::new(sink.clone()));
-            // The demo driver stands in for every port until real USB, tool
-            // and catalog adapters exist. Nothing here touches hardware.
-            let demo = DemoDriver::new(sink, log.clone());
-            let studio = Studio::new(demo.clone(), demo.clone(), demo.clone(), log.clone());
+            let discovery = Arc::new(DeviceDiscovery::new(
+                Arc::new(LegacyIosProbe::default()),
+                sink,
+                log.clone(),
+            ));
+            let studio = Studio::new(discovery.clone(), log.clone());
             app.manage(AppState {
                 studio: Arc::new(studio),
-                demo,
             });
+            tauri::async_runtime::spawn(async move { discovery.monitor().await });
             log.record(
                 LogLevel::Info,
                 LogSource::System,
                 "log.system.started",
-                "Pocket Studio started (native demo driver)",
+                "Pocket Studio started",
                 None,
                 None,
             );
@@ -58,11 +69,6 @@ pub fn run() -> anyhow::Result<()> {
             commands::cancel_operation,
             commands::list_logs,
             commands::export_logs,
-            commands::demo_attach_device,
-            commands::demo_detach_device,
-            commands::demo_set_device_mode,
-            commands::demo_set_jailbroken,
-            commands::demo_fail_next_step,
         ])
         .run(tauri::generate_context!())
         .context("Tauri application exited with an error")
