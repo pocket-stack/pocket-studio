@@ -45,7 +45,7 @@ function formatElapsed(seconds: number): string {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-4">
-    <div class="card p-5">
+    <div class="p-5 rounded-lg border border-line bg-surface">
       <div class="flex items-center justify-between gap-4">
         <div class="min-w-0">
           <h3 class="text-base font-semibold">
@@ -104,13 +104,15 @@ function formatElapsed(seconds: number): string {
       </div>
     </div>
 
-    <div class="scroll-thin card min-h-0 flex-1 overflow-y-auto p-3">
+    <div
+      class="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:thin] [scrollbar-color:var(--color-line)_transparent] rounded-lg border border-line bg-surface"
+    >
       <StepList :steps="operation.steps" label-prefix="preparation.steps" />
     </div>
 
     <footer class="flex items-center justify-between">
       <button
-        class="btn btn-danger"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-danger bg-transparent text-danger enabled:hover:bg-danger/10"
         :disabled="!canCancel"
         @click="emit('cancel')"
       >

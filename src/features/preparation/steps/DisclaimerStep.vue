@@ -13,15 +13,7 @@ const { t, tm } = useI18n();
 const readingReady = ref(false);
 const elapsed = ref(0);
 const agreed = ref(false);
-const typed = ref("");
-
-const phrase = computed(() => t("preparation.disclaimer.typedPhrase"));
-const typedMatches = computed(
-  () => typed.value.trim().toUpperCase() === phrase.value.toUpperCase(),
-);
-const canAccept = computed(
-  () => readingReady.value && agreed.value && typedMatches.value,
-);
+const canAccept = computed(() => readingReady.value && agreed.value);
 const sections = computed(
   () =>
     tm("preparation.disclaimer.sections") as Array<{
@@ -40,7 +32,7 @@ function onReady(seconds: number): void {
   <div class="flex min-h-0 flex-1 flex-col gap-4">
     <div class="flex items-center justify-between">
       <div>
-        <h3 class="text-base font-semibold">
+        <h3 class="text-base font-semibold hidden">
           {{ t("preparation.disclaimer.title") }}
         </h3>
         <p class="text-xs text-muted">
@@ -71,7 +63,7 @@ function onReady(seconds: number): void {
     </ForcedReading>
 
     <div
-      class="card flex flex-col gap-3 p-4"
+      class="flex flex-col gap-3 p-4 rounded-lg border border-line bg-surface"
       :class="readingReady ? '' : 'opacity-50'"
     >
       <label
@@ -86,25 +78,6 @@ function onReady(seconds: number): void {
         />
         {{ t("preparation.disclaimer.agree") }}
       </label>
-      <label class="flex flex-wrap items-center gap-2 text-sm">
-        <span>{{ t("preparation.disclaimer.typeToConfirm") }}</span>
-        <span class="kbd">{{ phrase }}</span>
-        <input
-          v-model="typed"
-          type="text"
-          class="field w-44 font-mono uppercase"
-          :disabled="!readingReady"
-          :placeholder="phrase"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <AppIcon
-          v-if="typedMatches"
-          name="check"
-          class="text-success"
-          :size="16"
-        />
-      </label>
       <p v-if="startError" class="text-xs text-danger">
         {{
           t(
@@ -116,12 +89,15 @@ function onReady(seconds: number): void {
     </div>
 
     <footer class="flex items-center justify-between">
-      <button class="btn btn-ghost" @click="emit('back')">
+      <button
+        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink px-3 py-1.5 text-[12px]"
+        @click="emit('back')"
+      >
         <AppIcon name="arrowLeft" :size="16" />
         {{ t("common.back") }}
       </button>
       <button
-        class="btn btn-primary"
+        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06] px-3 py-1.5 text-[12px]"
         :disabled="!canAccept"
         @click="emit('accept', elapsed)"
       >

@@ -40,14 +40,14 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-4">
-    <div class="rounded-xl border border-danger/40 bg-danger/8 p-4">
+    <div class="text-[12px]">
       <div class="flex items-start gap-3">
-        <AppIcon name="warning" class="mt-0.5 text-danger" />
+        <AppIcon name="warning" class="mt-0.5 text-danger hidden" />
         <div>
-          <p class="text-sm font-semibold">
+          <p class="font-semibold hidden m-0 text-[12px] leading-[1.428571]">
             {{ t("preparation.risks.banner.title") }}
           </p>
-          <p class="mt-1 text-sm text-muted">
+          <p class="text-muted m-0 text-[12px] leading-[1.428571]">
             {{ t("preparation.risks.banner.body") }}
           </p>
         </div>
@@ -62,12 +62,7 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
         <article
           v-for="risk in plan.risks"
           :key="risk.id"
-          class="rounded-xl border p-4 transition"
-          :class="
-            acknowledged.includes(risk.id)
-              ? 'border-success/50 bg-success/6'
-              : 'border-line'
-          "
+          class="border-0 border-b border-line bg-transparent px-0 py-3"
         >
           <div class="flex items-center gap-2">
             <StatusPill :tone="severityTone(risk.severity)">{{
@@ -77,17 +72,17 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
               {{ t(`preparation.risks.items.${risk.id}.title`) }}
             </h4>
           </div>
-          <p class="mt-2 text-sm">
+          <p class="mt-2 text-[12px] leading-[1.8]">
             {{ t(`preparation.risks.items.${risk.id}.body`) }}
           </p>
-          <p class="mt-2 text-xs text-muted">
+          <p class="mt-2 text-muted text-[12px] leading-[1.8]">
             <span class="font-medium">{{
               t("preparation.risks.mitigation")
             }}</span>
             {{ t(`preparation.risks.items.${risk.id}.mitigation`) }}
           </p>
           <label
-            class="mt-3 flex items-center gap-2 text-sm"
+            class="mt-3 flex items-center gap-2 text-[12px] leading-[1.428571]"
             :class="
               readingReady ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
             "
@@ -109,19 +104,22 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
     </ForcedReading>
 
     <footer class="flex items-center justify-between">
-      <button class="btn btn-ghost" @click="emit('back')">
+      <button
+        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink px-3 py-1.5 text-[12px]"
+        @click="emit('back')"
+      >
         <AppIcon name="arrowLeft" :size="16" />
         {{ t("common.back") }}
       </button>
       <div class="flex items-center gap-3">
-        <span class="text-xs text-muted">{{
+        <span class="text-muted text-[10px] leading-[1.333333]">{{
           t("preparation.risks.progress", {
             done: acknowledged.length,
             total: plan.risks.length,
           })
         }}</span>
         <button
-          class="btn btn-primary"
+          class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06] px-3 py-1.5 text-[12px]"
           :disabled="!readingReady || !allAcknowledged"
           @click="emit('next', elapsed)"
         >

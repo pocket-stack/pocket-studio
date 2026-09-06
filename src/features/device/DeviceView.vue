@@ -1,94 +1,275 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import { useGateway } from "../../shared/gateway";
 import DeviceIllustration from "../../shared/ui/DeviceIllustration.vue";
 import AppIcon from "../../shared/ui/AppIcon.vue";
+import StatusPill from "../../shared/ui/StatusPill.vue";
 import { usePreparation } from "../preparation/usePreparation";
+import { useStore } from "../store/useStore";
+import PreparationWorkspace from "../preparation/PreparationWorkspace.vue";
 import DeviceInfoCard from "./DeviceInfoCard.vue";
 import ReadinessPanel from "./ReadinessPanel.vue";
 
-const emit = defineEmits<{ openStore: [] }>();
+defineProps<{ section: "summary" | "conditions" | "environment" }>();
+const emit = defineEmits<{ openStore: []; showConditions: []; openLogs: [] }>();
 const { t } = useI18n();
-const { device, readiness, checking, checkReadiness } = useDeviceSession();
+const { device, readiness, checking, checkReadiness, isReady } =
+  useDeviceSession();
 const preparation = usePreparation();
 const gateway = useGateway();
-
+const store = useStore();
+const appSize = computed(
+  () =>
+    store.installed.value.reduce(
+      (sum, item) =>
+        sum +
+        (store.catalog.value.find((entry) => entry.id === item.packageId)
+          ?.sizeBytes ?? 0),
+      0,
+    ) / 1e9,
+);
+const storage = computed(() => [
+  { key: "system", size: 4.7, color: "#8792a2" },
+  { key: "media", size: 6.8, color: "#6597d7" },
+  { key: "apps", size: 1.1 + appSize.value, color: "#8db6b0" },
+  {
+    key: "free",
+    size: Math.max(0, (device.value?.storageGb ?? 32) - 12.6 - appSize.value),
+    color: "var(--ps-track)",
+  },
+]);
 function startPreparation(): void {
   if (device.value) void preparation.open(device.value.id);
 }
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-4xl flex-col gap-5">
-    <header>
-      <h1 class="text-2xl font-semibold tracking-tight">
-        {{ t("device.title") }}
-      </h1>
-      <p class="mt-1 text-sm text-muted">{{ t("device.subtitle") }}</p>
-    </header>
-
-    <section
-      v-if="!device"
-      class="card rise flex flex-col items-center gap-6 px-8 py-12 text-center md:flex-row md:text-left"
-    >
-      <DeviceIllustration :width="140" screen="home" cable class="opacity-90" />
-      <div class="flex-1">
-        <h2 class="text-lg font-semibold">{{ t("device.empty.title") }}</h2>
-        <p class="mt-2 text-sm text-muted">{{ t("device.empty.body") }}</p>
-        <ol class="mt-4 space-y-2 text-sm">
-          <li class="flex gap-3">
-            <span class="font-mono text-muted">1</span
-            >{{ t("device.empty.step1") }}
-          </li>
-          <li class="flex gap-3">
-            <span class="font-mono text-muted">2</span
-            >{{ t("device.empty.step2") }}
-          </li>
-          <li class="flex gap-3">
-            <span class="font-mono text-muted">3</span
-            >{{ t("device.empty.step3") }}
-          </li>
-        </ol>
-        <div class="mt-5 flex items-center gap-3">
-          <span class="pulse flex items-center gap-2 text-xs text-muted">
-            <AppIcon name="usb" :size="14" />
-            {{ t("device.empty.listening") }}
-          </span>
-          <button
-            class="btn btn-secondary text-xs"
-            @click="gateway.demo.attachDevice()"
-          >
-            <AppIcon name="lab" :size="14" />
-            {{ t("demo.attach") }}
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <template v-else>
-      <DeviceInfoCard class="rise" :device="device" />
+  <div
+    v-if="!device"
+    class="flex min-h-full flex-col items-center justify-center gap-[19px] p-8 text-center motion-safe:animate-rise"
+  >
+    <div class="relative mb-[7px] opacity-80">
+      <DeviceIllustration :width="135" screen="off" cable /><span
+        class="absolute top-[40%] -right-2.5 grid size-[46px] place-items-center rounded-full bg-raised text-signal shadow-[0_3px_20px_#00000012]"
+        ><AppIcon name="usb" :size="23"
+      /></span>
+    </div>
+    <p class="text-[10px] tracking-[0.04em] text-muted">
+      {{ t("studio.waitingForDevice") }}
+    </p>
+    <h1 class="text-[24px] font-semibold tracking-[-0.5px]">
+      {{ t("device.empty.title") }}
+    </h1>
+    <p class="max-w-[520px] text-[12px] leading-[1.9] text-muted">
+      {{ t("device.empty.body") }}
+    </p>
+    <div class="flex flex-col gap-2.5 text-left text-[11px] text-muted">
+      <span
+        ><b class="mr-2.5 text-signal">1</b>{{ t("device.empty.step1") }}</span
+      ><span
+        ><b class="mr-2.5 text-signal">2</b>{{ t("device.empty.step3") }}</span
+      >
+    </div>
+    <div class="flex gap-3">
+      <button
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
+        @click="gateway.demo.attachDevice()"
+      >
+        <AppIcon name="usb" :size="15" />{{ t("demo.attach") }}</button
+      ><button
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+        @click="emit('openStore')"
+      >
+        {{ t("studio.browseStore") }}
+      </button>
+    </div>
+    <small class="text-muted">{{ t("studio.supportedDemo") }}</small>
+  </div>
+  <div
+    v-else
+    :key="section"
+    class="mx-auto flex min-h-full max-w-none flex-col pb-0 motion-safe:animate-rise"
+  >
+    <template v-if="section === 'summary'">
+      <DeviceInfoCard :device="device" />
       <ReadinessPanel
-        class="rise"
+        :report="readiness"
+        :checking="checking"
+        compact
+        @recheck="checkReadiness"
+        @prepare="startPreparation"
+        @details="emit('showConditions')"
+        @open-store="emit('openStore')"
+      />
+      <section class="mt-auto pt-6 text-[11px]">
+        <div class="flex items-center justify-between first:hidden">
+          <h3 class="font-medium">{{ t("studio.storage") }}</h3>
+          <span>{{
+            t("studio.storageAvailable", {
+              free: storage[3]?.size.toFixed(1),
+              total: device.storageGb,
+            })
+          }}</span>
+        </div>
+        <div
+          class="mt-[9px] flex h-[22px] overflow-hidden rounded-md border border-line first:hidden"
+          :aria-label="
+            t('studio.storageAvailable', {
+              free: storage[3]?.size.toFixed(1),
+              total: device.storageGb,
+            })
+          "
+        >
+          <span
+            v-for="segment in storage"
+            :key="segment.key"
+            class="w-(--segment-width) border-r-2 border-canvas bg-(--segment-color) transition-[width] duration-600 last:border-0"
+            :style="{
+              '--segment-width': `${(segment.size / device.storageGb) * 100}%`,
+              '--segment-color': segment.color,
+            }"
+            :title="`${t(`studio.storageTypes.${segment.key}`)} ${segment.size.toFixed(1)} GB`"
+          />
+        </div>
+        <div
+          class="mt-1.5 flex flex-wrap gap-[18px] text-[10px] text-muted max-[800px]:gap-2.5 first:hidden"
+        >
+          <span
+            v-for="segment in storage"
+            :key="segment.key"
+            class="flex items-center gap-[5px]"
+            ><i
+              class="size-1.5 rounded-[2px] bg-(--segment-color)"
+              :style="{ '--segment-color': segment.color }"
+            />{{ t(`studio.storageTypes.${segment.key}`)
+            }}<b class="ml-0.5 font-normal"
+              >{{ segment.size.toFixed(1) }} GB</b
+            ></span
+          ><small class="ml-auto max-[800px]:w-full">{{
+            t("studio.sampleStorage")
+          }}</small>
+        </div>
+      </section>
+    </template>
+    <template v-else-if="section === 'conditions'"
+      ><div class="px-0 pt-0 pb-3.5">
+        <h1 class="text-[22px] font-semibold tracking-[-0.6px]">
+          {{ t("studio.sections.conditions") }}
+        </h1>
+        <p class="mt-[7px] text-[12px] text-muted">
+          {{ t("readiness.subtitle") }}
+        </p>
+      </div>
+      <ReadinessPanel
         :report="readiness"
         :checking="checking"
         @recheck="checkReadiness"
         @prepare="startPreparation"
-      />
+        @open-store="emit('openStore')"
+    /></template>
+    <PreparationWorkspace
+      v-else-if="preparation.stage.value !== 'closed'"
+      @open-store="emit('openStore')"
+      @open-logs="emit('openLogs')"
+    />
+    <template v-else>
+      <div class="px-0 pt-0 pb-3.5">
+        <h1 class="text-[22px] font-semibold tracking-[-0.6px]">
+          {{ t("studio.sections.environment") }}
+        </h1>
+        <p class="mt-[7px] text-[12px] text-muted">
+          {{ t("studio.environmentIntro") }}
+        </p>
+      </div>
       <section
-        v-if="readiness?.status === 'ready'"
-        class="card rise flex items-center justify-between gap-4 p-5"
+        class="max-w-[640px] p-4 rounded-lg border border-line bg-surface"
       >
-        <div>
-          <h3 class="text-base font-semibold">{{ t("device.next.title") }}</h3>
-          <p class="mt-1 text-sm text-muted">{{ t("device.next.body") }}</p>
+        <div class="flex gap-4">
+          <span class="hidden"><AppIcon name="pocket" :size="30" /></span>
+          <div class="flex-1">
+            <div class="flex items-center gap-3">
+              <h2 class="text-[15px] font-semibold">
+                {{ t("studio.environmentName") }}
+              </h2>
+              <StatusPill :tone="isReady ? 'success' : 'warning'" dot>{{
+                t(isReady ? "studio.allReady" : "studio.notInstalled")
+              }}</StatusPill>
+            </div>
+            <p class="mt-2 text-sm text-muted">
+              {{ t("studio.environmentDescription") }}
+            </p>
+          </div>
         </div>
-        <button class="btn btn-primary" @click="emit('openStore')">
-          <AppIcon name="store" :size="16" />
-          {{ t("device.next.action") }}
-        </button>
+        <div class="hidden">
+          <div>
+            <span>{{ t("studio.targetDevice") }}</span
+            ><b>{{ t("studio.deviceName") }}</b>
+          </div>
+          <div>
+            <span>{{ t("device.fields.os") }}</span
+            ><b>iOS {{ device.osVersion }}</b>
+          </div>
+          <div>
+            <span>{{ t("studio.method") }}</span
+            ><b>{{ t("studio.ramdiskMethod") }}</b>
+          </div>
+        </div>
+        <div
+          class="flex flex-wrap items-center justify-between gap-5 border-0 pt-3.5"
+        >
+          <p
+            class="flex flex-1 basis-full items-start gap-[7px] text-[11px] text-muted"
+          >
+            <AppIcon name="info" :size="16" />{{ t("studio.environmentRisk") }}
+          </p>
+          <button
+            v-if="!isReady"
+            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
+            :disabled="checking"
+            @click="startPreparation"
+          >
+            {{ t("studio.beginPreparation")
+            }}<AppIcon name="arrowRight" :size="15" /></button
+          ><button
+            v-else
+            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
+            @click="emit('openStore')"
+          >
+            {{ t("device.next.action") }}
+          </button>
+        </div>
       </section>
+      <section class="hidden">
+        <h3>{{ t("studio.howItWorks") }}</h3>
+        <div>
+          <article
+            v-for="(step, index) in ['confirm', 'guide', 'prepare', 'verify']"
+            :key="step"
+          >
+            <span>{{ String(index + 1).padStart(2, "0") }}</span>
+            <h4>{{ t(`studio.roadmap.${step}.title`) }}</h4>
+            <p>{{ t(`studio.roadmap.${step}.body`) }}</p>
+          </article>
+        </div>
+      </section>
+      <div class="hidden">
+        <AppIcon name="external" :size="15" /><span>{{
+          t("studio.reference")
+        }}</span
+        ><a
+          href="https://github.com/LukeZGD/Legacy-iOS-Kit/wiki/Jailbreaking-with-Legacy-iOS-Kit"
+          target="_blank"
+          rel="noreferrer"
+          >{{ t("studio.upstreamGuide") }}</a
+        ><a
+          href="https://github.com/HalfSweet/Legacy-iOS-Kit-rs"
+          target="_blank"
+          rel="noreferrer"
+          >Legacy-iOS-Kit-rs</a
+        >
+      </div>
     </template>
   </div>
 </template>

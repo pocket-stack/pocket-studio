@@ -1,116 +1,74 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-
 import type { DeviceSummary } from "../../shared/gateway";
+import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import DeviceIllustration from "../../shared/ui/DeviceIllustration.vue";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 import StatusPill from "../../shared/ui/StatusPill.vue";
-
 const props = defineProps<{ device: DeviceSummary }>();
 const { t } = useI18n();
-
-const modeTone = computed(() => {
-  switch (props.device.mode) {
-    case "dfu":
-      return "warning";
-    case "recovery":
-      return "info";
-    default:
-      return "success";
-  }
-});
-
-const screen = computed(() => {
-  switch (props.device.mode) {
-    case "dfu":
-      return "off";
-    case "recovery":
-      return "recovery";
-    default:
-      return "home";
-  }
-});
-
+const { isReady } = useDeviceSession();
+const screen = computed(() =>
+  props.device.mode === "dfu"
+    ? "off"
+    : props.device.mode === "recovery"
+      ? "recovery"
+      : "home",
+);
 const rows = computed(() => [
+  { key: "storage", value: `${props.device.storageGb} GB` },
+  { key: "battery", value: `${props.device.batteryPercent}%` },
   {
-    label: t("device.fields.model"),
-    value: `${props.device.modelIdentifier} · ${props.device.boardConfig}`,
-  },
-  { label: t("device.fields.chip"), value: props.device.chip },
-  {
-    label: t("device.fields.os"),
+    key: "os",
     value: `iOS ${props.device.osVersion} (${props.device.buildNumber})`,
   },
-  { label: t("device.fields.storage"), value: `${props.device.storageGb} GB` },
   {
-    label: t("device.fields.udid"),
-    value: props.device.udidMasked,
-    mono: true,
+    key: "model",
+    value: `${props.device.modelIdentifier} · ${props.device.boardConfig}`,
   },
-  {
-    label: t("device.fields.ecid"),
-    value: props.device.ecidMasked,
-    mono: true,
-  },
-  {
-    label: t("device.fields.serial"),
-    value: props.device.serialMasked,
-    mono: true,
-  },
+  { key: "serial", value: props.device.serialMasked, mono: true },
+  { key: "udid", value: props.device.udidMasked, mono: true },
 ]);
 </script>
-
 <template>
-  <section class="card flex gap-6 p-6">
-    <div class="hidden shrink-0 md:block">
-      <DeviceIllustration :width="120" :screen="screen" cable />
+  <section
+    class="mb-6 flex min-h-[236px] items-center gap-9 p-0 max-[850px]:gap-[22px] max-[800px]:items-start"
+  >
+    <div class="relative flex w-[118px] shrink-0 justify-center">
+      <DeviceIllustration
+        class="relative z-[1] h-[236px] w-[138px] drop-shadow-[2px_6px_5px_#0000000a]"
+        :width="114"
+        :screen="screen"
+      />
+      <div
+        class="absolute bottom-[7px] h-[7px] w-[82px] rounded-[50%] bg-[#00000012] blur-[4px]"
+      />
     </div>
     <div class="min-w-0 flex-1">
-      <div class="flex flex-wrap items-center gap-2">
-        <h2 class="text-xl font-semibold">{{ device.marketingName }}</h2>
-        <StatusPill :tone="modeTone" dot>{{
-          t(`device.mode.${device.mode}`)
+      <div class="m-0 flex items-center gap-3 max-[800px]:flex-wrap">
+        <h1 class="text-[26px] leading-[1.3] font-semibold tracking-[-0.26px]">
+          {{ t("studio.deviceName") }}
+        </h1>
+        <StatusPill :tone="isReady ? 'success' : 'warning'" dot>{{
+          t(isReady ? "studio.pocketReady" : "studio.needsPreparation")
         }}</StatusPill>
-        <StatusPill tone="neutral">
-          <AppIcon name="usb" :size="12" />
-          {{ t(`device.transport.${device.transport}`) }}
-        </StatusPill>
       </div>
-      <p class="mt-1 text-sm text-muted">
-        {{ t("device.identifiedAs", { platform: "iOS" }) }}
-      </p>
-      <dl class="mt-4 grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+      <dl
+        class="mt-3.5 grid grid-cols-[1fr_1fr_1.5fr] gap-x-8 gap-y-2 max-[1150px]:grid-cols-2 max-[1150px]:gap-x-3.5 max-[1150px]:gap-y-2.5 max-[850px]:grid-cols-1"
+      >
         <div
           v-for="row in rows"
-          :key="row.label"
-          class="flex justify-between gap-4 border-b border-line/60 py-1.5"
+          :key="row.key"
+          class="flex gap-[5px] text-[13px]"
         >
-          <dt class="text-muted">{{ row.label }}</dt>
-          <dd
-            class="truncate text-right"
-            :class="row.mono ? 'font-mono text-xs' : ''"
-          >
+          <dt class="min-w-auto text-muted">
+            {{ t(`device.fields.${row.key}`) }}
+          </dt>
+          <dd class="text-[13px]" :class="{ 'font-mono': row.mono }">
             {{ row.value }}
           </dd>
         </div>
-        <div class="flex justify-between gap-4 border-b border-line/60 py-1.5">
-          <dt class="text-muted">{{ t("device.fields.battery") }}</dt>
-          <dd class="flex items-center gap-2">
-            <span class="h-1.5 w-16 overflow-hidden rounded-full bg-ink/10">
-              <span
-                class="block h-full rounded-full"
-                :class="
-                  device.batteryPercent >= 50 ? 'bg-success' : 'bg-warning'
-                "
-                :style="{ width: `${device.batteryPercent}%` }"
-              />
-            </span>
-            {{ device.batteryPercent }}%
-          </dd>
-        </div>
       </dl>
-      <p class="mt-3 text-xs text-muted">{{ t("device.maskedNote") }}</p>
     </div>
   </section>
 </template>

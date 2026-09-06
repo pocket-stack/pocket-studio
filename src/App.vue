@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import DemoPanel from "./app/DemoPanel.vue";
@@ -21,9 +21,21 @@ type View = "device" | "store" | "logs" | "settings";
 const { t } = useI18n();
 const view = ref<View>("device");
 const demoOpen = ref(false);
+const deviceSection = ref<"summary" | "conditions" | "environment">("summary");
 const session = useDeviceSession();
 const preparation = usePreparation();
 const { active } = useOperations();
+const preparing = computed(
+  () =>
+    ["starting", "awaitingDfu", "running"].includes(preparation.stage.value) ||
+    active.value.some((operation) => operation.kind === "preparation"),
+);
+watch(preparation.stage, (stage) => {
+  if (stage === "overview" || stage === "starting") {
+    view.value = "device";
+    deviceSection.value = "environment";
+  }
+});
 
 const navigation: Array<{ id: View; icon: string }> = [
   { id: "device", icon: "device" },
@@ -61,6 +73,7 @@ onMounted(() => {
         <button
           v-for="item in navigation"
           :key="item.id"
+          :disabled="preparing && item.id !== 'device'"
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition"
           :class="
             view === item.id
@@ -75,6 +88,26 @@ onMounted(() => {
             v-if="item.id === 'logs' && active.length"
             class="ml-auto h-2 w-2 rounded-full bg-signal pulse"
           />
+        </button>
+      </nav>
+      <nav
+        v-if="view === 'device'"
+        class="mt-5 flex flex-col gap-1 px-3"
+        :aria-label="t('studio.deviceNavigation')"
+      >
+        <button
+          v-for="section in ['summary', 'conditions', 'environment'] as const"
+          :key="section"
+          class="rounded px-3 py-2 text-left text-sm disabled:opacity-45"
+          :class="
+            deviceSection === section
+              ? 'bg-signal/12 text-signal'
+              : 'text-muted'
+          "
+          :disabled="preparing && section !== 'environment'"
+          @click="deviceSection = section"
+        >
+          {{ t(`studio.sections.${section}`) }}
         </button>
       </nav>
 
@@ -107,7 +140,13 @@ onMounted(() => {
     </aside>
 
     <main class="scroll-thin min-w-0 flex-1 overflow-y-auto p-8">
-      <DeviceView v-if="view === 'device'" @open-store="view = 'store'" />
+      <DeviceView
+        v-if="view === 'device'"
+        :section="deviceSection"
+        @open-store="view = 'store'"
+        @open-logs="view = 'logs'"
+        @show-conditions="deviceSection = 'conditions'"
+      />
       <StoreView
         v-else-if="view === 'store'"
         @prepare="startPreparationFromStore"
@@ -116,10 +155,7 @@ onMounted(() => {
       <SettingsView v-else />
     </main>
 
-    <PreparationWizard
-      @open-store="view = 'store'"
-      @open-logs="view = 'logs'"
-    />
+    <PreparationWizard />
     <NotificationStack />
   </div>
 </template>

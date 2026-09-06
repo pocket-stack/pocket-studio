@@ -60,7 +60,7 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-5">
     <div class="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
-      <section class="card p-5">
+      <section class="p-5 rounded-lg border border-line bg-surface">
         <h3 class="text-base font-semibold">
           {{ t("preparation.overview.whatHappens") }}
         </h3>
@@ -100,7 +100,7 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
         </ol>
       </section>
 
-      <section class="card p-5">
+      <section class="p-5 rounded-lg border border-line bg-surface">
         <h3 class="text-base font-semibold">
           {{ t("preparation.overview.prerequisites") }}
         </h3>
@@ -142,11 +142,14 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
     </div>
 
     <footer class="mt-auto flex items-center justify-between">
-      <button class="btn btn-ghost" @click="emit('cancel')">
+      <button
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink"
+        @click="emit('cancel')"
+      >
         {{ t("common.cancel") }}
       </button>
       <button
-        class="btn btn-primary"
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
         :disabled="!allConfirmed"
         @click="emit('next')"
       >

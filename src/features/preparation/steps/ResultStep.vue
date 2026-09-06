@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n";
 
 import type { OperationState } from "../../../shared/composables/useOperations";
 import AppIcon from "../../../shared/ui/AppIcon.vue";
-import StepList from "../../../shared/ui/StepList.vue";
+import DeviceIllustration from "../../../shared/ui/DeviceIllustration.vue";
 
 const props = defineProps<{
   operation: OperationState | undefined;
@@ -32,14 +32,18 @@ const failedStepId = computed(
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-4">
+  <div
+    :data-outcome="outcome"
+    class="flex min-h-0 flex-1 flex-col gap-4 group/result"
+  >
+    <DeviceIllustration
+      v-if="outcome === 'success'"
+      :width="190"
+      screen="home"
+      class="mx-auto my-5"
+    />
     <section
-      class="card flex items-start gap-4 p-6"
-      :class="{
-        'border-success/50': outcome === 'success',
-        'border-danger/50': outcome === 'failed',
-        'border-warning/50': outcome === 'cancelled',
-      }"
+      class="flex items-start gap-4 p-6 rounded-lg border border-line bg-surface group-data-[outcome=success]/result:border-0 group-data-[outcome=success]/result:bg-transparent group-data-[outcome=success]/result:px-5 group-data-[outcome=success]/result:py-3"
     >
       <span
         class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
@@ -111,27 +115,28 @@ const failedStepId = computed(
       </div>
     </section>
 
-    <div
-      v-if="operation"
-      class="scroll-thin card min-h-0 flex-1 overflow-y-auto p-3"
+    <footer
+      class="flex flex-wrap items-center justify-between gap-2 group-data-[outcome=success]/result:mt-[15px] group-data-[outcome=success]/result:justify-center"
     >
-      <StepList :steps="operation.steps" label-prefix="preparation.steps" />
-    </div>
-
-    <footer class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex gap-2">
-        <button class="btn btn-ghost" @click="emit('openLogs')">
+        <button
+          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink"
+          @click="emit('openLogs')"
+        >
           <AppIcon name="logs" :size="16" />
           {{ t("preparation.result.viewLogs") }}
         </button>
       </div>
       <div class="flex gap-2">
-        <button class="btn btn-secondary" @click="emit('close')">
+        <button
+          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+          @click="emit('close')"
+        >
           {{ t("common.close") }}
         </button>
         <button
           v-if="outcome === 'success'"
-          class="btn btn-primary"
+          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('openStore')"
         >
           <AppIcon name="store" :size="16" />
@@ -139,7 +144,7 @@ const failedStepId = computed(
         </button>
         <button
           v-else-if="outcome === 'cancelled' || error?.recoverable"
-          class="btn btn-primary"
+          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('retry')"
         >
           <AppIcon name="refresh" :size="16" />

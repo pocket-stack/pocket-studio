@@ -3,19 +3,18 @@ import { computed, onBeforeUnmount, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { useDeviceSession } from "../../../shared/composables/useDeviceSession";
-import { useGateway, type DeviceMode } from "../../../shared/gateway";
+import { useGateway } from "../../../shared/gateway";
 import DeviceIllustration from "../../../shared/ui/DeviceIllustration.vue";
 import AppIcon from "../../../shared/ui/AppIcon.vue";
-import StatusPill from "../../../shared/ui/StatusPill.vue";
 
 /**
  * Guided DFU entry for iPod touch (4th gen), following the Legacy iOS Kit
- * DFU helper timings: hold Power+Home for 8 s, release Power, hold Home 8 s.
+ * DFU helper timings: hold Power+Home for 10 s (8 s from Recovery), then hold Home for 8 s.
  */
 type Phase =
   "idle" | "countdown" | "holdBoth" | "holdHome" | "detecting" | "timeout";
 
-const HOLD_BOTH_SECONDS = 8;
+const holdBothSeconds = ref(10);
 const HOLD_HOME_SECONDS = 8;
 const COUNTDOWN_SECONDS = 3;
 const DETECT_TIMEOUT_SECONDS = 20;
@@ -29,15 +28,16 @@ const gateway = useGateway();
 
 const phase = ref<Phase>("idle");
 const secondsLeft = ref(0);
-const showTroubleshooting = ref(false);
+
 let timer: number | undefined;
+let detectionTimer: number | undefined;
 
 const phaseTotal = computed(() => {
   switch (phase.value) {
     case "countdown":
       return COUNTDOWN_SECONDS;
     case "holdBoth":
-      return HOLD_BOTH_SECONDS;
+      return holdBothSeconds.value;
     case "holdHome":
       return HOLD_HOME_SECONDS;
     case "detecting":
@@ -54,10 +54,11 @@ const pressPower = computed(() => phase.value === "holdBoth");
 const pressHome = computed(
   () => phase.value === "holdBoth" || phase.value === "holdHome",
 );
-const deviceMode = computed<DeviceMode | undefined>(() => device.value?.mode);
 const screen = computed(() => (phase.value === "idle" ? "home" : "off"));
 
 function stopTimer(): void {
+  if (detectionTimer) window.clearTimeout(detectionTimer);
+  detectionTimer = undefined;
   if (timer) window.clearInterval(timer);
   timer = undefined;
 }
@@ -78,17 +79,20 @@ function runPhase(next: Phase, seconds: number, onDone: () => void): void {
 function startDetection(): void {
   runPhase("detecting", DETECT_TIMEOUT_SECONDS, () => {
     phase.value = "timeout";
-    showTroubleshooting.value = true;
   });
   // Demo-only: a real build observes the USB mode change from the native
   // layer. Here the driver is told that the button sequence just finished.
-  window.setTimeout(() => void gateway.demo.setDeviceMode("dfu"), 1500);
+  detectionTimer = window.setTimeout(
+    () => void gateway.demo.setDeviceMode("dfu"),
+    1500,
+  );
 }
 
 function start(): void {
-  showTroubleshooting.value = false;
+  holdBothSeconds.value = device.value?.mode === "recovery" ? 8 : 10;
+
   runPhase("countdown", COUNTDOWN_SECONDS, () =>
-    runPhase("holdBoth", HOLD_BOTH_SECONDS, () =>
+    runPhase("holdBoth", holdBothSeconds.value, () =>
       runPhase("holdHome", HOLD_HOME_SECONDS, startDetection),
     ),
   );
@@ -109,13 +113,41 @@ onBeforeUnmount(stopTimer);
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-4">
-    <div class="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+    <p class="text-muted text-left text-[10px] leading-[1.333333]">
+      {{ t("studio.dfuDemo") }}
+    </p>
+    <div class="grid min-h-0 flex-1 gap-5 max-[850px]:overflow-y-auto">
       <section
-        class="card flex flex-col items-center justify-center gap-6 p-6 text-center"
+        class="flex flex-col items-center justify-center gap-6 text-center rounded-lg border-line border-0 bg-transparent p-2.5 [@media(max-height:740px)]:gap-[13px]"
       >
-        <div class="relative">
+        <div class="relative mx-0 mt-5 mb-[5px]">
+          <div
+            :data-pressed="pressPower"
+            class="group/dfu-button absolute w-[105px] text-left text-[11px] text-muted data-[pressed=true]:font-medium data-[pressed=true]:text-signal top-0 left-[230px] max-[1150px]:left-[175px]"
+          >
+            <span>{{ t("studio.dfuPower") }}</span
+            ><small class="mt-[5px] block text-[10px]">{{
+              t(pressPower ? "studio.hold" : "studio.release")
+            }}</small
+            ><i
+              class="absolute top-[7px] h-px w-[50px] bg-line group-data-[pressed=true]/dfu-button:bg-signal right-[111px]"
+            />
+          </div>
+          <div
+            :data-pressed="pressHome"
+            class="group/dfu-button absolute w-[105px] text-[11px] text-muted data-[pressed=true]:font-medium data-[pressed=true]:text-signal right-[220px] bottom-[50px] text-right max-[1150px]:right-[170px] max-[1150px]:bottom-10"
+          >
+            <span>{{ t("studio.dfuHome") }}</span
+            ><small class="mt-[5px] block text-[10px]">{{
+              t(pressHome ? "studio.hold" : "studio.release")
+            }}</small
+            ><i
+              class="absolute top-[7px] h-px w-[50px] bg-line group-data-[pressed=true]/dfu-button:bg-signal left-[111px]"
+            />
+          </div>
           <DeviceIllustration
-            :width="150"
+            class="w-[220px] max-[1150px]:w-[170px]"
+            :width="160"
             :press-home="pressHome"
             :press-power="pressPower"
             :screen="screen"
@@ -123,11 +155,11 @@ onBeforeUnmount(stopTimer);
           />
           <div
             v-if="phase !== 'idle' && phase !== 'timeout'"
-            class="absolute -right-24 top-1/2 flex -translate-y-1/2 flex-col items-center"
+            class="absolute top-[146px] left-16 size-[92px] text-white max-[1150px]:top-[105px] max-[1150px]:left-[39px]"
           >
             <svg
-              width="128"
-              height="128"
+              width="92"
+              height="92"
               viewBox="0 0 128 128"
               class="-rotate-90"
             >
@@ -155,12 +187,12 @@ onBeforeUnmount(stopTimer);
               />
             </svg>
             <span
-              class="absolute inset-0 flex items-center justify-center font-mono text-3xl font-semibold tabular-nums"
+              class="absolute inset-0 flex items-center justify-center font-mono font-semibold tabular-nums text-[25px] leading-[1.2]"
             >
               {{ phase === "detecting" ? "" : secondsLeft }}
               <span
                 v-if="phase === 'detecting'"
-                class="spin block h-6 w-6 rounded-full border-2 border-info border-t-transparent"
+                class="block h-6 w-6 rounded-full border-2 border-info border-t-transparent motion-safe:animate-studio-spin"
               />
             </span>
           </div>
@@ -178,7 +210,7 @@ onBeforeUnmount(stopTimer);
             class="mt-3 flex items-center justify-center gap-2 text-sm"
           >
             <span
-              class="kbd"
+              class="rounded-md border border-b-2 border-line bg-raised px-1.5 py-px font-mono text-[12px]"
               :class="
                 pressPower
                   ? 'text-signal border-signal'
@@ -187,16 +219,17 @@ onBeforeUnmount(stopTimer);
               >{{ t("preparation.dfu.keys.power") }}</span
             >
             <span class="text-muted">+</span>
-            <span class="kbd text-signal border-signal">{{
-              t("preparation.dfu.keys.home")
-            }}</span>
+            <span
+              class="text-signal rounded-md border border-b-2 border-line bg-raised px-1.5 py-px font-mono text-[12px]"
+              >{{ t("preparation.dfu.keys.home") }}</span
+            >
           </div>
         </div>
 
         <div class="flex flex-wrap items-center justify-center gap-2">
           <button
             v-if="phase === 'idle' || phase === 'timeout'"
-            class="btn btn-primary"
+            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
             @click="start"
           >
             <AppIcon name="play" :size="16" />
@@ -206,95 +239,30 @@ onBeforeUnmount(stopTimer);
                 : t("preparation.dfu.start")
             }}
           </button>
-          <button v-else class="btn btn-secondary" @click="reset">
+          <button
+            v-else
+            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+            @click="reset"
+          >
             <AppIcon name="refresh" :size="16" />
             {{ t("preparation.dfu.restart") }}
           </button>
           <button
             v-if="phase === 'idle'"
-            class="btn btn-ghost"
+            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink"
             @click="alreadyInDfu"
           >
             {{ t("preparation.dfu.alreadyInDfu") }}
           </button>
         </div>
       </section>
-
-      <aside class="flex min-h-0 flex-col gap-3">
-        <div class="card p-4">
-          <h4 class="text-sm font-semibold">
-            {{ t("preparation.dfu.deviceState") }}
-          </h4>
-          <div class="mt-2 flex items-center gap-2">
-            <StatusPill
-              v-if="deviceMode"
-              :tone="deviceMode === 'dfu' ? 'success' : 'neutral'"
-              dot
-            >
-              {{ t(`device.mode.${deviceMode}`) }}
-            </StatusPill>
-            <StatusPill v-else tone="danger" dot>{{
-              t("preparation.dfu.disconnected")
-            }}</StatusPill>
-          </div>
-          <p class="mt-2 text-xs text-muted">
-            {{ t("preparation.dfu.autoAdvance") }}
-          </p>
-        </div>
-
-        <ol class="card space-y-3 p-4 text-sm">
-          <li
-            v-for="(key, index) in [
-              'plug',
-              'holdBoth',
-              'releasePower',
-              'blackScreen',
-            ]"
-            :key="key"
-            class="flex gap-3"
-          >
-            <span class="font-mono text-xs text-muted">{{ index + 1 }}</span>
-            <span>{{ t(`preparation.dfu.summary.${key}`) }}</span>
-          </li>
-        </ol>
-
-        <div class="card p-4">
-          <button
-            class="flex w-full items-center justify-between text-sm font-semibold"
-            @click="showTroubleshooting = !showTroubleshooting"
-          >
-            {{ t("preparation.dfu.troubleshooting.title") }}
-            <AppIcon
-              :name="showTroubleshooting ? 'cross' : 'info'"
-              :size="16"
-              class="text-muted"
-            />
-          </button>
-          <ul
-            v-if="showTroubleshooting"
-            class="mt-3 space-y-2 text-xs text-muted"
-          >
-            <li
-              v-for="key in [
-                'appleLogo',
-                'recoveryScreen',
-                'nothing',
-                'exitDfu',
-              ]"
-              :key="key"
-            >
-              <span class="font-medium text-ink">{{
-                t(`preparation.dfu.troubleshooting.${key}.title`)
-              }}</span>
-              {{ t(`preparation.dfu.troubleshooting.${key}.body`) }}
-            </li>
-          </ul>
-        </div>
-      </aside>
     </div>
 
-    <footer class="flex items-center justify-between">
-      <button class="btn btn-danger" @click="emit('cancel')">
+    <footer class="items-center justify-between hidden">
+      <button
+        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-danger bg-transparent text-danger enabled:hover:bg-danger/10"
+        @click="emit('cancel')"
+      >
         <AppIcon name="stop" :size="16" />
         {{ t("preparation.execution.cancel") }}
       </button>
