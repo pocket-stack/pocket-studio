@@ -1,91 +1,96 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-
 import { operationProgress } from "../../shared/composables/useOperations";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
-import StatusPill from "../../shared/ui/StatusPill.vue";
-import { formatBytes } from "./compatibility";
+import PackageArtwork from "./PackageArtwork.vue";
 import type { PackageView } from "./useStore";
-
-const props = defineProps<{ item: PackageView; selected: boolean }>();
-defineEmits<{ select: [] }>();
+const props = defineProps<{ item: PackageView }>();
+const emit = defineEmits<{ select: []; install: [] }>();
 const { t } = useI18n();
-
-const categoryGlyph: Record<string, string> = {
-  runtime: "bolt",
-  tool: "settings",
-  app: "device",
-  game: "play",
-};
-
-const badge = computed(() => {
-  const { verdict, installed, operation } = props.item;
-  if (operation?.status === "running")
-    return { tone: "signal" as const, label: t("store.state.installing") };
-  if (installed)
-    return { tone: "success" as const, label: t("store.state.installed") };
-  switch (verdict) {
-    case "compatible":
-      return { tone: "info" as const, label: t("store.state.compatible") };
-    case "requiresPreparation":
-      return {
-        tone: "warning" as const,
-        label: t("store.state.requiresPreparation"),
-      };
-    case "noDevice":
-      return { tone: "neutral" as const, label: t("store.state.noDevice") };
-    default:
-      return { tone: "danger" as const, label: t("store.state.incompatible") };
-  }
+const state = computed(() => {
+  if (props.item.queuePosition) return "queued";
+  if (props.item.operation?.status === "running") return "installing";
+  if (props.item.operation?.status === "failed") return "failed";
+  if (props.item.installed)
+    return props.item.installed.version === props.item.entry.version
+      ? "installed"
+      : "update";
+  if (props.item.verdict === "requiresPreparation")
+    return "requiresPreparation";
+  if (props.item.verdict === "noDevice") return "noDevice";
+  if (
+    props.item.verdict === "unsupportedModel" ||
+    props.item.verdict === "unsupportedOs"
+  )
+    return "incompatible";
+  return "details";
 });
 </script>
-
 <template>
-  <button
-    class="card flex w-full flex-col gap-3 p-4 text-left transition hover:border-muted"
-    :class="selected ? 'ring-2 ring-signal/60' : ''"
-    @click="$emit('select')"
-  >
-    <div class="flex items-start gap-3">
-      <span
-        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-signal/12 text-signal"
+  <article class="min-w-0">
+    <button
+      class="group/package block w-full text-left"
+      :aria-label="
+        t('studio.viewApp', { name: t(`catalog.${item.entry.id}.name`) })
+      "
+      @click="emit('select')"
+    >
+      <PackageArtwork
+        class="aspect-square h-auto! w-full! max-w-none transition-[transform,box-shadow] duration-200 group-hover/package:-translate-y-[3px] group-hover/package:shadow-[inset_0_1px_1px_#ffffff80,0_8px_16px_#00000012]"
+        :package-id="item.entry.id"
+      />
+      <h3
+        class="mt-[5px] truncate text-[13px] font-semibold max-[1150px]:text-[11px]"
       >
-        <AppIcon
-          :name="categoryGlyph[item.entry.category] ?? 'device'"
-          :size="22"
-        />
-      </span>
-      <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-2">
-          <h3 class="truncate text-sm font-semibold">
-            {{ t(`catalog.${item.entry.id}.name`) }}
-          </h3>
-          <span class="font-mono text-xs text-muted"
-            >v{{ item.entry.version }}</span
-          >
-        </div>
-        <p class="truncate text-xs text-muted">{{ item.entry.developer }}</p>
-      </div>
-      <StatusPill :tone="badge.tone">{{ badge.label }}</StatusPill>
-    </div>
-    <p class="line-clamp-2 text-xs text-muted">
-      {{ t(`catalog.${item.entry.id}.summary`) }}
-    </p>
-    <div class="flex items-center gap-2 text-[11px] text-muted">
-      <span>{{ t(`store.category.${item.entry.category}`) }}</span>
-      <span>·</span>
-      <span>{{ formatBytes(item.entry.sizeBytes) }}</span>
-      <span v-if="item.entry.compatibility.requiresJailbreak"
-        >· {{ t("store.requiresJailbreak") }}</span
+        {{ t(`catalog.${item.entry.id}.name`) }}
+      </h3>
+      <p
+        class="mt-[3px] flex gap-[5px] text-[11px] text-muted max-[1150px]:text-[10px]"
       >
+        {{ t(`store.category.${item.entry.category}`) }}<span>·</span
+        >{{
+          item.entry.developer === "PocketJS"
+            ? t("studio.official")
+            : t("studio.community")
+        }}
+      </p>
+    </button>
+    <div
+      v-if="state === 'installing' && item.operation"
+      class="mt-3 flex items-center gap-[7px] text-[10px] text-signal"
+    >
+      <ProgressBar
+        class="flex-1"
+        :percent="operationProgress(item.operation)"
+        compact
+        active
+      /><span>{{ operationProgress(item.operation) }}%</span>
     </div>
-    <ProgressBar
-      v-if="item.operation?.status === 'running'"
-      :percent="operationProgress(item.operation)"
-      active
-      compact
-    />
-  </button>
+    <button
+      v-else
+      :data-muted="state !== 'details' && state !== 'update'"
+      class="mt-[5px] inline-flex min-h-[22px] min-w-[45px] items-center justify-center rounded-[5px] border border-[#2f6fd6] bg-[#2f6fd6] px-2.5 py-px text-[12px] text-white enabled:hover:bg-[#255cad] enabled:hover:text-white disabled:opacity-55 data-[muted=true]:border-[#b5b5b5] data-[muted=true]:bg-canvas data-[muted=true]:text-muted data-[muted=true]:enabled:hover:bg-[#255cad] data-[muted=true]:enabled:hover:text-white"
+      :disabled="
+        ['incompatible', 'installed', 'noDevice', 'queued'].includes(state)
+      "
+      @click="
+        state === 'details' || state === 'update'
+          ? emit('install')
+          : emit('select')
+      "
+    >
+      {{
+        state === "details"
+          ? t("store.detail.install")
+          : state === "update"
+            ? t("store.detail.update")
+            : state === "queued"
+              ? t("studio.queued", { position: item.queuePosition })
+              : state === "failed"
+                ? t("preparation.result.retry")
+                : t(`store.state.${state}`)
+      }}
+    </button>
+  </article>
 </template>

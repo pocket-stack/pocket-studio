@@ -10,19 +10,22 @@ import PreparationWizard from "./features/preparation/PreparationWizard.vue";
 import { usePreparation } from "./features/preparation/usePreparation";
 import SettingsView from "./features/settings/SettingsView.vue";
 import StoreView from "./features/store/StoreView.vue";
+import InstalledView from "./features/store/InstalledView.vue";
+import { useStore } from "./features/store/useStore";
 import { useDeviceSession } from "./shared/composables/useDeviceSession";
 import { useOperationLog } from "./shared/composables/useOperationLog";
 import { useOperations } from "./shared/composables/useOperations";
 import AppIcon from "./shared/ui/AppIcon.vue";
 import StatusPill from "./shared/ui/StatusPill.vue";
 
-type View = "device" | "store" | "logs" | "settings";
+type View = "device" | "store" | "installed" | "logs" | "settings";
 
 const { t } = useI18n();
 const view = ref<View>("device");
 const demoOpen = ref(false);
 const deviceSection = ref<"summary" | "conditions" | "environment">("summary");
 const session = useDeviceSession();
+const store = useStore();
 const preparation = usePreparation();
 const { active } = useOperations();
 const preparing = computed(
@@ -40,6 +43,7 @@ watch(preparation.stage, (stage) => {
 const navigation: Array<{ id: View; icon: string }> = [
   { id: "device", icon: "device" },
   { id: "store", icon: "store" },
+  { id: "installed", icon: "grid" },
   { id: "logs", icon: "logs" },
   { id: "settings", icon: "settings" },
 ];
@@ -50,6 +54,7 @@ function startPreparationFromStore(): void {
 
 onMounted(() => {
   void session.initialize();
+  void store.initialize();
   void useOperationLog().initialize();
 });
 </script>
@@ -83,7 +88,11 @@ onMounted(() => {
           @click="view = item.id"
         >
           <AppIcon :name="item.icon" />
-          {{ t(`nav.${item.id}`) }}
+          {{
+            item.id === "installed"
+              ? t("studio.nav.installed")
+              : t(`nav.${item.id}`)
+          }}
           <span
             v-if="item.id === 'logs' && active.length"
             class="ml-auto h-2 w-2 rounded-full bg-signal pulse"
@@ -150,6 +159,22 @@ onMounted(() => {
       <StoreView
         v-else-if="view === 'store'"
         @prepare="startPreparationFromStore"
+        @open-package="store.select"
+        @open-installed="view = 'installed'"
+        @open-environment="
+          view = 'device';
+          deviceSection = 'environment';
+        "
+      />
+      <InstalledView
+        v-else-if="view === 'installed'"
+        @open-store="view = 'store'"
+        @detail="
+          (id) => {
+            store.select(id);
+            view = 'store';
+          }
+        "
       />
       <LogsView v-else-if="view === 'logs'" />
       <SettingsView v-else />
