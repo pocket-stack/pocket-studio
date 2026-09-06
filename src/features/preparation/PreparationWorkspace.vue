@@ -33,7 +33,10 @@ const groupedSteps = computed(() => {
       key: "resources",
       ids: ["fetchResources", "buildRamdisk"],
     },
-    { key: "dfu", ids: ["enterDfu", "exploitBootrom"] },
+    {
+      key: preparation.plan.value?.entryMode === "dfu" ? "exploit" : "dfu",
+      ids: ["enterDfu", "exploitBootrom"],
+    },
     {
       key: "write",
       ids: ["bootRamdisk", "mountFilesystem", "installUntether"],
@@ -43,33 +46,38 @@ const groupedSteps = computed(() => {
   return [
     { key: "connect", status: "done", percent: 100 },
     { key: "consent", status: "done", percent: 100 },
-    ...groups.map((group) => {
-      const members = steps.filter((step) => group.ids.includes(step.id));
-      const total = members.reduce(
-        (sum, step) => sum + step.estimatedSeconds,
-        0,
-      );
-      const percent = total
-        ? Math.round(
-            members.reduce(
-              (sum, step) => sum + step.estimatedSeconds * step.percent,
-              0,
-            ) / total,
-          )
-        : 0;
-      const status = members.some((step) => step.status === "failed")
-        ? "failed"
-        : members.some((step) => step.status === "cancelled")
-          ? "cancelled"
-          : members.length && members.every((step) => step.status === "done")
-            ? "done"
-            : members.some(
-                  (step) => step.status === "running" || step.status === "done",
-                )
-              ? "running"
-              : "pending";
-      return { key: group.key, status, percent };
-    }),
+    ...groups
+      .filter((group) =>
+        group.ids.some((id) => steps.some((step) => step.id === id)),
+      )
+      .map((group) => {
+        const members = steps.filter((step) => group.ids.includes(step.id));
+        const total = members.reduce(
+          (sum, step) => sum + step.estimatedSeconds,
+          0,
+        );
+        const percent = total
+          ? Math.round(
+              members.reduce(
+                (sum, step) => sum + step.estimatedSeconds * step.percent,
+                0,
+              ) / total,
+            )
+          : 0;
+        const status = members.some((step) => step.status === "failed")
+          ? "failed"
+          : members.some((step) => step.status === "cancelled")
+            ? "cancelled"
+            : members.length && members.every((step) => step.status === "done")
+              ? "done"
+              : members.some(
+                    (step) =>
+                      step.status === "running" || step.status === "done",
+                  )
+                ? "running"
+                : "pending";
+        return { key: group.key, status, percent };
+      }),
   ];
 });
 const flowLogs = computed(() =>

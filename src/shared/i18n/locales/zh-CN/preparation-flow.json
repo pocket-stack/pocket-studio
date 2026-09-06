@@ -22,7 +22,8 @@
         "target": "目标系统",
         "tether": "越狱类型",
         "dataLoss": "数据影响",
-        "duration": "预计耗时"
+        "duration": "预计耗时",
+        "requiredTarget": "支持的系统"
       },
       "method": {
         "ramdisk": "SSH ramdisk"
@@ -40,7 +41,8 @@
       "stepsHeading": "执行步骤",
       "prerequisites": "开始前请确认",
       "prerequisitesHint": "以下每一项都需要你亲自确认。这些条件直接决定流程能否安全完成。",
-      "continue": "我已确认，查看风险"
+      "continue": "我已确认，查看风险",
+      "dfuEntry": "设备已在 DFU 模式，无需再次关机或操作按键。此模式下无法读取系统版本、电量和配对状态，请确认设备已有充足电量。授权后将启动临时 ramdisk，只读核对系统确为 iOS 6.1.6（10B500）且尚未越狱，再安装环境；这不会将其他系统版本升级或恢复到 6.1.6。重启后的验证需要可用的配对。"
     },
     "prerequisites": {
       "batteryAbove50": {

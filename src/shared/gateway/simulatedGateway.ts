@@ -519,9 +519,13 @@ export function createSimulatedGateway(): StudioGateway {
     },
     preparation: {
       async plan(deviceId) {
-        requireDevice(deviceId);
+        const current = requireDevice(deviceId);
         planSequence += 1;
-        const plan = buildJailbreakPlan(deviceId, planSequence);
+        const plan = buildJailbreakPlan(
+          deviceId,
+          planSequence,
+          current.mode === "dfu" ? "dfu" : "normal",
+        );
         plans.set(plan.id, plan);
         log(
           "debug",

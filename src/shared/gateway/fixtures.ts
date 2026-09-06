@@ -138,15 +138,17 @@ export const installSteps: PlanStep[] = [
   },
 ];
 
-export const disclaimerVersion = "2026-09-06.1";
+export const disclaimerVersion = "2026-09-07";
 
 export function buildJailbreakPlan(
   deviceId: string,
   sequence: number,
+  entryMode: PreparationPlan["entryMode"] = "normal",
 ): PreparationPlan {
   return {
     id: `plan-${deviceId}-${sequence}`,
     deviceId,
+    entryMode,
     workflow: "jailbreak",
     method: "ramdisk",
     exploit: "limera1n",
@@ -155,7 +157,7 @@ export function buildJailbreakPlan(
     tether: "untethered",
     prerequisites: [
       "batteryAbove50",
-      "workingButtons",
+      ...(entryMode === "normal" ? (["workingButtons"] as const) : []),
       "backupCompleted",
       "stableCable",
       "computerAwake",
@@ -163,7 +165,9 @@ export function buildJailbreakPlan(
     risks: jailbreakRisks,
     disclaimerVersion,
     minimumReadingSeconds: { risks: 5, disclaimer: 5 },
-    steps: jailbreakSteps,
+    steps: jailbreakSteps.filter(
+      (step) => entryMode !== "dfu" || step.id !== "enterDfu",
+    ),
   };
 }
 

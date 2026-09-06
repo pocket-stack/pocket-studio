@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useGateway, type ReadinessReport } from "../../shared/gateway";
+import {
+  useGateway,
+  type DeviceSummary,
+  type ReadinessReport,
+} from "../../shared/gateway";
 import { useOperations } from "../../shared/composables/useOperations";
 import AppIcon from "../../shared/ui/AppIcon.vue";
 const props = defineProps<{
   report: ReadinessReport | null;
+  device?: DeviceSummary | null;
   checking: boolean;
   compact?: boolean;
 }>();
@@ -36,6 +41,14 @@ const passCount = computed(
 );
 const canReviewPreparation = computed(() => {
   if (!gateway.capabilities.preparation || !props.report) return false;
+  if (
+    props.device?.id === props.report.deviceId &&
+    props.device.mode === "dfu" &&
+    props.device.modelIdentifier === "iPod4,1" &&
+    props.device.boardConfig === "N81AP" &&
+    props.device.ecidMasked
+  )
+    return true;
   if (props.report.status === "needsPreparation") return true;
   const checks = props.report.checks;
   return (

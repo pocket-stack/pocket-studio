@@ -23,7 +23,7 @@
       },
       "mountFilesystem": {
         "title": "Mount the device filesystem",
-        "detail": "Mount the system and data partitions over SSH."
+        "detail": "Mount the system partition read-only, verify its firmware and check for an existing jailbreak."
       },
       "installUntether": {
         "title": "Install the untether, Cydia and OpenSSH",

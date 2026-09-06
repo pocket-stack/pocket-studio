@@ -77,7 +77,7 @@
       "normalMode": {
         "title": "Device mode",
         "pass": "The device is in Normal mode.",
-        "fail": "Return the device to Normal mode. Recovery and DFU modes are never exited automatically.",
+        "fail": "The device is not in normal mode. Supported DFU devices can open a preparation plan directly; return other modes to normal iOS first.",
         "warn": "The device mode needs confirmation.",
         "unknown": "The device mode is unknown."
       }

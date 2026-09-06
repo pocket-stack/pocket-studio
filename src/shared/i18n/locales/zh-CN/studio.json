@@ -217,7 +217,8 @@
       "dfu": "进入 DFU 模式",
       "resources": "准备前置环境",
       "write": "写入设备",
-      "verify": "校验并重启"
+      "verify": "校验并重启",
+      "exploit": "准备 DFU 引导"
     },
     "flowStatus": {
       "done": "已完成",

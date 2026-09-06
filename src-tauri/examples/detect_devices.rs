@@ -1,9 +1,11 @@
 //! A repeatable, opt-in hardware check using the exact adapter shipped in the
 //! desktop app. It only prints masked identifiers and performs no device writes.
 use pocket_studio_lib::{
-    application::{EventSink, OperationLog, discovery::DeviceDiscovery},
+    application::{
+        EventSink, OperationLog, discovery::DeviceDiscovery, preparation::PreparationService,
+    },
     domain::{device::DeviceEvent, log::LogEntry, operation::OperationEvent},
-    infrastructure::legacy_ios::LegacyIosProbe,
+    infrastructure::legacy_ios::{LegacyIosProbe, preparation::LegacyPreparationDriver},
 };
 use std::sync::Arc;
 use tracing_subscriber::prelude::*;
@@ -31,8 +33,23 @@ async fn main() -> anyhow::Result<()> {
         .init();
     let sink = Arc::new(ConsoleSink);
     let log = Arc::new(OperationLog::new(sink.clone()));
-    let discovery = DeviceDiscovery::new(Arc::new(LegacyIosProbe::default()), sink, log);
+    let probe = Arc::new(LegacyIosProbe::default());
+    let discovery = DeviceDiscovery::new(probe.clone(), sink.clone(), log.clone());
     let snapshot = discovery.refresh().await;
     println!("{}", serde_json::to_string_pretty(&snapshot)?);
+    if std::env::args().any(|arg| arg == "--plan-preparation") {
+        let preparation = PreparationService::new(
+            Arc::new(LegacyPreparationDriver::new(
+                probe,
+                std::env::temp_dir().join("pocket-studio-plan-check"),
+            )),
+            sink,
+            log,
+        );
+        for device in &snapshot.devices {
+            let plan = preparation.plan(device).await?;
+            println!("{}", serde_json::to_string_pretty(&plan)?);
+        }
+    }
     Ok(())
 }

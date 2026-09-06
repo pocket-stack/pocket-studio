@@ -31,7 +31,11 @@ const facts = computed(() => [
   },
   { label: t("preparation.overview.facts.exploit"), value: props.plan.exploit },
   {
-    label: t("preparation.overview.facts.target"),
+    label: t(
+      props.plan.entryMode === "dfu"
+        ? "preparation.overview.facts.requiredTarget"
+        : "preparation.overview.facts.target",
+    ),
     value: `iOS ${props.plan.targetOsVersion}`,
   },
   {
@@ -59,6 +63,13 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-5">
+    <p
+      v-if="plan.entryMode === 'dfu'"
+      role="status"
+      class="rounded-lg border border-info/35 bg-info/5 p-4 text-sm leading-7"
+    >
+      {{ t("preparation.overview.dfuEntry") }}
+    </p>
     <div class="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
       <section class="p-5 rounded-lg border border-line bg-surface">
         <h3 class="text-base font-semibold">

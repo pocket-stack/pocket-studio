@@ -137,6 +137,7 @@ function startPreparation(): void {
       <DeviceInfoCard :device="device" />
       <ReadinessPanel
         :report="readiness"
+        :device="device"
         :checking="checking"
         compact
         @recheck="checkReadiness"
@@ -236,6 +237,7 @@ function startPreparation(): void {
       </div>
       <ReadinessPanel
         :report="readiness"
+        :device="device"
         :checking="checking"
         @recheck="checkReadiness"
         @prepare="startPreparation"
@@ -247,6 +249,7 @@ function startPreparation(): void {
       </h1>
       <ReadinessPanel
         :report="readiness"
+        :device="device"
         :checking="checking"
         @recheck="checkReadiness"
       />

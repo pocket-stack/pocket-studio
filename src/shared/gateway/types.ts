@@ -140,6 +140,7 @@ export interface PlanStep {
 export interface PreparationPlan {
   id: string;
   deviceId: string;
+  entryMode: "normal" | "dfu";
   workflow: WorkflowKind;
   method: "ramdisk";
   exploit: "limera1n";

@@ -32,7 +32,7 @@ src-tauri/src/
 
 Tauri 命令读取真实 inventory，并将显式准备请求交给 `PreparationService`。安装、卸载等未实现操作返回稳定错误 `operationUnavailable`；`Studio` 不连接模拟工作流驱动。浏览器单独使用 `simulatedGateway.ts`，保留完整交互演示。界面通过 gateway capabilities 显示实际可用功能。
 
-型号、版本、电量、容量及受保护标识均可以为空。越狱、SSH、配对事实采用 `Option<bool>`，未确认与检测失败分开表示。Ready 必须同时满足支持的型号与系统、正常模式、有效配对、已验证越狱和 SSH。未知信息得到 `needsAttention`，不会自动产生越狱方案。
+型号、版本、电量、容量及受保护标识均可以为空。越狱、SSH、配对事实采用 `Option<bool>`，未确认与检测失败分开表示。Ready 必须同时满足支持的型号与系统、正常模式、有效配对、已验证越狱和 SSH。未知信息得到 `needsAttention`，不会自动产生越狱方案。用户可主动为硬件已识别的 DFU 设备生成方案；此时保留系统和配对状态未知，兼容性检查推迟到只读 ramdisk 检查完成后，确认通过才写入。
 
 设备事件一次性携带设备和接入报告，前端按 revision 丢弃过期结果。事件订阅完成后才请求初始 inventory。发现失败或超时会清除之前的 readiness；断开不保留旧连接句柄。设备列表支持显式选择，不因另一台设备接入而覆盖当前选择。
 

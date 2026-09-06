@@ -135,6 +135,19 @@ describe("device simulation", () => {
       ),
     ).toBe(false);
   });
+
+  it("starts an already-DFU device without requesting the button sequence", async () => {
+    const id = await connect();
+    await gateway.demo.setDeviceMode("dfu");
+    const plan = await gateway.preparation.plan(id);
+    expect(plan.entryMode).toBe("dfu");
+    expect(plan.steps.some((step) => step.id === "enterDfu")).toBe(false);
+    expect(plan.prerequisites).not.toContain("workingButtons");
+    await gateway.preparation.start(consentFor(plan));
+    await vi.advanceTimersByTimeAsync(40_000);
+    expect(events.some((event) => event.type === "actionRequired")).toBe(false);
+    expect(events.some((event) => event.type === "finished")).toBe(true);
+  });
   it("rejects unsupported apps and missing dependencies before starting", async () => {
     const id = await connect();
     await gateway.demo.setJailbroken(true);

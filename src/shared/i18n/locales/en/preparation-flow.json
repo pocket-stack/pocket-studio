@@ -22,7 +22,8 @@
         "target": "Target OS",
         "tether": "Jailbreak type",
         "dataLoss": "Data impact",
-        "duration": "Estimated time"
+        "duration": "Estimated time",
+        "requiredTarget": "Supported system"
       },
       "method": {
         "ramdisk": "SSH ramdisk"
@@ -40,7 +41,8 @@
       "stepsHeading": "Steps",
       "prerequisites": "Before you start",
       "prerequisitesHint": "Confirm each item yourself. They decide whether the flow can finish safely.",
-      "continue": "Confirmed, show me the risks"
+      "continue": "Confirmed, show me the risks",
+      "dfuEntry": "The device is already in DFU; no shutdown or button sequence is needed. Its installed OS, battery and pairing state cannot be read here, so confirm it has sufficient charge. After authorization, a temporary ramdisk will read the installed system and require iOS 6.1.6 (10B500) without an existing jailbreak before installation. This does not upgrade or restore other versions to 6.1.6. Verification after reboot requires working pairing."
     },
     "prerequisites": {
       "batteryAbove50": {

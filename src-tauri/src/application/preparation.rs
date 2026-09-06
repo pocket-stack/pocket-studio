@@ -21,6 +21,9 @@ pub type PreparationFuture<'a, T> =
 /// Captures a physical identity privately; all subsequent mode changes must
 /// match it. Creating a target and validating it are read-only.
 pub trait PreparationTarget: Send + Sync {
+    fn entry_mode(&self) -> PreparationEntryMode {
+        PreparationEntryMode::Normal
+    }
     fn validate(&self) -> PreparationFuture<'_, ()>;
     fn execute(&mut self, step: StepId) -> PreparationFuture<'_, ()>;
 }
@@ -138,16 +141,24 @@ impl PreparationService {
             return Err(PreparationError::Busy);
         }
         let target = self.driver.target(&device.id).await?;
+        let entry_mode = target.entry_mode();
         let mut plan = PreparationPlan::ramdisk_jailbreak(
             uuid::Uuid::new_v4().to_string(),
             device.id.clone(),
-            device
-                .os_version
-                .as_deref()
-                .ok_or(PreparationError::Unsupported)?,
+            match entry_mode {
+                PreparationEntryMode::Normal => device
+                    .os_version
+                    .as_deref()
+                    .ok_or(PreparationError::Unsupported)?,
+                // This is the supported installation target, not an observed
+                // fact about the OS on a DFU device. The adapter checks disk
+                // contents in the ramdisk before installing any packages.
+                PreparationEntryMode::Dfu => "6.1.6",
+            },
         );
         // Host work completes before asking the user to put the device in DFU.
         plan.steps = native_steps();
+        plan = plan.with_entry_mode(entry_mode);
         let mut state = self.state.lock().expect("preparation state poisoned");
         if state.active.is_some() {
             return Err(PreparationError::Busy);
@@ -417,7 +428,7 @@ pub fn native_steps() -> Vec<PlanStep> {
         (StepId::EnterDfu, true, false, 180),
         (StepId::ExploitBootrom, false, false, 15),
         (StepId::BootRamdisk, false, false, 45),
-        (StepId::MountFilesystem, false, true, 30),
+        (StepId::MountFilesystem, false, false, 30),
         (StepId::InstallUntether, false, true, 90),
         (StepId::RebootDevice, false, false, 90),
         (StepId::VerifyJailbreak, false, false, 60),
@@ -454,12 +465,14 @@ mod tests {
         }
     }
     struct Driver {
+        entry_mode: PreparationEntryMode,
         calls: Arc<Mutex<Vec<StepId>>>,
         fail: Option<StepId>,
         block: Option<StepId>,
         gate: Arc<tokio::sync::Notify>,
     }
     struct Target {
+        entry_mode: PreparationEntryMode,
         calls: Arc<Mutex<Vec<StepId>>>,
         fail: Option<StepId>,
         block: Option<StepId>,
@@ -469,6 +482,7 @@ mod tests {
         fn target(&self, _: &str) -> PreparationFuture<'_, Box<dyn PreparationTarget>> {
             Box::pin(async {
                 Ok(Box::new(Target {
+                    entry_mode: self.entry_mode,
                     calls: self.calls.clone(),
                     fail: self.fail,
                     block: self.block,
@@ -478,6 +492,9 @@ mod tests {
         }
     }
     impl PreparationTarget for Target {
+        fn entry_mode(&self) -> PreparationEntryMode {
+            self.entry_mode
+        }
         fn validate(&self) -> PreparationFuture<'_, ()> {
             Box::pin(async { Ok(()) })
         }
@@ -498,8 +515,16 @@ mod tests {
         fail: Option<StepId>,
         block: Option<StepId>,
     ) -> (Arc<PreparationService>, Arc<Sink>, Arc<Driver>) {
+        setup_mode(fail, block, PreparationEntryMode::Normal)
+    }
+    fn setup_mode(
+        fail: Option<StepId>,
+        block: Option<StepId>,
+        entry_mode: PreparationEntryMode,
+    ) -> (Arc<PreparationService>, Arc<Sink>, Arc<Driver>) {
         let sink = Arc::new(Sink::default());
         let driver = Arc::new(Driver {
+            entry_mode,
             calls: Arc::default(),
             fail,
             block,
@@ -515,6 +540,9 @@ mod tests {
     async fn consent(service: &PreparationService) -> ConsentRecord {
         let device = serde_json::from_value(serde_json::json!({"id":"session", "platform":"ios", "marketingName":"iPod touch 4", "osVersion":"6.1.6", "mode":"normal", "transport":"usb"})).unwrap();
         let plan = service.plan(&device).await.unwrap();
+        consent_for_plan(service, plan)
+    }
+    fn consent_for_plan(service: &PreparationService, plan: PreparationPlan) -> ConsentRecord {
         let now = now_millis();
         service
             .state
@@ -548,6 +576,36 @@ mod tests {
         .await
         .unwrap();
     }
+    #[tokio::test]
+    async fn dfu_entry_allows_unknown_os_and_runs_without_a_button_action() {
+        let (service, sink, driver) = setup_mode(None, None, PreparationEntryMode::Dfu);
+        let device: DeviceSummary = serde_json::from_value(serde_json::json!({"id":"dfu-session", "platform":"ios", "marketingName":"iPod touch 4", "mode":"dfu", "transport":"usb"})).unwrap();
+        let plan = service.plan(&device).await.unwrap();
+        assert_eq!(plan.entry_mode, PreparationEntryMode::Dfu);
+        assert_eq!(plan.target_os_version, "6.1.6");
+        assert!(device.os_version.is_none());
+        assert!(!plan.prerequisites.contains(&PrerequisiteId::WorkingButtons));
+        assert!(plan.prerequisites.contains(&PrerequisiteId::BatteryAbove50));
+        assert!(!plan.steps.iter().any(|step| step.id == StepId::EnterDfu));
+        service
+            .start(consent_for_plan(&service, plan))
+            .await
+            .unwrap();
+        wait(&sink, |event| {
+            matches!(event, OperationEvent::Finished { .. })
+        })
+        .await;
+        assert!(!driver.calls.lock().unwrap().contains(&StepId::EnterDfu));
+        assert!(
+            !sink
+                .events
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|event| matches!(event, OperationEvent::ActionRequired { .. }))
+        );
+    }
+
     #[tokio::test]
     async fn planning_and_incomplete_consent_never_execute_steps() {
         let (service, _, driver) = setup(None, None);

@@ -1,14 +1,17 @@
 //! User-initiated iPod4,1 / iOS 6.1.6 preparation. Secrets, USB identities,
 //! privileged SSH and device writes never cross this adapter boundary.
 use super::{
-    LegacyIosProbe,
+    LegacyIosProbe, is_ipod4_bootrom,
     preparation_resources::{BOOT_ARGS, BootAssets, Resources, failure},
 };
 use crate::{
     application::preparation::{
         PreparationDriver, PreparationError, PreparationFuture, PreparationTarget,
     },
-    domain::operation::{OperationErrorCode, StepId},
+    domain::{
+        operation::{OperationErrorCode, StepId},
+        preparation::PreparationEntryMode,
+    },
 };
 use legacy_ios_core::{
     BoardConfig, ConnectionId, DeviceIdentity, DeviceMode, Ecid, ProductType, Soc, Udid,
@@ -18,7 +21,9 @@ use legacy_ios_services::{
     DeviceInspection, HostKeyPolicy, JailbreakStatus, NormalMux, RamdiskSsh, ScpPath, SshPassword,
     SshTarget, SystemMux,
 };
-use legacy_ios_transport::{DeviceLocator, IbootClient, NusbDeviceLocator, parse_iboot_serial};
+use legacy_ios_transport::{
+    DeviceLocator, IbootClient, NusbDeviceLocator, RecoveryDeviceInfo, parse_iboot_serial,
+};
 use legacy_ios_workflows::{
     ExploitPolicy, RamdiskBootPlan, RamdiskBootPreparation, RamdiskBootRequest, boot_ramdisk,
 };
@@ -37,37 +42,49 @@ impl LegacyPreparationDriver {
 impl PreparationDriver for LegacyPreparationDriver {
     fn target(&self, device_id: &str) -> PreparationFuture<'_, Box<dyn PreparationTarget>> {
         let session_id = device_id.to_owned();
-        let udid = self
+        let key = self
             .probe
             .sessions
             .lock()
             .expect("device sessions poisoned")
             .iter()
             .find(|(_, id)| *id == device_id)
-            .and_then(|(key, _)| key.strip_prefix("udid:"))
-            .map(Udid::new);
+            .map(|(key, _)| key.clone());
         Box::pin(async move {
-            let udid = udid.ok_or(PreparationError::DeviceNotFound)?;
+            let key = key.ok_or(PreparationError::DeviceNotFound)?;
             let normal = NormalMux::new(super::platform::current().normal_backend());
-            let inspection = inspect(&normal, &udid).await?;
-            validate_inspection(&inspection, None)?;
-            let usb = timeout(Duration::from_secs(5), NusbDeviceLocator.list())
-                .await
-                .map_err(|_| PreparationError::DeviceNotFound)?
-                .map_err(|_| PreparationError::DeviceNotFound)?;
-            let port = usb
-                .iter()
-                .find(|usb| {
-                    usb.mode() == DeviceMode::Normal && usb.serial_number() == Some(udid.as_str())
-                })
-                .map(|usb| usb.connection_id().clone())
-                .ok_or(PreparationError::DeviceNotFound)?;
+            let (entry, ecid, port) = if let Some(udid) = key.strip_prefix("udid:") {
+                let udid = Udid::new(udid);
+                let inspection = inspect(&normal, &udid).await?;
+                validate_inspection(&inspection, None)?;
+                let usb = timeout(Duration::from_secs(5), NusbDeviceLocator.list())
+                    .await
+                    .map_err(|_| PreparationError::DeviceNotFound)?
+                    .map_err(|_| PreparationError::DeviceNotFound)?;
+                let port = usb
+                    .iter()
+                    .find(|usb| {
+                        usb.mode() == DeviceMode::Normal
+                            && usb.serial_number() == Some(udid.as_str())
+                    })
+                    .map(|usb| usb.connection_id().clone())
+                    .ok_or(PreparationError::DeviceNotFound)?;
+                (EntryPoint::Normal(udid), inspection.info().ecid(), port)
+            } else if let Some(ecid) = key.strip_prefix("dfu:") {
+                let ecid = ecid.parse().map_err(|_| PreparationError::Unsupported)?;
+                let (port, _) = find_dfu(ecid).await?;
+                (EntryPoint::Dfu, ecid, port)
+            } else {
+                return Err(PreparationError::Unsupported);
+            };
             Ok(Box::new(Target {
                 probe: self.probe.clone(),
                 session_id,
+                session_key: key,
                 normal,
-                udid,
-                ecid: inspection.info().ecid(),
+                entry,
+                returned_udid: None,
+                ecid,
                 port,
                 cache: self.cache.clone(),
                 resources: None,
@@ -79,11 +96,18 @@ impl PreparationDriver for LegacyPreparationDriver {
     }
 }
 
+enum EntryPoint {
+    Normal(Udid),
+    Dfu,
+}
+
 struct Target {
     probe: Arc<LegacyIosProbe>,
     session_id: String,
     normal: NormalMux,
-    udid: Udid,
+    session_key: String,
+    entry: EntryPoint,
+    returned_udid: Option<Udid>,
     ecid: Ecid,
     port: ConnectionId,
     cache: PathBuf,
@@ -94,20 +118,33 @@ struct Target {
 }
 
 impl PreparationTarget for Target {
+    fn entry_mode(&self) -> PreparationEntryMode {
+        match self.entry {
+            EntryPoint::Normal(_) => PreparationEntryMode::Normal,
+            EntryPoint::Dfu => PreparationEntryMode::Dfu,
+        }
+    }
     fn validate(&self) -> PreparationFuture<'_, ()> {
         Box::pin(async {
-            let inspection = inspect(&self.normal, &self.udid).await?;
+            match &self.entry {
+                EntryPoint::Normal(udid) => {
+                    validate_inspection(&inspect(&self.normal, udid).await?, Some(self.ecid))?
+                }
+                EntryPoint::Dfu => {
+                    find_dfu(self.ecid).await?;
+                }
+            }
             if self
                 .probe
                 .sessions
                 .lock()
                 .expect("device sessions poisoned")
-                .get(&format!("udid:{}", self.udid))
+                .get(&self.session_key)
                 != Some(&self.session_id)
             {
                 return Err(PreparationError::DeviceNotFound);
             }
-            validate_inspection(&inspection, Some(self.ecid))
+            Ok(())
         })
     }
     fn execute(&mut self, step: StepId) -> PreparationFuture<'_, ()> {
@@ -185,16 +222,17 @@ impl Target {
             }
             StepId::EnterDfu => self.wait_for_dfu().await?,
             StepId::ExploitBootrom => {
+                self.port = find_dfu(self.ecid).await?.0;
                 let client = IbootClient::open(Some(self.ecid))
                     .await
                     .map_err(|_| failure(OperationErrorCode::DeviceDisconnected))?;
                 let info = client.device_info();
-                if client.mode() != DeviceMode::Dfu
-                    || info.ecid() != Some(self.ecid)
-                    || info.effective_cpid() != 0x8930
-                    || info.srtg() != Some("iBoot-574.4")
-                {
+                if client.mode() != DeviceMode::Dfu {
                     return Err(failure(OperationErrorCode::DeviceChanged));
+                }
+                validate_dfu_info(info, self.ecid)?;
+                if info.pwned().is_some() {
+                    return Ok(());
                 }
                 let payload = self
                     .assets
@@ -226,7 +264,7 @@ impl Target {
             }
             StepId::MountFilesystem => {
                 let ssh = self.connect_ramdisk().await?;
-                checked(&ssh, "mount.sh root", OperationErrorCode::WriteFailed).await?;
+                checked(&ssh, READ_ONLY_ROOT, OperationErrorCode::VerificationFailed).await?;
                 let version = ssh
                     .system_version()
                     .await
@@ -235,9 +273,7 @@ impl Target {
                     .system_build()
                     .await
                     .map_err(|_| failure(OperationErrorCode::VerificationFailed))?;
-                if version != "6.1.6" || build != "10B500" {
-                    return Err(failure(OperationErrorCode::DeviceChanged));
-                }
+                verify_disk_firmware(&version, &build)?;
                 let check = ssh.execute("if test -e /mnt1/bin/bash; then exit 42; else test -d /mnt1/System/Library/CoreServices; fi").await.map_err(|_| failure(OperationErrorCode::VerificationFailed))?;
                 if check.exit_status() == Some(42) {
                     return Err(PreparationError::AlreadyJailbroken);
@@ -259,17 +295,19 @@ impl Target {
                 let _ = timeout(Duration::from_secs(10), ssh.execute("/sbin/reboot_bak")).await;
                 let _ = ssh.disconnect().await;
                 loop {
-                    if let Ok(inspection) = inspect(&self.normal, &self.udid).await {
-                        if inspection.info().ecid() != self.ecid {
-                            return Err(failure(OperationErrorCode::DeviceChanged));
-                        }
+                    if let Some(udid) = self.find_returned_device().await? {
+                        self.returned_udid = Some(udid);
                         break;
                     }
                     tokio::time::sleep(Duration::from_secs(2)).await;
                 }
             }
             StepId::VerifyJailbreak => loop {
-                if let Ok(inspection) = inspect(&self.normal, &self.udid).await {
+                let udid = self
+                    .returned_udid
+                    .as_ref()
+                    .ok_or(failure(OperationErrorCode::DeviceDisconnected))?;
+                if let Ok(inspection) = inspect(&self.normal, udid).await {
                     let info = inspection.info();
                     if info.ecid() != self.ecid
                         || info.board_config().as_str() != "n81"
@@ -289,6 +327,26 @@ impl Target {
             _ => return Err(PreparationError::Unsupported),
         }
         Ok(())
+    }
+
+    async fn find_returned_device(&self) -> Result<Option<Udid>, PreparationError> {
+        let devices = self
+            .normal
+            .list_devices()
+            .await
+            .map_err(|_| failure(OperationErrorCode::DeviceDisconnected))?;
+        let mut identities = Vec::new();
+        for device in devices {
+            if let EntryPoint::Normal(udid) = &self.entry
+                && device.udid() != udid
+            {
+                continue;
+            }
+            if let Ok(Ok(info)) = timeout(Duration::from_secs(5), device.query_info()).await {
+                identities.push((device.udid().clone(), info.ecid()));
+            }
+        }
+        matching_udid(self.ecid, &identities)
     }
 
     async fn wait_for_dfu(&self) -> Result<(), PreparationError> {
@@ -370,6 +428,7 @@ impl Target {
             .ssh
             .as_ref()
             .ok_or(failure(OperationErrorCode::SshUnavailable))?;
+        checked(ssh, WRITABLE_ROOT, OperationErrorCode::WriteFailed).await?;
         checked(ssh, "mount.sh pv", OperationErrorCode::WriteFailed).await?;
         let assets = self
             .assets
@@ -453,4 +512,113 @@ fn validate_inspection(
         return Err(PreparationError::DeviceNotReady);
     }
     Ok(())
+}
+
+// No fsck or writable mounting is requested before reading
+// SystemVersion.plist. The two partition layouts follow the pinned mount.sh.
+const READ_ONLY_ROOT: &str = "while ! test -b /dev/disk0s1s1 && ! test -b /dev/disk0s1; do sleep 1; done; if test -b /dev/disk0s1s1; then mount_hfs -o rdonly /dev/disk0s1s1 /mnt1; else mount_hfs -o rdonly /dev/disk0s1 /mnt1; fi";
+const WRITABLE_ROOT: &str = "umount /mnt1 && if test -b /dev/disk0s1s1; then mount_hfs /dev/disk0s1s1 /mnt1; else mount_hfs /dev/disk0s1 /mnt1; fi";
+
+fn verify_disk_firmware(version: &str, build: &str) -> Result<(), PreparationError> {
+    if version != "6.1.6" || build != "10B500" {
+        return Err(failure(OperationErrorCode::DeviceChanged));
+    }
+    Ok(())
+}
+
+fn validate_dfu_info(info: &RecoveryDeviceInfo, ecid: Ecid) -> Result<(), PreparationError> {
+    if !is_ipod4_bootrom(info)
+        || info.ecid() != Some(ecid)
+        || ecid.get() == 0
+        || info.srtg() != Some("iBoot-574.4")
+    {
+        return Err(PreparationError::Unsupported);
+    }
+    Ok(())
+}
+
+async fn find_dfu(ecid: Ecid) -> Result<(ConnectionId, RecoveryDeviceInfo), PreparationError> {
+    let devices = timeout(Duration::from_secs(5), NusbDeviceLocator.list())
+        .await
+        .map_err(|_| PreparationError::DeviceNotFound)?
+        .map_err(|_| PreparationError::DeviceNotFound)?;
+    let mut matches = devices.iter().filter_map(|device| {
+        let info = parse_iboot_serial(device.serial_number().unwrap_or_default());
+        (device.mode() == DeviceMode::Dfu && info.ecid() == Some(ecid))
+            .then_some((device.connection_id().clone(), info))
+    });
+    let result = matches.next().ok_or(PreparationError::DeviceNotFound)?;
+    if matches.next().is_some() {
+        return Err(failure(OperationErrorCode::DeviceChanged));
+    }
+    validate_dfu_info(&result.1, ecid)?;
+    Ok(result)
+}
+
+fn matching_udid(
+    ecid: Ecid,
+    identities: &[(Udid, Ecid)],
+) -> Result<Option<Udid>, PreparationError> {
+    let mut matching = identities
+        .iter()
+        .filter(|(_, candidate)| *candidate == ecid);
+    let first = matching.next().map(|(udid, _)| udid.clone());
+    if matching.next().is_some() {
+        return Err(failure(OperationErrorCode::DeviceChanged));
+    }
+    Ok(first)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dfu_requires_the_exact_board_rom_and_identity() {
+        let ecid = Ecid::new(0x1234);
+        for serial in [
+            "CPID:8930 BDID:08 ECID:1234 SRTG:[iBoot-574.4]",
+            "CPID:8930 BDID:08 ECID:1234 SRTG:[iBoot-574.4] PWND:[limera1n]",
+        ] {
+            assert!(validate_dfu_info(&parse_iboot_serial(serial), ecid).is_ok());
+        }
+        for serial in [
+            "CPID:8930 BDID:02 ECID:1234 SRTG:[iBoot-574.4]",
+            "CPID:8930 BDID:08 ECID:5678 SRTG:[iBoot-574.4]",
+            "CPID:8930 BDID:08 SRTG:[iBoot-574.4]",
+            "CPID:8930 BDID:08 ECID:1234 SRTG:[iBoot-1430.9.3]",
+        ] {
+            assert!(validate_dfu_info(&parse_iboot_serial(serial), ecid).is_err());
+        }
+    }
+
+    #[test]
+    fn unknown_dfu_firmware_is_rejected_before_installation() {
+        assert!(verify_disk_firmware("6.1.6", "10B500").is_ok());
+        for (version, build) in [("5.1.1", "9B206"), ("6.1.6", "unknown"), ("", "")] {
+            assert!(verify_disk_firmware(version, build).is_err());
+        }
+    }
+
+    #[test]
+    fn reboot_matches_the_original_ecid_not_the_first_connected_device() {
+        let original = Ecid::new(1);
+        let other = Ecid::new(2);
+        let candidates = [
+            (Udid::new("other"), other),
+            (Udid::new("original"), original),
+        ];
+        assert_eq!(
+            matching_udid(original, &candidates),
+            Ok(Some(Udid::new("original")))
+        );
+        assert_eq!(matching_udid(original, &candidates[..1]), Ok(None));
+        assert!(
+            matching_udid(
+                original,
+                &[(Udid::new("one"), original), (Udid::new("two"), original)]
+            )
+            .is_err()
+        );
+    }
 }

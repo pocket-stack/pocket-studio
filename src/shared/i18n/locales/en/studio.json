@@ -217,7 +217,8 @@
       "dfu": "Enter DFU mode",
       "resources": "Prepare resources",
       "write": "Write to device",
-      "verify": "Verify and restart"
+      "verify": "Verify and restart",
+      "exploit": "Prepare DFU boot"
     },
     "flowStatus": {
       "done": "Done",

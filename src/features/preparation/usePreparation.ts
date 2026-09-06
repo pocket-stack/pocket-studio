@@ -242,7 +242,7 @@ async function retry(): Promise<void> {
     return;
   if (useGateway().flavor === "tauri") {
     // Native plans are consumed once, and the device must be identified again
-    // in normal mode before a fresh confirmation can authorize another run.
+    // in a supported mode before a fresh confirmation can authorize another run.
     const device = useDeviceSession().device.value;
     if (device) await open(device.id);
     else notify("warning", "notifications.deviceDetached");

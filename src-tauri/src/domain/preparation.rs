@@ -4,7 +4,7 @@ use super::operation::{PlanStep, RequiredAction, StepId};
 use super::readiness::WorkflowKind;
 
 /// Bump whenever the disclaimer text changes; stale consent is rejected.
-pub const DISCLAIMER_VERSION: &str = "2026-09-06.1";
+pub const DISCLAIMER_VERSION: &str = "2026-09-07";
 pub const CONSENT_VALIDITY_MS: u64 = 30 * 60 * 1000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -78,12 +78,20 @@ pub struct ReadingRequirements {
     pub disclaimer: u32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PreparationEntryMode {
+    Normal,
+    Dfu,
+}
+
 /// Everything the user must see and agree to before a workflow may run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PreparationPlan {
     pub id: String,
     pub device_id: String,
+    pub entry_mode: PreparationEntryMode,
     pub workflow: WorkflowKind,
     pub method: Method,
     pub exploit: Exploit,
@@ -111,6 +119,7 @@ impl PreparationPlan {
         Self {
             id,
             device_id,
+            entry_mode: PreparationEntryMode::Normal,
             workflow: WorkflowKind::Jailbreak,
             method: Method::Ramdisk,
             exploit: Exploit::Limera1n,
@@ -174,6 +183,18 @@ impl PreparationPlan {
                 step(StepId::VerifyJailbreak, false, false, 20),
             ],
         }
+    }
+}
+
+impl PreparationPlan {
+    pub fn with_entry_mode(mut self, mode: PreparationEntryMode) -> Self {
+        self.entry_mode = mode;
+        if mode == PreparationEntryMode::Dfu {
+            self.steps.retain(|step| step.id != StepId::EnterDfu);
+            self.prerequisites
+                .retain(|id| *id != PrerequisiteId::WorkingButtons);
+        }
+        self
     }
 }
 

@@ -23,7 +23,7 @@
       },
       "mountFilesystem": {
         "title": "挂载设备文件系统",
-        "detail": "通过 SSH 挂载系统分区与数据分区。"
+        "detail": "只读挂载系统分区，核对固件版本并检查是否已有越狱。"
       },
       "installUntether": {
         "title": "安装 untether、Cydia 与 OpenSSH",

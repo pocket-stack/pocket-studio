@@ -1,17 +1,25 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createRenderer, nextTick, type Component } from "vue";
-import { buildJailbreakPlan } from "../../../shared/gateway/fixtures";
+import {
+  buildJailbreakPlan,
+  demoDevice,
+} from "../../../shared/gateway/fixtures";
+import type { ReadinessReport } from "../../../shared/gateway";
+import ReadinessPanel from "../../device/ReadinessPanel.vue";
+import OverviewStep from "./OverviewStep.vue";
 import RiskStep from "./RiskStep.vue";
 import DisclaimerStep from "./DisclaimerStep.vue";
 import DfuGuideStep from "./DfuGuideStep.vue";
 
 const gateway = vi.hoisted(() => ({
-  capabilities: { demo: false },
+  flavor: "tauri",
+  capabilities: { demo: false, preparation: true },
   demo: { setDeviceMode: vi.fn() },
+  operations: { onEvent: () => () => {} },
 }));
 vi.mock("../../../shared/gateway", () => ({ useGateway: () => gateway }));
 vi.mock("vue-i18n", () => ({
-  useI18n: () => ({ t: (key: string) => key, tm: () => [] }),
+  useI18n: () => ({ t: (key: string) => key, tm: () => [], d: () => "" }),
 }));
 
 // Exercise actual component render output and lifecycle in a memory renderer.
@@ -29,6 +37,55 @@ const node = (tag: string, text = ""): Node => ({
   props: {},
   parent: null,
   children: [],
+});
+
+it("offers preparation for an identified DFU device despite unknown OS and pairing", () => {
+  const device = {
+    ...demoDevice,
+    mode: "dfu" as const,
+    osVersion: null,
+    batteryPercent: null,
+  };
+  const report: ReadinessReport = {
+    deviceId: device.id,
+    status: "needsAttention",
+    checks: [],
+    checkedAt: Date.now(),
+  };
+  const root = mount(ReadinessPanel, { device, report, checking: false });
+  expect(button(root, "preparation.reviewPlan")).toBeDefined();
+});
+
+it("does not offer DFU preparation for unidentified A4 hardware", () => {
+  const device = {
+    ...demoDevice,
+    mode: "dfu" as const,
+    modelIdentifier: null,
+    boardConfig: null,
+    osVersion: null,
+  };
+  const report: ReadinessReport = {
+    deviceId: device.id,
+    status: "needsAttention",
+    checks: [],
+    checkedAt: Date.now(),
+  };
+  const root = mount(ReadinessPanel, { device, report, checking: false });
+  expect(button(root, "preparation.reviewPlan")).toBeUndefined();
+});
+
+it("shows the DFU limitations and omits the button prerequisite in its overview", () => {
+  const root = mount(OverviewStep, {
+    plan: buildJailbreakPlan("demo", 1, "dfu"),
+    confirmed: [],
+    allConfirmed: false,
+  });
+  expect(text(root)).toContain("preparation.overview.dfuEntry");
+  expect(text(root)).toContain("preparation.overview.facts.requiredTarget");
+  expect(text(root)).not.toContain(
+    "preparation.prerequisites.workingButtons.title",
+  );
+  expect(text(root)).not.toContain("preparation.steps.enterDfu.title");
 });
 const renderer = createRenderer<Node, Node>({
   createElement: (tag) => node(tag),

@@ -93,7 +93,7 @@
       "readingTooShort": "阅读时间不足。",
       "planExpired": "方案已过期或已使用，请重新生成并确认。",
       "invalidConsent": "确认记录不完整、已过期或阅读时间不足，请重新阅读并确认。",
-      "preparationUnsupported": "当前准备流程支持 iPod touch 4 的 iOS 6.1.6（10B500）。请先恢复正常模式并核对设备信息。",
+      "preparationUnsupported": "当前准备流程仅支持 iPod touch 4 / iOS 6.1.6（10B500），可从正常模式或受支持的 DFU 模式开始。请核对设备型号和固件。",
       "alreadyJailbroken": "已检测到越狱，不会重复安装。请重新检查接入条件。",
       "deviceNotReady": "请确保设备处于正常模式、配对有效，且可读取到至少 50% 的电量。",
       "operationBusy": "已有操作正在进行，请等待其结束。",

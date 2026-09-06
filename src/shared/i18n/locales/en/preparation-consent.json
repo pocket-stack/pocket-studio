@@ -93,7 +93,7 @@
       "readingTooShort": "The reading time was too short.",
       "planExpired": "This plan expired or was already used. Generate and confirm a new plan.",
       "invalidConsent": "Consent is incomplete, expired, or its reading times are invalid. Read and confirm again.",
-      "preparationUnsupported": "Preparation currently supports iPod touch 4 on iOS 6.1.6 (10B500). Return to normal mode and check device details.",
+      "preparationUnsupported": "Preparation supports iPod touch 4 / iOS 6.1.6 (10B500), starting in normal mode or supported DFU mode. Check the device and firmware.",
       "alreadyJailbroken": "A jailbreak was detected. It will not be installed again. Recheck readiness.",
       "deviceNotReady": "Normal mode, valid pairing and a readable battery level of at least 50% are required.",
       "operationBusy": "Another operation is running. Wait for it to finish.",

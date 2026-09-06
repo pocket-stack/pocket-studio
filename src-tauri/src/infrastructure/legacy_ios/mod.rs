@@ -13,7 +13,9 @@ use idevice::{Idevice, IdeviceError, services::lockdown::LockdownClient};
 use legacy_ios_assets::DeviceDatabase;
 use legacy_ios_core::{BoardConfig, DeviceMode as LegacyMode, ProductType};
 use legacy_ios_services::{JailbreakStatus, NormalDevice, NormalMux, ServiceError};
-use legacy_ios_transport::{DeviceLocator, NusbDeviceLocator, parse_iboot_serial};
+use legacy_ios_transport::{
+    DeviceLocator, NusbDeviceLocator, RecoveryDeviceInfo, parse_iboot_serial,
+};
 use tokio::time::timeout;
 
 use crate::application::discovery::{DeviceProbe, DeviceRecord, ProbeFuture, ProbeSnapshot};
@@ -89,26 +91,18 @@ impl LegacyIosProbe {
             {
                 continue;
             }
-            let key = match (device.mode(), device.serial_number()) {
-                (LegacyMode::Normal, Some(udid)) => format!("udid:{udid}"),
-                _ => format!("usb:{}", device.connection_id()),
-            };
+            let boot_info = parse_iboot_serial(device.serial_number().unwrap_or_default());
+            let key = usb_session_key(
+                device.mode(),
+                device.serial_number(),
+                device.connection_id().as_str(),
+            );
             seen.insert(key.clone());
             let mut summary = empty_summary(self.session_id(&key), mode(device.mode()));
             if let Some(name) = device.product_name() {
                 summary.marketing_name = name.to_owned();
             }
-            let boot_info = parse_iboot_serial(device.serial_number().unwrap_or_default());
-            summary.ecid_masked = boot_info
-                .ecid()
-                .map(|ecid| mask_identifier(&ecid.to_string()));
-            summary.chip = boot_info.cpid().map(|cpid| {
-                if cpid == 0x8930 {
-                    "A4".into()
-                } else {
-                    format!("CPID {cpid:04X}")
-                }
-            });
+            apply_boot_info(&mut summary, &boot_info);
             if summary.mode == DeviceMode::Normal {
                 summary.udid_masked = device.serial_number().map(mask_identifier);
             }
@@ -134,6 +128,42 @@ impl LegacyIosProbe {
             .entry(key.to_owned())
             .or_insert_with(|| uuid::Uuid::new_v4().to_string())
             .clone()
+    }
+}
+
+fn apply_boot_info(summary: &mut DeviceSummary, info: &RecoveryDeviceInfo) {
+    if summary.mode == DeviceMode::Dfu && is_ipod4_bootrom(info) {
+        apply_info(
+            summary,
+            PartialInfo {
+                board: Some("N81AP".into()),
+                ..PartialInfo::default()
+            },
+        );
+    }
+    summary.ecid_masked = info.ecid().map(|ecid| mask_identifier(&ecid.to_string()));
+    summary.chip = info.cpid().map(|cpid| {
+        if cpid == 0x8930 {
+            "A4".into()
+        } else {
+            format!("CPID {cpid:04X}")
+        }
+    });
+}
+
+// libirecovery identifies n81ap by both CPID and BDID. A4 alone also matches
+// iPhones and iPads and must never select iPod firmware for those devices.
+fn is_ipod4_bootrom(info: &RecoveryDeviceInfo) -> bool {
+    info.cpid() == Some(0x8930) && info.bdid() == Some(0x08)
+}
+
+fn usb_session_key(mode: LegacyMode, serial: Option<&str>, connection: &str) -> String {
+    match (mode, serial) {
+        (LegacyMode::Normal, Some(udid)) => format!("udid:{udid}"),
+        (LegacyMode::Dfu, Some(serial)) => parse_iboot_serial(serial)
+            .ecid()
+            .map_or_else(|| format!("usb:{connection}"), |ecid| format!("dfu:{ecid}")),
+        _ => format!("usb:{connection}"),
     }
 }
 
@@ -362,6 +392,39 @@ fn empty_summary(id: String, mode: DeviceMode) -> DeviceSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dfu_identifies_the_board_without_inventing_normal_mode_facts() {
+        let mut summary = empty_summary("session".into(), DeviceMode::Dfu);
+        apply_boot_info(
+            &mut summary,
+            &parse_iboot_serial("CPID:8930 BDID:08 ECID:1234567890 SRTG:[iBoot-574.4]"),
+        );
+        assert_eq!(summary.model_identifier.as_deref(), Some("iPod4,1"));
+        assert_eq!(summary.board_config.as_deref(), Some("N81AP"));
+        assert!(summary.os_version.is_none() && summary.build_number.is_none());
+        assert!(summary.battery_percent.is_none() && summary.udid_masked.is_none());
+        for serial in [
+            "CPID:8930 BDID:02 ECID:1234",
+            "CPID:8930 ECID:1234",
+            "CPID:8940 BDID:08 ECID:1234",
+        ] {
+            let mut unknown = empty_summary("other".into(), DeviceMode::Dfu);
+            apply_boot_info(&mut unknown, &parse_iboot_serial(serial));
+            assert!(unknown.model_identifier.is_none());
+        }
+    }
+
+    #[test]
+    fn replacing_a_dfu_device_on_the_same_port_changes_its_session_key() {
+        let first = usb_session_key(LegacyMode::Dfu, Some("ECID:1234"), "port-1");
+        let second = usb_session_key(LegacyMode::Dfu, Some("ECID:5678"), "port-1");
+        assert_ne!(first, second);
+        assert_eq!(
+            first,
+            usb_session_key(LegacyMode::Dfu, Some("ECID:1234"), "port-2")
+        );
+    }
 
     #[test]
     fn hardware_identity_wins_over_a_modified_firmware_product_type() {
