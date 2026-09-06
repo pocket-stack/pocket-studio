@@ -26,7 +26,7 @@ macOS / iPod touch 4 真机验证已读取 `iPod4,1`、`N81AP`、`A4`、`6.1.6`�
 
 设备会话按 libimobiledevice 的规则兼容旧协议：iOS 7 之前先验证已有配对，iOS 10 之前使用 TLS 1.0；设备证书必须匹配既有配对记录。兼容实现已移入 Legacy-iOS-Kit-rs；Studio 启用库的 `legacy-tls` 功能并调用 `NormalDevice::inspect()`，应用内不再保留独立 TLS 实现。库使用静态链接的 OpenSSL，仅作用于 USB 设备会话。构建需 C 编译器、Make 和 Perl；程序运行时无需另外安装 OpenSSL。分析与测试说明见 [旧版 iOS 连接兼容性](docs/legacy-ios-compatibility.md)。
 
-可以使用与桌面应用相同的适配器执行一次只读硬件检查（不属于常规自动测试）：
+`src-tauri/examples/` 仅存放本地诊断和临时测试工具，已被 Git 忽略，不随仓库分发。以下命令仅适用于本机保留了对应文件的情况，可使用与桌面应用相同的适配器执行只读硬件检查：
 
 ```sh
 cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices
@@ -43,7 +43,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices
 
 已验证：macOS 正常模式真机只读预检（iPod4,1 / 6.1.6 / 10B500、电量 100%、已有配对）、DFU 真机型号识别及直接生成准备方案，以及真实 Apple 固件的下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。**尚未在这台设备上执行 limera1n、ramdisk 启动、越狱写入与重启后的验收**；macOS/Linux/Windows 的实际写入路径均需后续硬件验证。
 
-可以单独验证所有本机资源步骤（不连接设备）：
+本机保留 `prepare_resources.rs` 诊断工具时，可以单独验证资源步骤（不连接设备）：
 
 ```sh
 cargo run --manifest-path src-tauri/Cargo.toml --example prepare_resources -- /path/to/cache

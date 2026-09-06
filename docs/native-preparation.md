@@ -46,7 +46,7 @@ macOS、Linux、Windows 都使用已有系统 usbmux 与共享 Rust USB / SSH �
 
 尚未对连接设备执行 limera1n、ramdisk 启动、越狱写入或重启后的验证。三平台的真实写入均不应被视为硬件验证通过。后续验收需要用户在桌面应用亲自确认备份与风险、启动操作并按引导进入 DFU。
 
-只验证电脑上的资源步骤：
+以下诊断工具位于 Git 忽略的 `src-tauri/examples/`，不随仓库分发；仅在本机保留对应文件时可运行。只验证电脑上的资源步骤：
 
 ```sh
 cargo run --manifest-path src-tauri/Cargo.toml --example prepare_resources -- /path/to/cache
@@ -56,7 +56,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example prepare_resources -- /p
 
 DFU 主板映射依据 [libirecovery 的设备表](https://github.com/libimobiledevice/libirecovery/blob/master/src/libirecovery.c)：n81ap 为 CPID `0x8930` / BDID `0x08`。同一 A4 芯片的其他主板不能选择 iPod 固件。DFU 会话键包含内部 ECID，避免在相同 USB 端口更换设备后复用旧方案；完整标识不对外输出。重启后多台正常模式设备按原 ECID 精确匹配，重复身份会被拒绝。
 
-连接已经在 DFU 的设备，运行以下检查只生成方案，不下载、不引导、不写入：
+本机保留 `detect_devices.rs` 时，连接已经在 DFU 的设备，运行以下检查只生成方案，不下载、不引导、不写入：
 
 ```sh
 cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices -- --plan-preparation

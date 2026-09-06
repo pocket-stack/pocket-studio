@@ -6,6 +6,9 @@ dist/
 src-tauri/target/
 src-tauri/gen/
 
+# Local hardware diagnostics and test examples
+/src-tauri/examples/
+
 # Editors and operating systems
 .DS_Store
 .idea/
