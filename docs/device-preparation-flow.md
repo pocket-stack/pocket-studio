@@ -1,5 +1,7 @@
 # Device preparation flow (iPod touch 4 demo)
 
+> 当前工作流由浏览器模拟网关提供。Tauri 桌面端已接入真实设备只读检测，准备和安装命令返回 `operationUnavailable`，不会将模拟执行器绑定到真机。
+
 本文描述当前 demo 中「设备准备」与「应用安装」的交互设计。所有设备操作均为模拟，
 浏览器与桌面窗口统一使用前端模拟网关，不调用任何真实设备命令。真实实现将基于
 [Legacy-iOS-Kit-rs](https://github.com/HalfSweet/Legacy-iOS-Kit-rs) 的
