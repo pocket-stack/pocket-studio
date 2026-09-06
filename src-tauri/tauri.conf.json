@@ -14,6 +14,8 @@
       {
         "label": "main",
         "title": "Pocket Studio",
+        "decorations": true,
+        "titleBarStyle": "Visible",
         "width": 1180,
         "height": 760,
         "minWidth": 960,
