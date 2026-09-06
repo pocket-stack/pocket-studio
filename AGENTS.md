@@ -71,3 +71,5 @@ Use Conventional Commits with small, reviewable changes:
 ```
 
 Common types are `feat`, `fix`, `refactor`, `test`, `docs`, `build`, and `chore`. Keep generated dependency lockfile changes in the commit that introduces or updates the dependency.
+
+After completing each coherent feature and passing the required quality checks, immediately create a Conventional Commit before starting the next feature. Do not wait for a separate user request to commit. Keep related implementation and tests together, and keep unrelated completed features in separate commits; avoid file-by-file or unfinished intermediate commits.
