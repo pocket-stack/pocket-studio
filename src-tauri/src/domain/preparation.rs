@@ -4,7 +4,8 @@ use super::operation::{PlanStep, RequiredAction, StepId};
 use super::readiness::WorkflowKind;
 
 /// Bump whenever the disclaimer text changes; stale consent is rejected.
-pub const DISCLAIMER_VERSION: &str = "2026-09-01";
+pub const DISCLAIMER_VERSION: &str = "2026-09-06";
+pub const CONSENT_VALIDITY_MS: u64 = 30 * 60 * 1000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -192,6 +193,8 @@ pub struct ConsentRecord {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ConsentError {
+    #[error("consent timestamps are invalid or expired")]
+    InvalidTime,
     #[error("consent was recorded for a different plan")]
     PlanMismatch,
     #[error("prerequisite {0:?} was not confirmed")]
@@ -202,6 +205,28 @@ pub enum ConsentError {
     DisclaimerVersionMismatch,
     #[error("reading time is below the plan's minimum")]
     ReadingTooShort,
+}
+
+pub fn validate_timed_consent(
+    plan: &PreparationPlan,
+    consent: &ConsentRecord,
+    issued_at: u64,
+    now: u64,
+) -> Result<(), ConsentError> {
+    validate_consent(plan, consent)?;
+    if issued_at > now
+        || now - issued_at >= CONSENT_VALIDITY_MS
+        || consent.risks_acknowledged_at
+            < issued_at.saturating_add(u64::from(plan.minimum_reading_seconds.risks) * 1000)
+        || consent.disclaimer_accepted_at
+            < consent
+                .risks_acknowledged_at
+                .saturating_add(u64::from(plan.minimum_reading_seconds.disclaimer) * 1000)
+        || consent.disclaimer_accepted_at > now
+    {
+        return Err(ConsentError::InvalidTime);
+    }
+    Ok(())
 }
 
 /// A workflow may only start when consent binds to this exact plan and covers
@@ -263,6 +288,34 @@ mod tests {
     fn complete_consent_is_accepted() {
         let plan = plan();
         assert_eq!(validate_consent(&plan, &full_consent(&plan)), Ok(()));
+    }
+
+    #[test]
+    fn native_consent_rejects_future_expired_and_impossible_reading_times() {
+        let plan = plan();
+        let mut consent = full_consent(&plan);
+        consent.risks_acknowledged_at = 16_000;
+        consent.disclaimer_accepted_at = 36_000;
+        assert_eq!(
+            validate_timed_consent(&plan, &consent, 1_000, 36_000),
+            Ok(())
+        );
+        for now in [35_999, 1_000 + CONSENT_VALIDITY_MS] {
+            assert_eq!(
+                validate_timed_consent(&plan, &consent, 1_000, now),
+                Err(ConsentError::InvalidTime)
+            );
+        }
+        consent.disclaimer_accepted_at = 20_000;
+        assert_eq!(
+            validate_timed_consent(&plan, &consent, 1_000, 36_000),
+            Err(ConsentError::InvalidTime)
+        );
+        consent.risks_acknowledged_at = 0;
+        assert_eq!(
+            validate_timed_consent(&plan, &consent, 1_000, 36_000),
+            Err(ConsentError::InvalidTime)
+        );
     }
 
     #[test]

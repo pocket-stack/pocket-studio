@@ -152,7 +152,7 @@ function acknowledgeRisks(readingSeconds: number): void {
   risksAcknowledgedAt.value = Date.now();
   useOperationLog().recordUiEvent(
     "log.preparation.risksAcknowledged",
-    "User acknowledged every risk (simulation)",
+    "User acknowledged every risk",
     {
       plan: plan.value.id,
       readingSeconds: String(readingSeconds),
@@ -199,6 +199,7 @@ async function launch(): Promise<void> {
   stage.value = "starting";
   startError.value = null;
   try {
+    await useOperations().ready();
     const handle = await useGateway().preparation.start(consent);
     attempt.value += 1;
     trackOperation(handle);
@@ -222,7 +223,7 @@ async function acceptDisclaimer(readingSeconds: number): Promise<void> {
   disclaimerAcceptedAt.value = Date.now();
   useOperationLog().recordUiEvent(
     "log.preparation.disclaimerAccepted",
-    "User accepted the demo disclaimer",
+    "User accepted the preparation disclaimer",
     {
       plan: plan.value.id,
       version: plan.value.disclaimerVersion,
@@ -248,6 +249,14 @@ async function retry(): Promise<void> {
       !operation.value.error?.recoverable)
   )
     return;
+  if (useGateway().flavor === "tauri") {
+    // Native plans are consumed once, and the device must be identified again
+    // in normal mode before a fresh confirmation can authorize another run.
+    const device = useDeviceSession().device.value;
+    if (device) await open(device.id);
+    else notify("warning", "notifications.deviceDetached");
+    return;
+  }
   if (!consentStillValid()) {
     resetConsent();
     stage.value = "overview";

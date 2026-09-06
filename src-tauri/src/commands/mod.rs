@@ -82,8 +82,7 @@ pub async fn plan_preparation(
     state: State<'_, AppState>,
     device_id: String,
 ) -> CommandResult<PreparationPlan> {
-    let _ = device_id;
-    state.studio.unavailable_operation().map_err(Into::into)
+    Ok(state.studio.plan_preparation(&device_id).await?)
 }
 
 #[tauri::command]
@@ -91,8 +90,12 @@ pub async fn start_preparation(
     state: State<'_, AppState>,
     consent: ConsentRecord,
 ) -> CommandResult<OperationHandle> {
-    let _ = consent;
-    state.studio.unavailable_operation().map_err(Into::into)
+    state
+        .studio
+        .preparation
+        .start(consent)
+        .await
+        .map_err(|error| StudioError::from(error).into())
 }
 
 #[tauri::command]
@@ -124,8 +127,11 @@ pub async fn cancel_operation(
     state: State<'_, AppState>,
     operation_id: String,
 ) -> CommandResult<()> {
-    let _ = operation_id;
-    state.studio.unavailable_operation().map_err(Into::into)
+    state
+        .studio
+        .preparation
+        .cancel(&operation_id)
+        .map_err(|error| StudioError::from(error).into())
 }
 
 #[tauri::command]

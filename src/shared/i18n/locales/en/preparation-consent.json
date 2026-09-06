@@ -33,7 +33,7 @@
         },
         "securityPosture": {
           "title": "A jailbreak weakens device security",
-          "body": "Jailbreaking relaxes system protections. Enabling SSH while retaining default credentials can permit unauthorized access.",
+          "body": "This flow relaxes system security restrictions and installs and enables OpenSSH. Keeping the default root and mobile passwords exposes the device to unauthorized access.",
           "mitigation": "Change the root and mobile passwords right after the jailbreak and install software only from trusted sources."
         },
         "communityTooling": {
@@ -64,7 +64,7 @@
         },
         {
           "heading": "Responsibility",
-          "body": "Confirmation in this interface is for demonstration only and does not authorize real operations. Terms and liability for real operations must be reviewed and presented separately before integration."
+          "body": "Selecting Agree and start authorizes Pocket Studio to perform the listed jailbreak operations on the device bound to this plan, including root access to the temporary ramdisk, mounting partitions and writing system files. Confirm that you have an independent backup and understand the risks. The software cannot guarantee success or data integrity."
         },
         {
           "heading": "Device ownership",
@@ -76,7 +76,7 @@
         },
         {
           "heading": "What can be undone",
-          "body": "Cancellation is available only at steps marked safe to interrupt. Starting with ramdisk boot, some steps cannot be cancelled. Interrupting writes can cause boot failure."
+          "body": "You can cancel during downloads, building and the wait for DFU. Cancellation is disabled once limera1n starts; mounting and installation modify the system. Retrying requires a new plan and confirmation. Previous consent cannot be reused."
         },
         {
           "heading": "Records and logs",
@@ -95,7 +95,15 @@
       "consentIncomplete": "The risk acknowledgement is incomplete.",
       "disclaimerOutdated": "The disclaimer has changed. Please read it again.",
       "deviceNotFound": "The device is disconnected. Reconnect it.",
-      "readingTooShort": "The reading time was too short."
+      "readingTooShort": "The reading time was too short.",
+      "planExpired": "This plan expired or was already used. Generate and confirm a new plan.",
+      "invalidConsent": "Consent is incomplete, expired, or its reading times are invalid. Read and confirm again.",
+      "preparationUnsupported": "Preparation currently supports iPod touch 4 on iOS 6.1.6 (10B500). Return to normal mode and check device details.",
+      "alreadyJailbroken": "A jailbreak was detected. It will not be installed again. Recheck readiness.",
+      "deviceNotReady": "Normal mode, valid pairing and a readable battery level of at least 50% are required.",
+      "operationBusy": "Another operation is running. Wait for it to finish.",
+      "eventSubscriptionFailed": "Operation events could not be connected. Preparation has not started. Reopen the app and try again.",
+      "preparationFailed": "Preparation failed. Check the operation log."
     }
   }
 }

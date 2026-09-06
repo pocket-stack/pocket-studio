@@ -2,14 +2,14 @@
 
 Pocket Studio 是 Pocket 生态的桌面连接桥梁。项目目标是通过 USB 或网络发现设备、识别设备类型、在用户明确授权后完成准备流程，并为设备提供兼容软件的发现与安装能力。
 
-当前版本已开始接入真实设备：**Tauri 桌面窗口使用 Legacy-iOS-Kit-rs 读取 USB 设备，浏览器保留前端交互演示**。本阶段完成设备发现、设备信息读取、只读接入条件检测、连接诊断与日志。真实越狱、前置环境安装、应用安装和卸载尚未接入，后端会明确拒绝这些操作。
+当前版本已开始接入真实设备：**Tauri 桌面窗口使用 Legacy-iOS-Kit-rs 接入 USB 设备，浏览器保留前端交互演示**。设备发现与条件检测保持只读；已接入 iPod touch 4 / iOS 6.1.6（10B500）的真实设备准备与越狱执行链，必须由用户查看方案、确认风险后主动启动。应用安装与卸载仍不可用。
 
-适配器固定使用 [Legacy-iOS-Kit-rs `42b423f`](https://github.com/HalfSweet/Legacy-iOS-Kit-rs/tree/42b423fbfdcda66f1fb7cca2b605654dd905087e) 的 services、transport、assets 和 core crate；Rust 最低版本为 1.88。原生模拟驱动已移除，模拟数据仅存在于浏览器网关。
+适配器固定使用 [Legacy-iOS-Kit-rs `42b423f`](https://github.com/HalfSweet/Legacy-iOS-Kit-rs/tree/42b423fbfdcda66f1fb7cca2b605654dd905087e) 的 services、transport、assets、core、firmware、image、exploits 和 workflows crate；Rust 最低版本为 1.88。原生模拟驱动已移除，模拟数据仅存在于浏览器网关。
 
 ## 运行方式
 
 - `pnpm dev`：纯浏览器模式，使用 `src/shared/gateway/simulatedGateway.ts` 模拟 native 层。
-- `pnpm tauri dev`：启动真实 USB 只读接入，不会自动配对、越狱或安装。
+- `pnpm tauri dev`：启动桌面应用和真实 USB 接入；发现不会自动配对、越狱或安装。
 
 **浏览器模式**底部状态栏的「演示控制」可以模拟接入/拔出设备、进入 DFU、标记越狱状态，以及为某个步骤注入失败，用于走通所有分支。
 
@@ -32,12 +32,31 @@ macOS / iPod touch 4 真机验证已读取 `iPod4,1`、`N81AP`、`A4`、`6.1.6`�
 cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices
 ```
 
+## 设备准备与越狱
+
+- 当前精确支持 `iPod4,1 / N81AP / iOS 6.1.6 / 10B500`，需要有效配对、正常模式和可读取到至少 50% 的电量。越狱状态未知不会被判定为未越狱，但可以由用户主动查看方案；已确认越狱的设备会拒绝重复安装。
+- 先在电脑下载、校验资源并构建 ramdisk，再引导用户手动进入 DFU。首次下载 Apple 固件约 889 MB；固件、组件、密钥元数据及社区载荷都有固定来源、大小和 SHA-256。
+- 执行顺序为 limera1n、启动临时 SSH ramdisk、复核设备系统、挂载、安装 Aquila 6 / Cydia / OpenSSH、重启、验证越狱与 SSH。每一步都报告真实状态；写入和校验错误不会被后续清理命令吞掉。
+- 同意记录绑定具体方案，30 分钟过期，只能使用一次。重试需重新生成方案并确认。下载、构建和等待 DFU 可取消；从 limera1n 开始不可取消，运行期间阻止关闭窗口及正常退出。
+- DFU 与启动过程按 ECID 匹配，ramdisk SSH 按原 USB 端口和本次构建的随机标记核对，不会选择列表中的第一台设备。设备切换模式时，执行界面保持显示。
+- OpenSSH 会被安装并启用，风险页和成功页会提醒修改 root / mobile 默认密码。不会在发现阶段登录 SSH。
+
+已验证：macOS 真机只读预检（iPod4,1 / 6.1.6 / 10B500、电量 100%、已有配对），以及真实 Apple 固件的下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。**尚未在这台设备上执行 DFU、越狱写入与重启后的验收**；macOS/Linux/Windows 的实际写入路径均需后续硬件验证。
+
+可以单独验证所有本机资源步骤（不连接设备）：
+
+```sh
+cargo run --manifest-path src-tauri/Cargo.toml --example prepare_resources -- /path/to/cache
+```
+
+资源来源、验证边界与实现说明见 [原生设备准备](docs/native-preparation.md)。
+
 ## 浏览器演示与交互
 
 界面仅参考当前工作目录 `.design/Pocket Studio 设计规划` 中的完整预览和 5a–5k 线稿：顶部 LCD、设备侧栏、底部日志、七列应用商店、应用详情截图区与右栏。设备信息与按键说明按 iPod touch 4 调整。依据后续界面反馈，四个页面入口已合并为顶部左侧图标，原独立导航行被移除；同一行提供前进 / 后退按钮，支持设备子页与应用详情历史，准备期间禁用导航。
 
 - 启动自动接入模拟设备，检测不会触发越狱。可在设备选择器弹出，再模拟连接。
-- 前置环境页先确认备份、供电与按键条件，随后进入独立的风险、免责弹窗。风险阅读 15 秒、免责阅读 20 秒，均须前台停留并滚到底部；每项风险单独确认。
+- 前置环境页先确认备份、供电与按键条件，随后进入独立的风险、免责弹窗。风险阅读 15 秒、操作授权说明阅读 20 秒，均须前台停留并滚到底部；每项风险单独确认。
 - DFU、执行步骤、进度与近期日志放在前置环境页。正常模式按键演示为 Power + Home 10 秒，再单独 Home 8 秒；恢复模式第一段为 8 秒。可重播或模拟 DFU 检测。
 - 商店支持搜索、分类、详情、依赖提示、串行安装队列、取消与失败重试。已安装页支持查看与模拟卸载；被其他应用依赖的软件不能直接卸载。
 - 最近 2,000 条日志保存在本机 webview 存储中。确认记录包含方案、条款版本、阅读时长和时间。导出提供可复制文本；浏览器预览也会下载 `.log`。
@@ -98,7 +117,7 @@ lefthook 会在提交前执行前端检查、`cargo fmt --check` 和 Clippy。�
 ├── src-tauri/src/
 │   ├── domain/            # 设备、就绪规则、准备方案与同意校验、目录、日志模型
 │   ├── application/       # ports 与 Studio 用例
-│   ├── infrastructure/    # Legacy iOS Kit 只读适配器与三平台策略
+│   ├── infrastructure/    # Legacy iOS Kit 发现、准备适配器与三平台策略
 │   └── commands/          # Tauri 命令边界
 ├── docs/architecture.md   # 模块边界与设备操作约束
 ├── docs/device-preparation-flow.md  # 准备向导状态机与同意规则
@@ -108,4 +127,4 @@ lefthook 会在提交前执行前端检查、`cargo fmt --check` 和 Clippy。�
 
 ## 开发状态
 
-下一阶段接入需要明确授权的准备和应用管理工作流。浏览器演示的成功状态不会用于判断真实设备。不要在设备发现阶段执行任何会改变设备状态的操作。
+当前已接入需要明确授权的准备执行链；应用管理工作流尚未接入。浏览器演示的成功状态不会用于判断真实设备。不要在设备发现阶段执行任何会改变设备状态的操作。

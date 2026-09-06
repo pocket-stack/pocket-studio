@@ -30,7 +30,7 @@ src-tauri/src/
 
 当前原生接入由 `infrastructure/legacy_ios` 实现 `application::discovery::DeviceProbe`。它使用固定版本的 Legacy-iOS-Kit-rs 库，不调用外部 CLI。`DeviceDiscovery` 串行执行刷新、缓存设备事实、计算接入报告，并发送带版本的完整 `DiscoverySnapshot`；后台轮询与手动检测共享这条链路。
 
-Tauri 命令只读取真实 inventory。未实现的准备、安装、卸载等操作返回稳定错误 `operationUnavailable`；`Studio` 不连接模拟工作流驱动。浏览器单独使用 `simulatedGateway.ts`，保留完整交互演示。界面通过 gateway capabilities 显示实际可用功能。
+Tauri 命令读取真实 inventory，并将显式准备请求交给 `PreparationService`。安装、卸载等未实现操作返回稳定错误 `operationUnavailable`；`Studio` 不连接模拟工作流驱动。浏览器单独使用 `simulatedGateway.ts`，保留完整交互演示。界面通过 gateway capabilities 显示实际可用功能。
 
 型号、版本、电量、容量及受保护标识均可以为空。越狱、SSH、配对事实采用 `Option<bool>`，未确认与检测失败分开表示。Ready 必须同时满足支持的型号与系统、正常模式、有效配对、已验证越狱和 SSH。未知信息得到 `needsAttention`，不会自动产生越狱方案。
 
@@ -107,3 +107,9 @@ Vue 顶部区域只是一条应用工具栏，不绘制红绿灯、最小化、�
 正常检测不创建配对记录、不登录 SSH、不写设备。AFC2 访问或 Cydia 的 SpringBoard 注册信息与 SSH 响应共同作为越狱证据。未找到证据保持 unknown，不能据此推断为未越狱。依赖库会打印协议数据的日志层始终被过滤，RUST_LOG 不能开启配对材料输出。
 
 技术依据、边界测试与真机验证见 [legacy-ios-compatibility.md](legacy-ios-compatibility.md)。开发阶段标记、后端类型及“只读接入”等实现信息保留在工程文档，不进入产品页面。
+
+## Native preparation
+
+`application/preparation.rs` 负责方案缓存、限时且一次性的授权、互斥、取消边界及事件。`PreparationDriver` 只读捕获目标；`PreparationTarget` 在 native 适配器内部保留 UDID / ECID，并在写入前重新验证。平台选择继续由 `HostEnvironment` 定义，所有平台使用现有系统 usbmux；不隐式修改驱动或提权。
+
+`infrastructure/legacy_ios/preparation_resources.rs` 负责固定资源清单、校验与电脑上的临时镜像构建；`preparation.rs` 负责具体 USB / SSH 操作。发现不调用这两个执行入口。详见 [原生准备流程](native-preparation.md)。

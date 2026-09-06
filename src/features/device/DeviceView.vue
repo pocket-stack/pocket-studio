@@ -72,8 +72,13 @@ function startPreparation(): void {
       {{ t(`connection.issues.${item.code}`) }}
     </p>
   </section>
+  <PreparationWorkspace
+    v-if="section === 'environment' && preparation.stage.value !== 'closed'"
+    @open-store="emit('openStore')"
+    @open-logs="emit('openLogs')"
+  />
   <div
-    v-if="!device"
+    v-else-if="!device"
     class="flex min-h-full flex-col items-center justify-center gap-[19px] p-8 text-center motion-safe:animate-rise"
   >
     <div class="relative mb-[7px] opacity-80">

@@ -15,7 +15,7 @@
       },
       "buildRamdisk": {
         "title": "Build the SSH ramdisk",
-        "detail": "Patch iBoot and the kernel, then assemble a restore ramdisk with an SSH service."
+        "detail": "Decrypt verified firmware components, patch iBSS / iBEC and build a ramdisk with SSH."
       },
       "bootRamdisk": {
         "title": "Boot the ramdisk",
@@ -26,8 +26,8 @@
         "detail": "Mount the system and data partitions over SSH."
       },
       "installUntether": {
-        "title": "Install the untether and Cydia",
-        "detail": "Write the untethered jailbreak payload and the Cydia bootstrap. Cannot be interrupted once started."
+        "title": "Install the untether, Cydia and OpenSSH",
+        "detail": "Write the untether, Cydia and OpenSSH, checking every command result. This step cannot be cancelled."
       },
       "rebootDevice": {
         "title": "Reboot the device",
@@ -69,7 +69,7 @@
         "title": "Ramdisk build failed",
         "body": "Patching did not complete. The device was not modified.",
         "recovery": [
-          "Retrying clears the cache and rebuilds.",
+          "A new plan rebuilds the temporary ramdisk.",
           "If it keeps failing, export the log and report it."
         ]
       },
@@ -112,6 +112,39 @@
         "recovery": [
           "Make sure the device has fully booted and is unlocked.",
           "Run the readiness check again; if it is still not jailbroken, run the flow again."
+        ]
+      },
+      "deviceChanged": {
+        "title": "Device or firmware changed",
+        "body": "The device identity, firmware or ramdisk does not match the authorized plan. Preparation stopped.",
+        "recovery": [
+          "Return the original device to normal mode, reconnect it and generate a new plan."
+        ]
+      },
+      "alreadyJailbroken": {
+        "title": "Device is already jailbroken",
+        "body": "An existing jailbreak was detected before installation. No jailbreak packages were installed.",
+        "recovery": ["Hold Power and Home to reboot, then recheck readiness."]
+      },
+      "rebootTimeout": {
+        "title": "Reboot timed out",
+        "body": "The original device did not return to a verifiable normal mode in time. Installation has not been confirmed.",
+        "recovery": [
+          "Keep the cable connected, let the device finish booting, unlock it, then recheck."
+        ]
+      },
+      "checksumMismatch": {
+        "title": "Resource verification failed",
+        "body": "A resource size or SHA-256 does not match the pinned manifest. The device was not modified.",
+        "recovery": [
+          "Export the log and check cached resources, then download them again."
+        ]
+      },
+      "transferFailed": {
+        "title": "Payload transfer failed",
+        "body": "An installation file could not be sent. Earlier steps may already have modified the system.",
+        "recovery": [
+          "Keep the device connected, export the log and check its boot state before deciding on recovery."
         ]
       }
     }

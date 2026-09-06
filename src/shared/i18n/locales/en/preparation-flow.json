@@ -1,7 +1,7 @@
 {
   "preparation": {
     "title": "Device preparation: jailbreak iPod touch 4",
-    "subtitle": "iPod4,1 · iOS 6.1.6 · SSH ramdisk · Simulation",
+    "subtitle": "iPod4,1 · iOS 6.1.6 (10B500) · SSH ramdisk",
     "planning": "Building the preparation plan…",
     "planFailed": "The plan could not be created. Make sure the device is still connected.",
     "starting": "Recording your consent and starting…",
@@ -15,7 +15,7 @@
     },
     "overview": {
       "whatHappens": "What will happen",
-      "intro": "This demo shows DFU, bootrom entry, SSH ramdisk, and jailbreak environment installation. A real run modifies the system; although erasure is not intended, boot failures and data loss remain possible.",
+      "intro": "Resources are downloaded and verified before you enter DFU. limera1n then boots an SSH ramdisk to install the Aquila 6 untether, Cydia and OpenSSH. This modifies the system without intentionally erasing data; recovery after failure may still erase all data.",
       "facts": {
         "method": "Method",
         "exploit": "Exploit",
@@ -25,7 +25,7 @@
         "duration": "Estimated time"
       },
       "method": {
-        "ramdisk": "SSH ramdisk (as redsn0w)"
+        "ramdisk": "SSH ramdisk"
       },
       "tether": {
         "untethered": "Untethered (survives reboots)",
@@ -49,7 +49,7 @@
       },
       "workingButtons": {
         "title": "Power and Home buttons work",
-        "detail": "This demo requires working buttons. The Rust toolkit has not implemented DFU IPSW; no broken-button alternative is offered."
+        "detail": "Entering DFU requires the Power and Home buttons. Check that both buttons work before starting."
       },
       "backupCompleted": {
         "title": "Device data is backed up",
@@ -143,8 +143,8 @@
     },
     "result": {
       "success": {
-        "title": "Preparation demo complete",
-        "body": "The simulated device has rebooted and passed readiness checks. You can now try app installation. No real device was modified."
+        "title": "Device preparation complete",
+        "body": "The device has rebooted and passed jailbreak and SSH checks. OpenSSH is enabled; change the default root and mobile passwords before connecting to an untrusted network."
       },
       "failed": {
         "title": "The flow failed",
@@ -152,7 +152,7 @@
       },
       "cancelled": {
         "title": "Flow cancelled",
-        "body": "The demo stopped at a cancellable step. No real device operation was performed."
+        "body": "Preparation stopped before device modification. If the device remains in DFU, hold Power and Home to reboot."
       },
       "failedAt": "Failed at \"{step}\" (attempt {attempt})",
       "recoveryTitle": "Suggested next steps",
@@ -160,6 +160,8 @@
       "viewLogs": "View log",
       "openStore": "Open the App Store",
       "retry": "Retry"
-    }
+    },
+    "reviewPlan": "Review preparation plan",
+    "demoNotice": "Browser demo: actions here do not modify a physical device."
   }
 }

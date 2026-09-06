@@ -15,7 +15,7 @@
       },
       "buildRamdisk": {
         "title": "构建 SSH ramdisk",
-        "detail": "为 iBoot 与内核打补丁，生成带 SSH 服务的恢复 ramdisk。"
+        "detail": "解密已校验的固件组件，修补 iBSS / iBEC，并构建带 SSH 服务的 ramdisk。"
       },
       "bootRamdisk": {
         "title": "启动 ramdisk",
@@ -26,8 +26,8 @@
         "detail": "通过 SSH 挂载系统分区与数据分区。"
       },
       "installUntether": {
-        "title": "安装 untether 与 Cydia",
-        "detail": "写入完美越狱载荷与 Cydia 引导包。此步骤开始后无法中断。"
+        "title": "安装 untether、Cydia 与 OpenSSH",
+        "detail": "写入越狱载荷、Cydia 与 OpenSSH，并检查每一步的结果。开始后不可取消。"
       },
       "rebootDevice": {
         "title": "重启设备",
@@ -66,7 +66,7 @@
         "title": "构建 ramdisk 失败",
         "body": "补丁过程未能完成。设备未被修改。",
         "recovery": [
-          "重试会清理缓存并重新构建。",
+          "重新生成方案后会重新构建临时 ramdisk。",
           "如果持续失败，请导出日志并反馈。"
         ]
       },
@@ -106,6 +106,33 @@
         "recovery": [
           "确认设备已完全启动并解锁。",
           "重新检测接入条件；如果仍未越狱，重新运行流程。"
+        ]
+      },
+      "deviceChanged": {
+        "title": "设备或系统信息发生变化",
+        "body": "当前设备身份、固件或 ramdisk 与授权方案不符，流程已停止。",
+        "recovery": ["让原设备回到正常模式，重新连接并生成方案。"]
+      },
+      "alreadyJailbroken": {
+        "title": "设备已越狱",
+        "body": "写入前检测到已有越狱，已停止重复安装。",
+        "recovery": ["按住电源键和 Home 键重启，再检查接入条件。"]
+      },
+      "rebootTimeout": {
+        "title": "等待重启超时",
+        "body": "设备未在规定时间内回到可验证的正常模式。安装结果尚未确认。",
+        "recovery": ["保持连接，等待设备完成启动并解锁，然后重新检测。"]
+      },
+      "checksumMismatch": {
+        "title": "资源校验失败",
+        "body": "资源的大小或 SHA-256 与固定清单不符，设备未被修改。",
+        "recovery": ["导出日志并检查缓存资源，重新下载后再试。"]
+      },
+      "transferFailed": {
+        "title": "载荷传输失败",
+        "body": "向设备发送安装文件失败；已有步骤可能已修改系统。",
+        "recovery": [
+          "保持设备连接并导出日志，检查设备启动状态后再决定恢复操作。"
         ]
       }
     }

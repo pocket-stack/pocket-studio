@@ -71,10 +71,10 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
           <div
             v-for="fact in facts"
             :key="fact.label"
-            class="flex justify-between border-b border-line/60 py-1"
+            class="min-w-0 border-b border-line/60 py-2"
           >
-            <dt class="text-muted">{{ fact.label }}</dt>
-            <dd class="font-medium">{{ fact.value }}</dd>
+            <dt class="text-xs text-muted">{{ fact.label }}</dt>
+            <dd class="mt-1 leading-6 font-medium">{{ fact.value }}</dd>
           </div>
         </dl>
         <h4 class="mt-5 text-sm font-semibold">

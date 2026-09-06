@@ -2,6 +2,7 @@
 //! This layer knows nothing about Tauri or any platform.
 
 pub mod discovery;
+pub mod preparation;
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -81,6 +82,8 @@ impl OperationLog {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StudioError {
+    #[error(transparent)]
+    Preparation(#[from] preparation::PreparationError),
     #[error("device is not attached")]
     DeviceNotFound,
     #[error("this operation is unavailable")]
@@ -90,22 +93,44 @@ pub enum StudioError {
 impl StudioError {
     pub fn code(&self) -> &'static str {
         match self {
+            Self::Preparation(error) => error.code(),
             Self::DeviceNotFound => "deviceNotFound",
             Self::OperationUnavailable => "operationUnavailable",
         }
     }
 }
 
-/// Native reads use the real inventory. No simulated workflow runner is
-/// connected to a physical device; writes remain unavailable at this boundary.
+/// Native reads use the real inventory. Preparation is an explicitly invoked,
+/// plan-bound service; the browser simulator never drives a physical device.
 pub struct Studio {
     pub discovery: Arc<discovery::DeviceDiscovery>,
+    pub preparation: Arc<preparation::PreparationService>,
     log: Arc<OperationLog>,
 }
 
 impl Studio {
-    pub fn new(discovery: Arc<discovery::DeviceDiscovery>, log: Arc<OperationLog>) -> Self {
-        Self { discovery, log }
+    pub fn new(
+        discovery: Arc<discovery::DeviceDiscovery>,
+        preparation: Arc<preparation::PreparationService>,
+        log: Arc<OperationLog>,
+    ) -> Self {
+        Self {
+            discovery,
+            preparation,
+            log,
+        }
+    }
+
+    pub async fn plan_preparation(
+        &self,
+        device_id: &str,
+    ) -> Result<crate::domain::preparation::PreparationPlan, StudioError> {
+        self.discovery.refresh().await;
+        let record = self
+            .discovery
+            .find(device_id)
+            .ok_or(StudioError::DeviceNotFound)?;
+        Ok(self.preparation.plan(&record.summary).await?)
     }
 
     pub async fn list_devices(&self) -> DiscoverySnapshot {
@@ -155,8 +180,13 @@ impl Studio {
             .iter()
             .map(|entry| {
                 format!(
-                    "{} {:?} [{}] {}",
-                    entry.timestamp, entry.level, entry.code, entry.message
+                    "{} {:?} [{}] [{}] {} {}",
+                    entry.timestamp,
+                    entry.level,
+                    entry.operation_id.as_deref().unwrap_or("-"),
+                    entry.code,
+                    entry.message,
+                    serde_json::to_string(&entry.params).expect("serializable log parameters")
                 )
             })
             .collect::<Vec<_>>()

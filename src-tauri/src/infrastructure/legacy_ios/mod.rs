@@ -2,6 +2,8 @@
 //! leave this module. A scan opens existing services but never pairs or writes.
 
 mod platform;
+pub mod preparation;
+pub mod preparation_resources;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;

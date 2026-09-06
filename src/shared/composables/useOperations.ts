@@ -34,6 +34,7 @@ export interface OperationState {
 
 const operations = reactive(new Map<string, OperationState>());
 let subscribed = false;
+let subscription: Promise<void> | undefined;
 // Native events can arrive before the command promise returns its handle.
 const pendingEvents = new Map<string, OperationEvent[]>();
 
@@ -96,14 +97,22 @@ function apply(event: OperationEvent): void {
   }
 }
 
-function ensureSubscribed(): void {
-  if (subscribed) return;
-  subscribed = true;
-  useGateway().operations.onEvent(apply);
+function ensureSubscribed(): Promise<void> {
+  if (subscribed) return Promise.resolve();
+  if (!subscription) {
+    subscription = Promise.resolve(useGateway().operations.onEvent(apply))
+      .then(() => {
+        subscribed = true;
+      })
+      .finally(() => {
+        subscription = undefined;
+      });
+  }
+  return subscription;
 }
 
 export function trackOperation(handle: OperationHandle): OperationState {
-  ensureSubscribed();
+  void ensureSubscribed().catch(() => {});
   const state: OperationState = {
     id: handle.operationId,
     kind: handle.kind,
@@ -142,8 +151,9 @@ export function operationProgress(operation: OperationState): number {
 }
 
 export function useOperations() {
-  ensureSubscribed();
+  void ensureSubscribed().catch(() => {});
   return {
+    ready: ensureSubscribed,
     operations: readonly(operations),
     get: (id: string) => operations.get(id),
     active: computed(() =>

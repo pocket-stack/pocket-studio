@@ -16,6 +16,7 @@ export function useLogMessage() {
     if (params.action === "enterDfu")
       params.action = t("preparation.steps.enterDfu.title");
     if (params.step) {
+      params.step = params.step.charAt(0).toLowerCase() + params.step.slice(1);
       const key = te(`preparation.steps.${params.step}.title`)
         ? `preparation.steps.${params.step}.title`
         : `store.steps.${params.step}.title`;

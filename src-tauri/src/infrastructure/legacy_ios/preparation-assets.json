@@ -1,0 +1,63 @@
+{
+  "firmwareUrl": "https://secure-appldnld.apple.com/iOS6.1/031-3211.20140221.Placef/iPod4,1_6.1.6_10B500_Restore.ipsw",
+  "resources": [
+    {
+      "name": "keys.json",
+      "url": "https://raw.githubusercontent.com/LukeZGD/Legacy-iOS-Kit-Keys/af6bf5934dc61ed557a967a3f42ab7fb8ed8c45e/iPod4,1/10B500/index.html",
+      "sha256": "cfc145b68b42e09870fe2165dd552502a309ed48c659433a9e22b19e5ec7efc1",
+      "size": 5704
+    },
+    {
+      "name": "ssh.tar.gz",
+      "url": "https://raw.githubusercontent.com/LukeZGD/Legacy-iOS-Kit/1ff4be07ea2946ccaeff2db60c4426488b8f6e32/resources/sshrd/ssh.tar.gz",
+      "sha256": "daa6b527f25c87d1847a43d2a273bdacf03349a91ba875bb429a2c26ae808383",
+      "size": 4115449
+    },
+    {
+      "name": "sbplist.tar",
+      "url": "https://raw.githubusercontent.com/LukeZGD/Legacy-iOS-Kit/1ff4be07ea2946ccaeff2db60c4426488b8f6e32/resources/sshrd/sbplist.tar",
+      "sha256": "0eb34da7c75f0c45e1a32b140e0ab6a5fa8093763637335b52cf87550e02fcb7",
+      "size": 10240
+    },
+    {
+      "name": "limera1n-shellcode.bin",
+      "url": "https://raw.githubusercontent.com/axi0mX/ipwndfu/0e28932ec6a2a570b10fd77e50bda4216418cd98/bin/limera1n-shellcode.bin",
+      "sha256": "59f585a45112b6e299df5abdcddc792bcadaa6c411191938bced224ae42421d8",
+      "size": 368
+    }
+  ],
+  "components": [
+    {
+      "name": "iBSS",
+      "path": "Firmware/dfu/iBSS.n81ap.RELEASE.dfu",
+      "sha256": "f2d911a647c31c9a7703f31cfe892a3225f70a05291a48af9d2704d4bf6e2d0e",
+      "size": 68036
+    },
+    {
+      "name": "iBEC",
+      "path": "Firmware/dfu/iBEC.n81ap.RELEASE.dfu",
+      "sha256": "6d690ecbf1186e98d7a37a948431d00fd6aa743d44ff9f839570bf2a7d55fb1d",
+      "size": 272836
+    },
+    {
+      "name": "DeviceTree",
+      "path": "Firmware/all_flash/all_flash.n81ap.production/DeviceTree.n81ap.img3",
+      "sha256": "47dc586059ce2cbd88261b09eb139fde92ae5468eaf3c1e4468dca0a1bdca805",
+      "size": 65028
+    },
+    {
+      "name": "Kernelcache",
+      "path": "kernelcache.release.n81",
+      "sha256": "fd17a974cbce8e4c98e5ad46462e3ebd8a210258fbb5aab23cc8128745c65a17",
+      "size": 7271428
+    },
+    {
+      "name": "RestoreRamdisk",
+      "path": "058-2540-001.dmg",
+      "sha256": "a8d0cca27e1d1d328ef60abca8a9b25597d9c6729d35787cbe15491fdf89a74d",
+      "size": 9955652
+    }
+  ],
+  "firmwareSha256": "1f6096c3298c87172f431e4924a4cf3c53298e5920f4b6c817929aa32d90c5ff",
+  "firmwareSize": 888894104
+}

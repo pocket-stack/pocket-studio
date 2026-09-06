@@ -34,6 +34,26 @@ const checks = computed(
 const passCount = computed(
   () => checks.value.filter((check) => check.status === "pass").length,
 );
+const canReviewPreparation = computed(() => {
+  if (!gateway.capabilities.preparation || !props.report) return false;
+  if (props.report.status === "needsPreparation") return true;
+  const checks = props.report.checks;
+  return (
+    gateway.flavor === "tauri" &&
+    [
+      "modelSupported",
+      "osVersionSupported",
+      "normalMode",
+      "pairingTrusted",
+      "batteryLevel",
+    ].every((id) =>
+      checks.some((check) => check.id === id && check.status === "pass"),
+    ) &&
+    checks.some(
+      (check) => check.id === "jailbroken" && check.status === "unknown",
+    )
+  );
+});
 </script>
 <template>
   <section
@@ -110,15 +130,12 @@ const passCount = computed(
     >
       <div class="flex flex-wrap gap-2">
         <button
-          v-if="
-            report?.status === 'needsPreparation' &&
-            gateway.capabilities.preparation
-          "
+          v-if="canReviewPreparation"
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           :disabled="checking || !!active.length"
           @click="emit('prepare')"
         >
-          {{ t("studio.beginPreparation")
+          {{ t("preparation.reviewPlan")
           }}<AppIcon name="arrowRight" :size="14" /></button
         ><button
           v-else-if="

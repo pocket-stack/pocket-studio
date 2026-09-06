@@ -90,6 +90,8 @@ async function initialize(): Promise<void> {
       if (entries.value.some((existing) => existing.id === entryId(entry.id)))
         return;
       entries.value.push({ ...entry, id: entryId(entry.id) });
+      if (entry.code === "log.preparation.closeBlocked")
+        notify("warning", entry.code);
       if (entries.value.length > MAX_ENTRIES)
         entries.value.splice(0, entries.value.length - MAX_ENTRIES);
       persist();

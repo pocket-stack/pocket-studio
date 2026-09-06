@@ -36,7 +36,13 @@
       "started": "Device preparation started",
       "finished": "Device preparation finished",
       "failed": "Device preparation failed at step {step}: {code}",
-      "cancelled": "Device preparation cancelled at step {step}"
+      "cancelled": "Device preparation cancelled at step {step}",
+      "nativeConsent": "Device preparation authorized; consent recorded",
+      "nativeStep": "Running preparation step: {step}",
+      "nativeFinished": "Jailbreak and SSH verified after reboot",
+      "nativeFailed": "Preparation failed; review the failed step and recovery guidance",
+      "nativeCancelled": "Preparation cancelled before device modification",
+      "closeBlocked": "Preparation is running. Wait for completion or cancel at a safe step before closing."
     },
     "install": {
       "started": "Install started",

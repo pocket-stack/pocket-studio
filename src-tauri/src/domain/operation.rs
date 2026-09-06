@@ -64,6 +64,9 @@ pub enum StepStatus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum OperationErrorCode {
+    DeviceChanged,
+    AlreadyJailbroken,
+    RebootTimeout,
     DfuTimeout,
     ExploitFailed,
     DownloadFailed,
@@ -99,7 +102,11 @@ pub struct OperationHandle {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum OperationEvent {
     Started {
         operation_id: String,
@@ -146,4 +153,22 @@ pub enum CancelError {
     AlreadyFinished,
     #[error("current step cannot be cancelled safely")]
     NotCancellable,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn operation_event_fields_match_the_webview_contract() {
+        let value = serde_json::to_value(OperationEvent::StepChanged {
+            operation_id: "test".into(),
+            step_id: StepId::EnterDfu,
+            status: StepStatus::Running,
+        })
+        .unwrap();
+        assert_eq!(
+            value,
+            serde_json::json!({"type":"stepChanged", "operationId":"test", "stepId":"enterDfu", "status":"running"})
+        );
+    }
 }

@@ -36,7 +36,13 @@
       "started": "设备准备流程开始",
       "finished": "设备准备流程完成",
       "failed": "设备准备失败于步骤 {step}：{code}",
-      "cancelled": "设备准备已在步骤 {step} 取消"
+      "cancelled": "设备准备已在步骤 {step} 取消",
+      "nativeConsent": "已确认设备准备方案，授权记录已保存",
+      "nativeStep": "正在执行准备步骤：{step}",
+      "nativeFinished": "重启后的越狱与 SSH 验证通过",
+      "nativeFailed": "准备流程失败，请查看失败步骤和恢复提示",
+      "nativeCancelled": "已在修改设备前取消准备",
+      "closeBlocked": "准备仍在运行。请等待完成，或在可取消阶段先取消操作。"
     },
     "install": {
       "started": "安装流程开始",

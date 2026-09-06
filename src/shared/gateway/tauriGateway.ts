@@ -5,6 +5,7 @@ import {
   GatewayError,
   type DeviceEvent,
   type LogEntry,
+  type OperationEvent,
   type StudioGateway,
   type Unsubscribe,
 } from "./types";
@@ -61,7 +62,7 @@ async function unavailable(): Promise<never> {
 export function createTauriGateway(): StudioGateway {
   return {
     flavor: "tauri",
-    capabilities: { demo: false, preparation: false, packages: false },
+    capabilities: { demo: false, preparation: true, packages: false },
     devices: {
       list: () => call("list_devices"),
       checkReadiness: (deviceId) => call("check_readiness", { deviceId }),
@@ -80,9 +81,8 @@ export function createTauriGateway(): StudioGateway {
     },
     operations: {
       cancel: (operationId) => call("cancel_operation", { operationId }),
-      // No native workflow is enabled yet. Retain the subscription contract
-      // without opening an unused event channel during read-only discovery.
-      onEvent: () => () => {},
+      onEvent: (handler) =>
+        subscribe<OperationEvent>("studio://operation", handler),
     },
     logs: {
       list: () => call("list_logs"),

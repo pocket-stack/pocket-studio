@@ -33,7 +33,7 @@
         },
         "securityPosture": {
           "title": "越狱会降低设备安全性",
-          "body": "越狱会放宽系统安全限制。若启用 SSH 并保留默认凭据，设备可能被未授权访问。",
+          "body": "本流程会放宽系统安全限制，并安装、启用 OpenSSH。保留 root 与 mobile 的默认密码会使设备面临未授权访问。",
           "mitigation": "越狱后立即修改 root 与 mobile 账户密码，只安装可信来源的软件。"
         },
         "communityTooling": {
@@ -64,7 +64,7 @@
         },
         {
           "heading": "责任承担",
-          "body": "本界面中的确认仅用于演示，不构成真实操作授权。真实操作的服务条款与责任范围需要在正式接入时另行审核并呈现。"
+          "body": "点击“同意并开始”将授权 Pocket Studio 对方案绑定的设备执行所列越狱操作，包括以 root 身份连接临时 ramdisk、挂载分区并写入系统文件。开始前请确认已完成独立备份，并理解上述风险；软件无法保证操作成功或数据完整。"
         },
         {
           "heading": "设备归属",
@@ -76,7 +76,7 @@
         },
         {
           "heading": "可撤销范围",
-          "body": "取消按钮仅在允许安全中断的步骤可用。从引导 ramdisk 开始，部分步骤不支持中断。写入期间中断可能导致启动故障。"
+          "body": "下载、构建和等待 DFU 时可以取消。从发送 limera1n 开始不可取消；挂载和安装阶段会修改系统。设备重连或失败后重试需要重新生成方案并确认，旧授权不能再次使用。"
         },
         {
           "heading": "记录与日志",
@@ -95,7 +95,15 @@
       "consentIncomplete": "风险确认不完整。",
       "disclaimerOutdated": "免责条款已更新，请重新阅读。",
       "deviceNotFound": "设备已断开，请重新连接。",
-      "readingTooShort": "阅读时间不足。"
+      "readingTooShort": "阅读时间不足。",
+      "planExpired": "方案已过期或已使用，请重新生成并确认。",
+      "invalidConsent": "确认记录不完整、已过期或阅读时间不足，请重新阅读并确认。",
+      "preparationUnsupported": "当前准备流程支持 iPod touch 4 的 iOS 6.1.6（10B500）。请先恢复正常模式并核对设备信息。",
+      "alreadyJailbroken": "已检测到越狱，不会重复安装。请重新检查接入条件。",
+      "deviceNotReady": "请确保设备处于正常模式、配对有效，且可读取到至少 50% 的电量。",
+      "operationBusy": "已有操作正在进行，请等待其结束。",
+      "eventSubscriptionFailed": "无法接收操作进度，流程尚未开始。请重新打开应用后再试。",
+      "preparationFailed": "准备失败，请查看操作日志。"
     }
   }
 }

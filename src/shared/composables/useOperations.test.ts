@@ -23,3 +23,34 @@ it("retains initial DFU events emitted before the command returns its handle", a
   expect(operations.get(handle.operationId)?.currentStepId).toBe("enterDfu");
   await gateway.operations.cancel(handle.operationId);
 });
+
+it("waits for native event subscription and surfaces failures so a write cannot start unseen", async () => {
+  vi.resetModules();
+  let release: (() => void) | undefined;
+  const onEvent = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("subscription unavailable"))
+    .mockImplementationOnce(
+      () =>
+        new Promise<() => void>((resolve) => {
+          release = () => resolve(() => {});
+        }),
+    );
+  vi.doMock("../gateway", () => ({
+    useGateway: () => ({ operations: { onEvent } }),
+  }));
+  const { useOperations } = await import("./useOperations");
+  const operations = useOperations();
+  await expect(operations.ready()).rejects.toThrow("subscription unavailable");
+  let ready = false;
+  const pending = operations.ready().then(() => {
+    ready = true;
+  });
+  await Promise.resolve();
+  expect(ready).toBe(false);
+  release!();
+  await pending;
+  expect(ready).toBe(true);
+  expect(onEvent).toHaveBeenCalledTimes(2);
+  vi.doUnmock("../gateway");
+});

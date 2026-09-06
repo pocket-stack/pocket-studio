@@ -169,6 +169,9 @@ export type StepStatus =
   "pending" | "running" | "done" | "failed" | "skipped" | "cancelled";
 
 export type OperationErrorCode =
+  | "deviceChanged"
+  | "alreadyJailbroken"
+  | "rebootTimeout"
   | "dfuTimeout"
   | "exploitFailed"
   | "downloadFailed"
@@ -324,7 +327,9 @@ export interface StudioGateway {
   };
   operations: {
     cancel(operationId: string): Promise<void>;
-    onEvent(handler: (event: OperationEvent) => void): Unsubscribe;
+    onEvent(
+      handler: (event: OperationEvent) => void,
+    ): Unsubscribe | Promise<Unsubscribe>;
   };
   logs: {
     list(): Promise<LogEntry[]>;

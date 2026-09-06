@@ -10,6 +10,8 @@ import ProgressBar from "../../shared/ui/ProgressBar.vue";
 import AppIcon from "../../shared/ui/AppIcon.vue";
 import DfuGuideStep from "./steps/DfuGuideStep.vue";
 import ResultStep from "./steps/ResultStep.vue";
+import OverviewStep from "./steps/OverviewStep.vue";
+import { useGateway } from "../../shared/gateway";
 const emit = defineEmits<{ openStore: []; openLogs: [] }>();
 const { t, d } = useI18n();
 const renderLog = useLogMessage();
@@ -27,11 +29,11 @@ const isPreflight = computed(() =>
 const groupedSteps = computed(() => {
   const steps = preparation.operation.value?.steps ?? [];
   const groups = [
-    { key: "dfu", ids: ["enterDfu"] },
     {
       key: "resources",
-      ids: ["exploitBootrom", "fetchResources", "buildRamdisk"],
+      ids: ["fetchResources", "buildRamdisk"],
     },
+    { key: "dfu", ids: ["enterDfu", "exploitBootrom"] },
     {
       key: "write",
       ids: ["bootRamdisk", "mountFilesystem", "installUntether"],
@@ -88,8 +90,17 @@ function openLogs(): void {
 }
 </script>
 <template>
+  <p
+    v-if="useGateway().capabilities.demo"
+    class="mb-4 rounded-lg border border-line bg-raised p-3 text-sm text-muted"
+  >
+    {{ t("preparation.demoNotice") }}
+  </p>
   <section v-if="preparation.planError.value" class="p-6">
     <p class="text-danger">{{ t("preparation.planFailed") }}</p>
+    <p class="mt-2 text-sm text-muted">
+      {{ t(`preparation.startErrors.${preparation.planError.value}`) }}
+    </p>
     <button
       class="mt-4 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
       @click="preparation.close"
@@ -103,54 +114,15 @@ function openLogs(): void {
   >
     {{ t("preparation.planning") }}
   </div>
-  <section v-else-if="isPreflight" class="max-w-[850px]">
-    <h1 class="text-[22px] font-semibold">
-      {{ t("studio.sections.environment") }}
-    </h1>
-    <div class="mt-5 p-5 rounded-lg border border-line bg-surface">
-      <h2 class="text-base font-semibold">{{ t("studio.environmentName") }}</h2>
-      <p class="text-sm text-muted mt-2">
-        {{ t("preparation.overview.intro") }}
-      </p>
-      <p class="text-xs text-muted mt-3">{{ t("preparation.subtitle") }}</p>
-    </div>
-    <h3 class="text-sm font-semibold mt-6 mb-3">
-      {{ t("preparation.overview.prerequisites") }}
-    </h3>
-    <div class="rounded-md border border-line px-4 py-0">
-      <label
-        v-for="id in preparation.plan.value.prerequisites"
-        :key="id"
-        class="flex items-start gap-3 border-b border-line px-0 py-3 last:border-0"
-        ><input
-          type="checkbox"
-          class="accent-signal mt-[3px]"
-          :checked="preparation.confirmedPrerequisites.value.includes(id)"
-          @change="preparation.togglePrerequisite(id)"
-        /><span
-          ><b class="text-[13px] font-medium">{{
-            t(`preparation.prerequisites.${id}.title`)
-          }}</b
-          ><small class="mt-[3px] block text-[12px] text-muted">{{
-            t(`preparation.prerequisites.${id}.detail`)
-          }}</small></span
-        ></label
-      >
-    </div>
-    <div class="flex gap-3 mt-6">
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
-        :disabled="!preparation.allPrerequisitesConfirmed.value"
-        @click="preparation.proceedToRisks"
-      >
-        {{ t("preparation.overview.continue") }}</button
-      ><button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-        @click="preparation.close"
-      >
-        {{ t("common.cancel") }}
-      </button>
-    </div>
+  <section v-else-if="isPreflight" class="max-w-[1000px]">
+    <OverviewStep
+      :plan="preparation.plan.value"
+      :confirmed="preparation.confirmedPrerequisites.value"
+      :all-confirmed="preparation.allPrerequisitesConfirmed.value"
+      @toggle="preparation.togglePrerequisite"
+      @next="preparation.proceedToRisks"
+      @cancel="preparation.close"
+    />
   </section>
   <div
     v-else

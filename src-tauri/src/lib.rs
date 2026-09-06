@@ -10,10 +10,12 @@ use tauri::Manager;
 use tracing_subscriber::prelude::*;
 
 use application::discovery::DeviceDiscovery;
+use application::preparation::PreparationService;
 use application::{OperationLog, Studio};
 use commands::{AppState, TauriSink};
 use domain::log::{LogLevel, LogSource};
 use infrastructure::legacy_ios::LegacyIosProbe;
+use infrastructure::legacy_ios::preparation::LegacyPreparationDriver;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> anyhow::Result<()> {
@@ -26,7 +28,7 @@ pub fn run() -> anyhow::Result<()> {
         // including pairing records. Never let RUST_LOG expose that material.
         .with(
             tracing_subscriber::fmt::layer().with_filter(tracing_subscriber::filter::filter_fn(
-                |metadata| !metadata.target().starts_with("idevice"),
+                |metadata| metadata.target().starts_with("pocket_studio"),
             )),
         )
         .try_init()
@@ -35,15 +37,36 @@ pub fn run() -> anyhow::Result<()> {
     tracing::info!("starting Pocket Studio");
 
     tauri::Builder::default()
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event
+                && window
+                    .app_handle()
+                    .state::<AppState>()
+                    .studio
+                    .preparation
+                    .warn_before_close()
+            {
+                api.prevent_close();
+            }
+        })
         .setup(|app| {
             let sink = Arc::new(TauriSink(app.handle().clone()));
             let log = Arc::new(OperationLog::new(sink.clone()));
+            let probe = Arc::new(LegacyIosProbe::default());
             let discovery = Arc::new(DeviceDiscovery::new(
-                Arc::new(LegacyIosProbe::default()),
+                probe.clone(),
+                sink.clone(),
+                log.clone(),
+            ));
+            let preparation = Arc::new(PreparationService::new(
+                Arc::new(LegacyPreparationDriver::new(
+                    probe,
+                    app.path().app_cache_dir()?.join("preparation"),
+                )),
                 sink,
                 log.clone(),
             ));
-            let studio = Studio::new(discovery.clone(), log.clone());
+            let studio = Studio::new(discovery.clone(), preparation, log.clone());
             app.manage(AppState {
                 studio: Arc::new(studio),
             });
@@ -70,6 +93,18 @@ pub fn run() -> anyhow::Result<()> {
             commands::list_logs,
             commands::export_logs,
         ])
-        .run(tauri::generate_context!())
-        .context("Tauri application exited with an error")
+        .build(tauri::generate_context!())
+        .context("failed to build Tauri application")?
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = event
+                && app
+                    .state::<AppState>()
+                    .studio
+                    .preparation
+                    .warn_before_close()
+            {
+                api.prevent_exit();
+            }
+        });
+    Ok(())
 }

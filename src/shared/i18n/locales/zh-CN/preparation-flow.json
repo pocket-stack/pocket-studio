@@ -1,7 +1,7 @@
 {
   "preparation": {
     "title": "设备准备：越狱 iPod touch 4",
-    "subtitle": "iPod4,1 · iOS 6.1.6 · SSH ramdisk · 流程演示",
+    "subtitle": "iPod4,1 · iOS 6.1.6 (10B500) · SSH ramdisk",
     "planning": "正在生成准备方案…",
     "planFailed": "无法生成准备方案，请确认设备仍然连接。",
     "starting": "正在记录确认并启动流程…",
@@ -15,7 +15,7 @@
     },
     "overview": {
       "whatHappens": "将要发生什么",
-      "intro": "本演示依次展示 DFU、bootrom 引导、SSH ramdisk 与越狱环境安装。真实流程会修改系统；不以擦除为目标，但仍有启动异常与数据丢失风险。",
+      "intro": "将先下载并校验资源，再引导你进入 DFU，通过 limera1n 启动 SSH ramdisk，安装 Aquila 6 untether、Cydia 与 OpenSSH。此操作会修改系统，不以擦除数据为目标；失败后恢复系统仍可能丢失全部数据。",
       "facts": {
         "method": "方式",
         "exploit": "漏洞利用",
@@ -25,7 +25,7 @@
         "duration": "预计耗时"
       },
       "method": {
-        "ramdisk": "SSH ramdisk（同 redsn0w）"
+        "ramdisk": "SSH ramdisk"
       },
       "tether": {
         "untethered": "完美越狱（重启后仍保持）",
@@ -49,7 +49,7 @@
       },
       "workingButtons": {
         "title": "电源键与 Home 键正常",
-        "detail": "当前演示仅支持正常按键。Rust 工具链尚未实现 DFU IPSW，不提供损坏按键的替代流程。"
+        "detail": "需要用电源键和 Home 键手动进入 DFU。请先确认两个按键均可正常使用。"
       },
       "backupCompleted": {
         "title": "已备份设备数据",
@@ -143,8 +143,8 @@
     },
     "result": {
       "success": {
-        "title": "准备演示完成",
-        "body": "模拟设备已重启并通过环境验证，现在可以体验应用安装。未修改任何真实设备。"
+        "title": "设备准备完成",
+        "body": "设备已重启，并通过越狱与 SSH 检测。OpenSSH 已启用；请在连接不可信网络前修改 root 和 mobile 账户的默认密码。"
       },
       "failed": {
         "title": "流程失败",
@@ -152,7 +152,7 @@
       },
       "cancelled": {
         "title": "流程已取消",
-        "body": "演示已在允许取消的阶段停止。未执行任何真实设备操作。"
+        "body": "流程已在设备修改前停止。若设备仍在 DFU，请按住电源键和 Home 键重启。"
       },
       "failedAt": "失败于「{step}」（第 {attempt} 次尝试）",
       "recoveryTitle": "建议的处理方式",
@@ -160,6 +160,8 @@
       "viewLogs": "查看日志",
       "openStore": "前往应用商店",
       "retry": "重试"
-    }
+    },
+    "reviewPlan": "查看准备方案",
+    "demoNotice": "浏览器演示：此处的操作不会修改真实设备。"
   }
 }

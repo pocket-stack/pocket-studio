@@ -138,7 +138,7 @@ export const installSteps: PlanStep[] = [
   },
 ];
 
-export const disclaimerVersion = "2026-09-01";
+export const disclaimerVersion = "2026-09-06";
 
 export function buildJailbreakPlan(
   deviceId: string,
