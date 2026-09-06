@@ -42,7 +42,8 @@
       "nativeFinished": "Jailbreak and SSH verified after reboot",
       "nativeFailed": "Preparation failed; review the failed step and recovery guidance",
       "nativeCancelled": "Preparation cancelled before device modification",
-      "closeBlocked": "Preparation is running. Wait for completion or cancel at a safe step before closing."
+      "closeBlocked": "Preparation is running. Wait for completion or cancel at a safe step before closing.",
+      "usbFailed": "USB stage {stage} failed: {reason}"
     },
     "install": {
       "started": "Install started",

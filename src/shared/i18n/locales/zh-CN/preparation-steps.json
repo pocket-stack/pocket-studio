@@ -50,11 +50,11 @@
       },
       "exploitFailed": {
         "title": "limera1n 漏洞利用失败",
-        "body": "设备没有进入 pwned DFU 状态。这在部分 USB 控制器上较常见，重试通常可以解决。",
+        "body": "准备流程未能确认设备进入 pwned DFU。普通 DFU 枚举成功并不代表利用成功，请根据下方的具体阶段和 USB 诊断排查。",
         "recovery": [
-          "同时按住电源键与 Home 键约 15 秒让设备重启。",
-          "尽量直接连接电脑本体的 USB 端口。",
-          "重新进入 DFU 模式后重试。"
+          "先查看具体失败阶段和 USB 原因，并保留操作日志。",
+          "如需重试，请先完整重启设备，再从关机状态重新进入 DFU。",
+          "重新打开准备方案并确认后，启动新的完整流程。"
         ]
       },
       "downloadFailed": {
@@ -135,6 +135,28 @@
           "保持设备连接并导出日志，检查设备启动状态后再决定恢复操作。"
         ]
       }
+    },
+    "usbDiagnostic": "失败阶段：{stage}；原因：{reason}",
+    "usbStages": {
+      "payload": "构建利用载荷",
+      "prepareDevice": "重置并连接 DFU 设备",
+      "sendPayload": "发送利用载荷",
+      "primeRead": "读取 USB 预备响应",
+      "abortTransfer": "触发短时传输",
+      "trigger": "触发漏洞",
+      "reconnect": "重新连接设备",
+      "finalize": "完成 DFU 传输",
+      "verifyPwned": "检查 pwned DFU 标记"
+    },
+    "usbReasons": {
+      "timeoutOrCancelled": "USB 控制传输超时或被取消",
+      "stalled": "USB 请求被设备拒绝（STALL）",
+      "disconnected": "设备连接已中断",
+      "access": "无法访问或重置 USB 设备",
+      "unexpectedReply": "设备身份或响应不符合预期",
+      "reconnectTimeout": "等待设备重新出现超时",
+      "notPwned": "设备仍未出现 pwned DFU 标记",
+      "transport": "USB 传输发生错误"
     }
   }
 }

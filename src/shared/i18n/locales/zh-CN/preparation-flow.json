@@ -153,7 +153,7 @@
       },
       "failedAt": "失败于「{step}」（第 {attempt} 次尝试）",
       "recoveryTitle": "建议的处理方式",
-      "notRecoverable": "此错误无法通过重试解决。请先根据上面的步骤处理设备，再重新开始。",
+      "notRecoverable": "当前状态不支持直接重试。请按上方指引处理设备状态，再重新发起完整流程。",
       "viewLogs": "查看日志",
       "openStore": "前往应用商店",
       "retry": "重试"

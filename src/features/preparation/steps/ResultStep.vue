@@ -93,6 +93,14 @@ const failedStepId = computed(
             })
           }}
         </p>
+        <p v-if="error?.diagnostic" class="mt-3 text-sm text-danger">
+          {{
+            t("preparation.usbDiagnostic", {
+              stage: t(`preparation.usbStages.${error.diagnostic.stage}`),
+              reason: t(`preparation.usbReasons.${error.diagnostic.reason}`),
+            })
+          }}
+        </p>
         <div
           v-if="recoverySteps.length"
           class="mt-4 rounded-lg border border-line bg-raised p-4"

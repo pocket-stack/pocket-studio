@@ -7,6 +7,10 @@ export function useLogMessage() {
   return (entry: LogEntry): string => {
     if (!te(entry.code)) return entry.message;
     const params = { ...entry.params };
+    if (params.stage && te(`preparation.usbStages.${params.stage}`))
+      params.stage = t(`preparation.usbStages.${params.stage}`);
+    if (params.reason && te(`preparation.usbReasons.${params.reason}`))
+      params.reason = t(`preparation.usbReasons.${params.reason}`);
     if (params.issue && te(`connection.issues.${params.issue}`))
       params.issue = t(`connection.issues.${params.issue}`);
     if (params.status && te(`readiness.status.${params.status}`))

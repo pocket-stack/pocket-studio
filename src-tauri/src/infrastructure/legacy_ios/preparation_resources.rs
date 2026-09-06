@@ -258,7 +258,7 @@ fn gunzip(data: &[u8]) -> Result<Vec<u8>, PreparationError> {
 }
 
 // axi0mX/ipwndfu limera1n.py, constants_574_4 at the manifest-pinned commit.
-// The library supplies the heap spray; it takes only the relocated shellcode.
+// The DFU adapter adds the compact heap headers; this returns only shellcode.
 fn a4_payload(mut shellcode: Vec<u8>) -> Result<Vec<u8>, PreparationError> {
     let constants: [u32; 22] = [
         0x84039800, 1024, 0x84dc, 0x8403c000, 0x4e8d, 0x690d, 0x8402e0e0, 0x90c9, 0x4c85,

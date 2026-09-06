@@ -16,7 +16,6 @@ use crate::{
 use legacy_ios_core::{
     BoardConfig, ConnectionId, DeviceIdentity, DeviceMode, Ecid, ProductType, Soc, Udid,
 };
-use legacy_ios_exploits::Limera1n;
 use legacy_ios_services::{
     DeviceInspection, HostKeyPolicy, JailbreakStatus, NormalMux, RamdiskSsh, ScpPath, SshPassword,
     SshTarget, SystemMux,
@@ -225,7 +224,7 @@ impl Target {
                 self.port = find_dfu(self.ecid).await?.0;
                 let client = IbootClient::open(Some(self.ecid))
                     .await
-                    .map_err(|_| failure(OperationErrorCode::DeviceDisconnected))?;
+                    .map_err(super::limera1n::open_failure)?;
                 let info = client.device_info();
                 if client.mode() != DeviceMode::Dfu {
                     return Err(failure(OperationErrorCode::DeviceChanged));
@@ -240,16 +239,7 @@ impl Target {
                     .ok_or(failure(OperationErrorCode::BuildFailed))?
                     .payload
                     .clone();
-                let pwned = Limera1n::new(payload)
-                    .map_err(|_| failure(OperationErrorCode::ExploitFailed))?
-                    .exploit(client)
-                    .await
-                    .map_err(|_| failure(OperationErrorCode::ExploitFailed))?;
-                if pwned.device_info().ecid() != Some(self.ecid)
-                    || pwned.device_info().pwned().is_none()
-                {
-                    return Err(failure(OperationErrorCode::ExploitFailed));
-                }
+                super::limera1n::exploit(client, self.ecid, &payload).await?;
             }
             StepId::BootRamdisk => {
                 boot_ramdisk(

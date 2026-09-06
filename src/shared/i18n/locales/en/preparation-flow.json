@@ -153,7 +153,7 @@
       },
       "failedAt": "Failed at \"{step}\" (attempt {attempt})",
       "recoveryTitle": "Suggested next steps",
-      "notRecoverable": "This error cannot be fixed by retrying. Follow the steps above first, then start again.",
+      "notRecoverable": "An immediate retry is unavailable in this state. Follow the guidance above, then start a new complete flow.",
       "viewLogs": "View log",
       "openStore": "Open the App Store",
       "retry": "Retry"

@@ -191,6 +191,7 @@ export interface OperationError {
   code: OperationErrorCode;
   recoverable: boolean;
   retryFromStepId?: StepId;
+  diagnostic?: { stage: string; reason: string };
 }
 
 export interface OperationHandle {

@@ -89,6 +89,16 @@ pub struct OperationError {
     pub recoverable: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub retry_from_step_id: Option<StepId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diagnostic: Option<OperationDiagnostic>,
+}
+
+/// Fixed diagnostic codes only; never include USB identities or payload data.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationDiagnostic {
+    pub stage: String,
+    pub reason: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

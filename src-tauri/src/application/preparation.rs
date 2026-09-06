@@ -34,6 +34,11 @@ pub trait PreparationDriver: Send + Sync {
 
 #[derive(Debug, Clone, Copy, thiserror::Error, PartialEq, Eq)]
 pub enum PreparationError {
+    #[error("bootrom preparation failed at {stage}: {reason}")]
+    Exploit {
+        stage: &'static str,
+        reason: &'static str,
+    },
     #[error("device is no longer connected")]
     DeviceNotFound,
     #[error("this device or firmware is not supported for preparation")]
@@ -68,7 +73,7 @@ impl PreparationError {
             Self::InvalidConsent => "invalidConsent",
             Self::NotCancellable => "notCancellable",
             Self::UnknownOperation => "unknownOperation",
-            Self::Step(_) => "preparationFailed",
+            Self::Step(_) | Self::Exploit { .. } => "preparationFailed",
         }
     }
 }
@@ -316,7 +321,15 @@ impl PreparationService {
                 );
             }
             Err(error) => {
+                let diagnostic = match error {
+                    PreparationError::Exploit { stage, reason } => Some(OperationDiagnostic {
+                        stage: stage.into(),
+                        reason: reason.into(),
+                    }),
+                    _ => None,
+                };
                 let code = match error {
+                    PreparationError::Exploit { .. } => OperationErrorCode::ExploitFailed,
                     PreparationError::Step(code) => code,
                     PreparationError::AlreadyJailbroken => OperationErrorCode::AlreadyJailbroken,
                     PreparationError::DeviceNotFound => OperationErrorCode::DeviceDisconnected,
@@ -333,14 +346,21 @@ impl PreparationService {
                             StepId::FetchResources | StepId::BuildRamdisk | StepId::EnterDfu
                         ),
                         retry_from_step_id: None,
+                        diagnostic: diagnostic.clone(),
                     },
                 });
                 self.log.record(
                     LogLevel::Error,
                     LogSource::Preparation,
-                    "log.preparation.nativeFailed",
-                    format!("Preparation stopped at {step:?}: {code:?}"),
-                    None,
+                    if diagnostic.is_some() {
+                        "log.preparation.usbFailed"
+                    } else {
+                        "log.preparation.nativeFailed"
+                    },
+                    format!("Preparation stopped at {step:?}: {error}"),
+                    diagnostic.map(|diagnostic| {
+                        super::params([("stage", diagnostic.stage), ("reason", diagnostic.reason)])
+                    }),
                     Some(id),
                 );
             }
@@ -502,7 +522,14 @@ mod tests {
             Box::pin(async move {
                 self.calls.lock().unwrap().push(step);
                 if self.fail == Some(step) {
-                    return Err(PreparationError::Step(OperationErrorCode::WriteFailed));
+                    return Err(if step == StepId::ExploitBootrom {
+                        PreparationError::Exploit {
+                            stage: "sendPayload",
+                            reason: "timeoutOrCancelled",
+                        }
+                    } else {
+                        PreparationError::Step(OperationErrorCode::WriteFailed)
+                    });
                 }
                 if self.block == Some(step) {
                     self.gate.notified().await;
@@ -682,6 +709,28 @@ mod tests {
                 .contains(&StepId::ExploitBootrom)
         );
     }
+    #[tokio::test]
+    async fn exploit_diagnostics_reach_events_and_exportable_logs() {
+        let (service, sink, _) = setup(Some(StepId::ExploitBootrom), None);
+        service.start(consent(&service).await).await.unwrap();
+        wait(&sink, |event| {
+            matches!(event, OperationEvent::Failed { .. })
+        })
+        .await;
+        let events = sink.events.lock().unwrap();
+        assert!(events.iter().any(|event| matches!(event, OperationEvent::Failed { error, .. } if error.code == OperationErrorCode::ExploitFailed && error.diagnostic.as_ref().is_some_and(|detail| detail.stage == "sendPayload" && detail.reason == "timeoutOrCancelled"))));
+        let entries = service.log.entries();
+        let entry = entries
+            .iter()
+            .find(|entry| entry.code == "log.preparation.usbFailed")
+            .unwrap();
+        assert_eq!(entry.params.as_ref().unwrap()["stage"], "sendPayload");
+        assert_eq!(
+            entry.params.as_ref().unwrap()["reason"],
+            "timeoutOrCancelled"
+        );
+    }
+
     #[tokio::test]
     async fn critical_step_rejects_cancellation() {
         let (service, sink, driver) = setup(None, Some(StepId::InstallUntether));

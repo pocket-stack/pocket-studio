@@ -4,7 +4,7 @@ Pocket Studio 是 Pocket 生态的桌面连接桥梁。项目目标是通过 USB
 
 当前版本已开始接入真实设备：**Tauri 桌面窗口使用 Legacy-iOS-Kit-rs 接入 USB 设备，浏览器保留前端交互演示**。设备发现与条件检测保持只读；已接入 iPod touch 4 / iOS 6.1.6（10B500）的真实设备准备与越狱执行链，必须由用户查看方案、确认风险后主动启动。应用安装与卸载仍不可用。
 
-适配器固定使用 [Legacy-iOS-Kit-rs `42b423f`](https://github.com/HalfSweet/Legacy-iOS-Kit-rs/tree/42b423fbfdcda66f1fb7cca2b605654dd905087e) 的 services、transport、assets、core、firmware、image、exploits 和 workflows crate；Rust 最低版本为 1.88。原生模拟驱动已移除，模拟数据仅存在于浏览器网关。
+适配器固定使用 [Legacy-iOS-Kit-rs `42b423f`](https://github.com/HalfSweet/Legacy-iOS-Kit-rs/tree/42b423fbfdcda66f1fb7cca2b605654dd905087e) 的 services、transport、assets、core、firmware、image 和 workflows crate；Rust 最低版本为 1.88。原生模拟驱动已移除，模拟数据仅存在于浏览器网关。
 
 ## 运行方式
 
@@ -41,7 +41,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices
 - DFU 与启动过程按 ECID 匹配，ramdisk SSH 按ECID 对应的 USB 端口和本次构建的随机标记核对，不会选择列表中的第一台设备。设备切换模式时，执行界面保持显示。
 - OpenSSH 会被安装并启用，风险页和成功页会提醒修改 root / mobile 默认密码。不会在发现阶段登录 SSH。
 
-已验证：macOS 正常模式真机只读预检（iPod4,1 / 6.1.6 / 10B500、电量 100%、已有配对）、DFU 真机型号识别及直接生成准备方案，以及真实 Apple 固件的下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。**尚未在这台设备上执行 limera1n、ramdisk 启动、越狱写入与重启后的验收**；macOS/Linux/Windows 的实际写入路径均需后续硬件验证。
+已验证：macOS 正常模式真机只读预检（iPod4,1 / 6.1.6 / 10B500、电量 100%、已有配对）、DFU 真机型号识别及直接生成准备方案，以及真实 Apple 固件的下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。旧版 limera1n 尝试曾在 USB 控制传输阶段失败；当前流程已按原版的重枚举与紧凑载荷顺序修正。**修正后的 pwned DFU、ramdisk 启动、越狱写入与重启后的验收仍待真机验证**；macOS/Linux/Windows 的实际写入路径均需后续硬件验证。
 
 本机保留 `prepare_resources.rs` 诊断工具时，可以单独验证资源步骤（不连接设备）：
 

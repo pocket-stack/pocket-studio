@@ -50,11 +50,11 @@
       },
       "exploitFailed": {
         "title": "limera1n exploit failed",
-        "body": "The device did not reach pwned DFU. This is common on some USB controllers; a retry usually works.",
+        "body": "Preparation could not confirm pwned DFU. Successful enumeration in ordinary DFU does not prove the exploit succeeded. Check the failed stage and USB diagnostic below.",
         "recovery": [
-          "Hold Power and Home for about 15 seconds to reboot the device.",
-          "Connect directly to a port on the computer itself.",
-          "Enter DFU mode again and retry."
+          "Review the failed stage and USB reason, and keep the operation log.",
+          "Before another attempt, reboot completely and re-enter DFU from a powered-off state.",
+          "Open and confirm a new preparation plan before starting again."
         ]
       },
       "downloadFailed": {
@@ -147,6 +147,28 @@
           "Keep the device connected, export the log and check its boot state before deciding on recovery."
         ]
       }
+    },
+    "usbDiagnostic": "Failed stage: {stage}; reason: {reason}",
+    "usbStages": {
+      "payload": "Build exploit payload",
+      "prepareDevice": "Reset and connect DFU device",
+      "sendPayload": "Send exploit payload",
+      "primeRead": "Read USB preparation response",
+      "abortTransfer": "Issue short transfer",
+      "trigger": "Trigger exploit",
+      "reconnect": "Reconnect device",
+      "finalize": "Finalize DFU transfer",
+      "verifyPwned": "Check pwned DFU marker"
+    },
+    "usbReasons": {
+      "timeoutOrCancelled": "USB control transfer timed out or was cancelled",
+      "stalled": "Device stalled the USB request",
+      "disconnected": "Device disconnected",
+      "access": "USB access or reset failed",
+      "unexpectedReply": "Unexpected device identity or response",
+      "reconnectTimeout": "Timed out waiting for the device to return",
+      "notPwned": "Device still has no pwned DFU marker",
+      "transport": "USB transport error"
     }
   }
 }
