@@ -112,6 +112,55 @@
       opacity: 0;
     }
   }
+  @keyframes ps-boot-line {
+    0%,
+    8% {
+      opacity: 0;
+    }
+    12%,
+    80% {
+      opacity: 0.85;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes ps-pop {
+    from {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes ps-flow-up {
+    from {
+      transform: translate(-50%, 48px);
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    to {
+      transform: translate(-50%, -6px);
+      opacity: 0;
+    }
+  }
+  @keyframes ps-flow-down {
+    from {
+      transform: translate(-50%, -6px);
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    to {
+      transform: translate(-50%, 48px);
+      opacity: 0;
+    }
+  }
   @keyframes ps-indeterminate {
     from {
       transform: translateX(-100%);

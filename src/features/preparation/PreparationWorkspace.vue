@@ -7,12 +7,12 @@ import {
   operationProgress,
   operationStepCeiling,
 } from "../../shared/composables/useOperations";
-import DeviceIllustration from "../../shared/ui/DeviceIllustration.vue";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
 import StudioButton from "../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../shared/ui/StudioCallout.vue";
 import StudioPanel from "../../shared/ui/StudioPanel.vue";
 import DfuGuideStep from "./steps/DfuGuideStep.vue";
+import ExecutionScene from "./steps/ExecutionScene.vue";
 import ResultStep from "./steps/ResultStep.vue";
 import OverviewStep from "./steps/OverviewStep.vue";
 const emit = defineEmits<{ openStore: []; openLogs: []; showConditions: [] }>();
@@ -165,20 +165,7 @@ function recheck(): void {
         <div
           class="flex min-h-0 flex-1 flex-col items-center justify-center gap-4"
         >
-          <div class="relative">
-            <DeviceIllustration
-              :width="140"
-              :screen="currentStep?.id === 'rebootDevice' ? 'apple' : 'off'"
-              cable
-              shadow
-            />
-            <IconSvgSpinnersRingResize
-              v-if="currentStep?.id !== 'rebootDevice'"
-              class="absolute top-[40%] left-1/2 -translate-x-1/2 text-white/80"
-              width="24"
-              height="24"
-            />
-          </div>
+          <ExecutionScene :step-id="currentStep?.id" :width="124" />
           <p class="max-w-[420px] text-center text-sm">
             {{
               currentStep
