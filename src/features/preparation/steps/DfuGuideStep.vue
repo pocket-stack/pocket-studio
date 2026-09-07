@@ -121,8 +121,8 @@ onBeforeUnmount(() => {
         }}</span
       >
     </header>
-    <div class="flex min-h-0 flex-1 items-center justify-center gap-10 py-2">
-      <div class="shrink-0 pr-4 pl-20">
+    <div class="flex min-h-0 flex-1 items-center gap-8 py-2 pl-24">
+      <div class="shrink-0">
         <DfuScene
           :phase="phase"
           :seconds-left="secondsLeft"
@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
           :width="150"
         />
       </div>
-      <div class="flex w-[330px] shrink-0 flex-col gap-3">
+      <div class="flex min-w-0 max-w-[340px] flex-1 flex-col gap-3">
         <div>
           <h3 class="text-lg font-semibold">
             {{ t(`preparation.dfu.phase.${phase}.title`) }}

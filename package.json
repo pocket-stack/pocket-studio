@@ -27,7 +27,8 @@
     "test:native": "cargo test --manifest-path src-tauri/Cargo.toml --all-targets --all-features",
     "tauri": "tauri",
     "prepare": "lefthook install",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:ui": "node scripts/check-viewport.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
@@ -50,6 +51,7 @@
     "globals": "^16.5.0",
     "json-schema-to-typescript": "^16.0.0",
     "lefthook": "^2.1.12",
+    "playwright-core": "1.57.0",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",

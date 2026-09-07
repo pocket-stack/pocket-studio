@@ -68,7 +68,7 @@ const rows = computed(() => [
 ]);
 </script>
 <template>
-  <StudioPanel class="flex items-center gap-6 px-5 py-4">
+  <StudioPanel class="flex items-center gap-6 px-5 py-3">
     <DeviceIllustration class="shrink-0" :width="92" :screen="screen" shadow />
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center gap-3">

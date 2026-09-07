@@ -26,3 +26,6 @@ src-tauri/gen/
 coverage/
 
 .design/
+
+# Viewport guard screenshots
+.ui-shots/

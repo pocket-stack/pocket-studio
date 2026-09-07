@@ -146,7 +146,7 @@ const statusClass = {
         v-for="check in checks"
         :key="check.id"
         class="flex items-center gap-2.5 rounded-control px-2 hover:bg-ink/4"
-        :class="compact ? 'py-1.5' : 'py-[7px]'"
+        :class="compact ? 'py-1' : 'py-[7px]'"
       >
         <component
           :is="statusIcon[check.status] ?? IconPhCircleDashed"

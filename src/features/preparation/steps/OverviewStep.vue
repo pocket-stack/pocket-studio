@@ -4,11 +4,12 @@ import IconPhDeviceMobile from "~icons/ph/device-mobile";
 import IconPhShieldCheck from "~icons/ph/shield-check";
 import IconPhPlugs from "~icons/ph/plugs";
 import IconPhClock from "~icons/ph/clock";
-import { computed, type Component } from "vue";
+import { computed, ref, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PrerequisiteId, PreparationPlan } from "../../../shared/gateway";
 import { useGateway } from "../../../shared/gateway";
+import { useElementSize } from "../../../shared/composables/useElementSize";
 import StudioButton from "../../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../../shared/ui/StudioCallout.vue";
 import StudioInput from "../../../shared/ui/StudioInput.vue";
@@ -72,6 +73,13 @@ const facts = computed(() => [
     value: t("preparation.overview.minutes", { minutes: totalMinutes.value }),
   },
 ]);
+
+// Short windows drop the detail lines so every prerequisite stays visible.
+const checklist = ref<HTMLElement | null>(null);
+const { height: checklistHeight } = useElementSize(checklist);
+const compact = computed(
+  () => checklistHeight.value > 0 && checklistHeight.value < 300,
+);
 
 const prerequisiteIcons: Record<PrerequisiteId, Component> = {
   batteryAbove50: IconPhBatteryMedium,
@@ -170,62 +178,74 @@ const prerequisiteIcons: Record<PrerequisiteId, Component> = {
         </p>
       </StudioPanel>
       <StudioPanel class="flex min-h-0 flex-col overflow-hidden">
-        <h3 class="text-sm font-semibold">
-          {{ t("preparation.overview.prerequisites") }}
-        </h3>
-        <p class="mt-0.5 text-xs text-muted">
-          {{ t("preparation.overview.prerequisitesHint") }}
-        </p>
-        <label v-if="sshPassword !== undefined" class="mt-2 block text-xs">
-          <span class="mb-1 block font-medium">{{
-            t("preparation.appSync.password")
-          }}</span>
-          <StudioInput
-            :model-value="sshPassword"
-            type="password"
-            size="sm"
-            class="w-full"
-            autocomplete="off"
-            maxlength="1024"
-            :label="t('preparation.appSync.password')"
-            @update:model-value="emit('update:sshPassword', $event)"
-          />
-          <span class="mt-1 block text-2xs text-muted">{{
-            t("preparation.appSync.passwordHint")
-          }}</span>
-        </label>
-        <ul class="mt-2 flex flex-col gap-1.5">
-          <li v-for="id in plan.prerequisites" :key="id">
-            <label
-              class="flex cursor-pointer items-center gap-2.5 rounded-control px-2.5 py-1.5 transition-colors"
-              :class="
-                confirmed.includes(id)
-                  ? 'bg-success/8'
-                  : 'bg-ink/4 hover:bg-ink/6'
-              "
-            >
-              <input
-                type="checkbox"
-                :checked="confirmed.includes(id)"
-                @change="emit('toggle', id)"
-              />
-              <component
-                :is="prerequisiteIcons[id]"
-                width="15"
-                height="15"
-                class="shrink-0 text-muted"
-              />
-              <span class="min-w-0 flex-1">
-                <span class="block text-sm leading-[18px] font-medium">{{
-                  t(`preparation.prerequisites.${id}.title`)
-                }}</span>
-                <span class="block truncate text-2xs text-muted">{{
-                  t(`preparation.prerequisites.${id}.detail`)
-                }}</span>
-              </span>
-            </label>
-          </li>
-        </ul>
+        <div ref="checklist" class="flex min-h-0 flex-1 flex-col">
+          <h3 class="text-sm font-semibold">
+            {{ t("preparation.overview.prerequisites") }}
+          </h3>
+          <p class="mt-0.5 text-xs text-muted" :class="compact && 'truncate'">
+            {{ t("preparation.overview.prerequisitesHint") }}
+          </p>
+          <label
+            v-if="sshPassword !== undefined"
+            class="mt-2 flex items-center gap-2 text-xs"
+            :title="t('preparation.appSync.passwordHint')"
+          >
+            <span class="shrink-0 font-medium">{{
+              t("preparation.appSync.password")
+            }}</span>
+            <StudioInput
+              :model-value="sshPassword"
+              type="password"
+              size="sm"
+              class="min-w-0 flex-1"
+              autocomplete="off"
+              maxlength="1024"
+              :label="t('preparation.appSync.password')"
+              @update:model-value="emit('update:sshPassword', $event)"
+            />
+          </label>
+          <span
+            v-if="sshPassword !== undefined && !compact"
+            class="mt-1 block truncate text-2xs text-muted"
+            >{{ t("preparation.appSync.passwordHint") }}</span
+          >
+          <ul class="mt-2 flex flex-col" :class="compact ? 'gap-1' : 'gap-1.5'">
+            <li v-for="id in plan.prerequisites" :key="id">
+              <label
+                class="flex cursor-pointer items-center gap-2.5 rounded-control px-2.5 transition-colors"
+                :class="[
+                  compact ? 'py-1' : 'py-1.5',
+                  confirmed.includes(id)
+                    ? 'bg-success/8'
+                    : 'bg-ink/4 hover:bg-ink/6',
+                ]"
+                :title="t(`preparation.prerequisites.${id}.detail`)"
+              >
+                <input
+                  type="checkbox"
+                  :checked="confirmed.includes(id)"
+                  @change="emit('toggle', id)"
+                />
+                <component
+                  :is="prerequisiteIcons[id]"
+                  width="15"
+                  height="15"
+                  class="shrink-0 text-muted"
+                />
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm leading-[18px] font-medium">{{
+                    t(`preparation.prerequisites.${id}.title`)
+                  }}</span>
+                  <span
+                    v-if="!compact"
+                    class="block truncate text-2xs text-muted"
+                    >{{ t(`preparation.prerequisites.${id}.detail`) }}</span
+                  >
+                </span>
+              </label>
+            </li>
+          </ul>
+        </div>
       </StudioPanel>
     </div>
     <footer class="flex items-center justify-between gap-3">

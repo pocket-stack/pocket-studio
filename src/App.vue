@@ -33,6 +33,7 @@ import {
   useOperations,
 } from "./shared/composables/useOperations";
 import { useGateway } from "./shared/gateway";
+import { useNotifications } from "./shared/composables/useNotifications";
 import ProgressBar from "./shared/ui/ProgressBar.vue";
 import StudioDialog from "./shared/ui/StudioDialog.vue";
 import StudioInput from "./shared/ui/StudioInput.vue";
@@ -51,6 +52,17 @@ const store = useStore();
 const log = useOperationLog();
 const gateway = useGateway();
 const { active } = useOperations();
+const notifications = useNotifications();
+// Transient notices surface in the LCD; only errors get a floating toast.
+const lcdNotice = computed(() =>
+  notifications.items.value.filter((item) => item.tone !== "error").at(-1),
+);
+const noticeTone = {
+  info: "text-info",
+  success: "text-success",
+  warning: "text-warning",
+  error: "text-danger",
+} as const;
 const current = computed(
   () =>
     active.value.find((operation) => operation.currentStepId) ??
@@ -267,8 +279,46 @@ onMounted(async () => {
         <div
           class="flex items-baseline justify-between gap-3 text-sm leading-[16px]"
         >
-          <span class="min-w-0 truncate font-semibold">{{ lcdTitle }}</span
-          ><span v-if="current" class="shrink-0 text-xs text-muted tabular-nums"
+          <Transition
+            mode="out-in"
+            enter-active-class="transition-opacity duration-200"
+            leave-active-class="transition-opacity duration-150"
+            enter-from-class="opacity-0"
+            leave-to-class="opacity-0"
+          >
+            <span
+              v-if="lcdNotice"
+              :key="lcdNotice.id"
+              class="flex min-w-0 items-center gap-1.5 truncate font-semibold"
+              role="status"
+            >
+              <IconPhInfo
+                v-if="lcdNotice.tone === 'info'"
+                width="13"
+                height="13"
+                :class="noticeTone[lcdNotice.tone]"
+              />
+              <IconPhCheckCircleFill
+                v-else-if="lcdNotice.tone === 'success'"
+                width="13"
+                height="13"
+                :class="noticeTone[lcdNotice.tone]"
+              />
+              <IconPhWarningFill
+                v-else
+                width="13"
+                height="13"
+                :class="noticeTone[lcdNotice.tone]"
+              />
+              <span class="truncate">{{
+                t(lcdNotice.key, lcdNotice.params ?? {})
+              }}</span>
+            </span>
+            <span v-else key="title" class="min-w-0 truncate font-semibold">{{
+              lcdTitle
+            }}</span>
+          </Transition>
+          <span v-if="current" class="shrink-0 text-xs text-muted tabular-nums"
             >{{ progress }}%</span
           >
         </div>
@@ -463,10 +513,7 @@ onMounted(async () => {
           </button>
         </div>
       </aside>
-      <main
-        ref="mainContent"
-        class="min-w-0 flex-1 overflow-y-auto p-5 [scrollbar-width:thin] [scrollbar-color:var(--color-line)_transparent]"
-      >
+      <main ref="mainContent" class="min-w-0 flex-1 overflow-hidden p-5">
         <DeviceView
           v-if="view === 'device'"
           :section="deviceSection"

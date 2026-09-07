@@ -18,6 +18,13 @@ export default tseslint.config(
     },
   },
   {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      // Viewport checks evaluate DOM code inside the browser page.
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
+  {
     files: ["**/*.vue"],
     languageOptions: {
       parserOptions: {

@@ -3,12 +3,17 @@ import IconPhInfo from "~icons/ph/info";
 import IconPhCheckCircle from "~icons/ph/check-circle";
 import IconPhWarning from "~icons/ph/warning";
 import IconPhWarningOctagon from "~icons/ph/warning-octagon";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { useNotifications } from "../shared/composables/useNotifications";
 
 const { t } = useI18n();
 const { items, dismiss } = useNotifications();
+// Everything but errors is shown transiently in the LCD instead.
+const errors = computed(() =>
+  items.value.filter((item) => item.tone === "error"),
+);
 
 const tones = {
   info: "text-info",
@@ -35,7 +40,7 @@ const icons = {
       leave-to-class="translate-y-2 opacity-0"
     >
       <div
-        v-for="item in items"
+        v-for="item in errors"
         :key="item.id"
         class="pointer-events-auto flex items-start gap-2.5 rounded-panel bg-raised px-3 py-2.5 text-sm shadow-overlay"
         role="status"
