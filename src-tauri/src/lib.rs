@@ -76,7 +76,7 @@ pub fn run() -> anyhow::Result<()> {
             let cache = Arc::new(StoreCache::open(app.path().app_cache_dir()?.join("store"))?);
             let catalog = Arc::new(StaticCatalogRepository::new(
                 cache.clone(),
-                SourceConfig::from_environment()?,
+                Some(SourceConfig::from_environment()?),
             )?);
             let installed = Arc::new(application::installed::InstalledService::new(
                 Arc::new(

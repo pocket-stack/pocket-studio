@@ -2,9 +2,13 @@
 
 The store is maintained in an independent repository. Its publisher writes immutable catalog snapshots, application media and installation artifacts, then conditionally replaces the static current pointer. Studio reads public HTTP objects; it has no D1, R2 or signing credentials.
 
-## Local development
+## Default source and local development
 
-Initialize and publish a catalog in the store repository, run its `client-config` command, and start its static preview server. Use the absolute configuration path printed by that command when starting Studio:
+Native Studio builds use `https://studio-store.pocket.nexus/` by default. The repository identity and trusted Ed25519 public key are embedded from `src-tauri/src/infrastructure/store/official-source.json`; users do not need a configuration file or environment variable. Only public trust material is bundled. Changing the built-in trust requires a new Studio build.
+
+`POCKET_STORE_CONFIG` optionally replaces the entire default source, including its trusted keys. An unreadable or malformed override reports an error rather than silently switching back to the official source.
+
+To use a local catalog, initialize and publish it in the store repository, run its `client-config` command, and start its static preview server. Use the absolute configuration path printed by that command when starting Studio:
 
 ```sh
 POCKET_STORE_CONFIG=/absolute/path/to/store/.local/studio-source.json pnpm tauri dev
@@ -83,6 +87,8 @@ fixtures and do not replace user-initiated hardware acceptance.
 
 The read-only `verify_store` example runs the production Rust catalog, media and
 artifact readers without opening any device service:
+
+Omit `POCKET_STORE_CONFIG` to check the built-in official source, or set it to check a local publication:
 
 ```sh
 POCKET_STORE_CONFIG=/absolute/path/to/store/.local/studio-source.json \

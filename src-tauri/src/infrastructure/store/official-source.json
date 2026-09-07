@@ -1,0 +1,10 @@
+{
+  "base_url": "https://studio-store.pocket.nexus/",
+  "allow_local_http": false,
+  "trust": {
+    "repository_id": "7a42d23f-8099-4d0a-ba37-e287edcd86cd",
+    "keys": {
+      "prod-e1298b273b13f895": "tJC2sMljFvfIr1Y5dYsZ0CxshOJmfYYVzkICnWRD5C4="
+    }
+  }
+}

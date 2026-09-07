@@ -32,11 +32,16 @@ pub struct SourceConfig {
     pub trust: Trust,
 }
 impl SourceConfig {
-    pub fn from_environment() -> Result<Option<Self>, StoreError> {
-        let Some(path) = std::env::var_os("POCKET_STORE_CONFIG") else {
-            return Ok(None);
+    pub fn from_environment() -> Result<Self, StoreError> {
+        let path = std::env::var_os("POCKET_STORE_CONFIG");
+        Self::from_path(path.as_deref().map(Path::new))
+    }
+    fn from_path(path: Option<&Path>) -> Result<Self, StoreError> {
+        let Some(path) = path else {
+            return serde_json::from_str(include_str!("store/official-source.json"))
+                .map_err(|_| StoreError::InvalidSource);
         };
-        if std::fs::metadata(&path)
+        if std::fs::metadata(path)
             .map_err(|_| StoreError::InvalidSource)?
             .len()
             > 64 * 1024
@@ -45,7 +50,7 @@ impl SourceConfig {
         }
         let bytes = std::fs::read(path).map_err(|_| StoreError::InvalidSource)?;
         let config: Self = serde_json::from_slice(&bytes).map_err(|_| StoreError::InvalidSource)?;
-        Ok(Some(config))
+        Ok(config)
     }
     fn url(&self) -> Result<Url, StoreError> {
         let url = Url::parse(&self.base_url).map_err(|_| StoreError::InvalidSource)?;

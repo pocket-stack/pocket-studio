@@ -12,9 +12,9 @@ use std::{path::PathBuf, sync::Arc};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let mut args = std::env::args().skip(1);
-    let app_id = args
-        .next()
-        .context("usage: verify_store APP_ID CACHE_DIRECTORY (with POCKET_STORE_CONFIG)")?;
+    let app_id = args.next().context(
+        "usage: verify_store APP_ID CACHE_DIRECTORY (optional POCKET_STORE_CONFIG override)",
+    )?;
     let cache = PathBuf::from(
         args.next()
             .context("provide a cache directory for online/offline verification")?,
@@ -22,12 +22,12 @@ async fn main() -> anyhow::Result<()> {
     ensure!(args.next().is_none(), "unexpected arguments");
     let repository = StaticCatalogRepository::new(
         Arc::new(StoreCache::open(cache)?),
-        SourceConfig::from_environment()?,
+        Some(SourceConfig::from_environment()?),
     )?;
     let read = repository.read(true).await?;
     let verified = read
         .verified
-        .context("configure a trusted public store source")?;
+        .context("no verified catalog is available from the store source")?;
     ensure!(!verified.expired_at(now_millis()), "catalog is expired");
     ensure!(
         verified.catalog().apps.iter().any(|app| app.id == app_id),
