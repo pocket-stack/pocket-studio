@@ -4,7 +4,7 @@
     "subtitle": "所有设备操作、确认记录与错误都会记录在这里，可导出用于排查。",
     "copy": "复制可见日志",
     "export": "导出日志文件",
-    "follow": "自动滚动",
+    "follow": "跟随最新",
     "count": "显示 {shown} / {total} 条",
     "empty": "暂无日志",
     "allOperations": "全部操作",

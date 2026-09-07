@@ -15,6 +15,8 @@ declare module 'vue' {
     IconPhArrowRight: typeof import('~icons/ph/arrow-right')['default']
     IconPhArrowsClockwise: typeof import('~icons/ph/arrows-clockwise')['default']
     IconPhArrowSquareOut: typeof import('~icons/ph/arrow-square-out')['default']
+    IconPhCaretDown: typeof import('~icons/ph/caret-down')['default']
+    IconPhCaretLeft: typeof import('~icons/ph/caret-left')['default']
     IconPhCaretRight: typeof import('~icons/ph/caret-right')['default']
     IconPhCheck: typeof import('~icons/ph/check')['default']
     IconPhClock: typeof import('~icons/ph/clock')['default']

@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import IconPhCaretDown from "~icons/ph/caret-down";
-import IconPhCaretRight from "~icons/ph/caret-right";
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useLogMessage } from "../../shared/composables/useLogMessage";
 import { useOperationLog } from "../../shared/composables/useOperationLog";
 import { notify } from "../../shared/composables/useNotifications";
-import type { LogLevel, LogSource } from "../../shared/gateway";
+import type { LogEntry, LogLevel, LogSource } from "../../shared/gateway";
+import StudioButton from "../../shared/ui/StudioButton.vue";
 import StudioDialog from "../../shared/ui/StudioDialog.vue";
+import StudioInput from "../../shared/ui/StudioInput.vue";
+import StudioPanel from "../../shared/ui/StudioPanel.vue";
+import StudioSelect from "../../shared/ui/StudioSelect.vue";
+
 const { t, d } = useI18n();
 const log = useOperationLog();
+const render = useLogMessage();
 const levels: LogLevel[] = ["error", "warn", "info", "debug"];
 const sources: Array<LogSource | "all"> = [
   "all",
@@ -18,16 +22,38 @@ const sources: Array<LogSource | "all"> = [
   "store",
   "system",
 ];
-const list = ref<HTMLElement | null>(null);
-const follow = ref(true);
-const expandedId = ref<string | null>(null);
+const ROW_HEIGHT = 24;
+const HEAD_HEIGHT = 26;
+
 const search = ref("");
+const follow = ref(true);
+const selectedId = ref<string | null>(null);
+const page = ref(1);
+const rowsPerPage = ref(20);
+const table = ref<HTMLElement | null>(null);
+
 const visible = computed(() =>
-  log.filtered.value.filter(
-    (entry) =>
-      render(entry).toLowerCase().includes(search.value.toLowerCase()) ||
-      entry.operationId?.toLowerCase().includes(search.value.toLowerCase()),
-  ),
+  log.filtered.value.filter((entry) => {
+    const needle = search.value.trim().toLowerCase();
+    return (
+      !needle ||
+      render(entry).toLowerCase().includes(needle) ||
+      entry.operationId?.toLowerCase().includes(needle)
+    );
+  }),
+);
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(visible.value.length / rowsPerPage.value)),
+);
+// Pages anchor to the newest entries so the last page is always full.
+const pageEntries = computed(() => {
+  const end =
+    visible.value.length - (pageCount.value - page.value) * rowsPerPage.value;
+  return visible.value.slice(Math.max(0, end - rowsPerPage.value), end);
+});
+const selected = computed(
+  () =>
+    log.entries.value.find((entry) => entry.id === selectedId.value) ?? null,
 );
 const operationIds = computed(() =>
   [
@@ -38,299 +64,353 @@ const operationIds = computed(() =>
     ),
   ].reverse(),
 );
-const render = useLogMessage();
+const sourceCounts = computed(() =>
+  sources.map((source) => ({
+    source,
+    count: log.entries.value.filter(
+      (entry) => source === "all" || entry.source === source,
+    ).length,
+  })),
+);
+
 function levelClass(level: LogLevel): string {
-  return level === "error"
-    ? "text-danger"
-    : level === "warn"
-      ? "text-warning"
-      : level === "info"
-        ? "text-info"
-        : "text-muted";
+  return {
+    error: "text-danger",
+    warn: "text-warning",
+    info: "text-info",
+    debug: "text-muted",
+  }[level];
 }
-async function copy(text: string): Promise<void> {
+function entryText(entry: LogEntry): string {
+  return log.serializeLogs([entry]);
+}
+async function copy(text: string, count: number): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
-    notify("success", "notifications.logCopied", {
-      count: String(visible.value.length),
-    });
+    notify("success", "notifications.logCopied", { count: String(count) });
   } catch {
     notify("error", "notifications.logCopyFailed");
   }
 }
+function fit(): void {
+  const height = table.value?.clientHeight ?? 0;
+  rowsPerPage.value = Math.max(
+    5,
+    Math.floor((height - HEAD_HEIGHT) / ROW_HEIGHT),
+  );
+}
+function go(next: number): void {
+  page.value = Math.min(pageCount.value, Math.max(1, next));
+  follow.value = page.value === pageCount.value && follow.value;
+}
+
+let observer: ResizeObserver | undefined;
+onMounted(() => {
+  void log.initialize();
+  fit();
+  if (typeof ResizeObserver !== "undefined" && table.value) {
+    observer = new ResizeObserver(fit);
+    observer.observe(table.value);
+  }
+});
+onBeforeUnmount(() => observer?.disconnect());
+watch([pageCount, follow], ([count, following]) => {
+  if (following) page.value = count;
+  else page.value = Math.min(page.value, count);
+});
 watch(
-  () => visible.value.length,
-  async () => {
-    if (!follow.value) return;
-    await nextTick();
-    list.value?.scrollTo({ top: list.value.scrollHeight });
+  [search, () => log.sourceFilter.value, () => log.operationFilter.value],
+  () => {
+    page.value = follow.value ? pageCount.value : 1;
   },
 );
-onMounted(() => void log.initialize());
 </script>
+
 <template>
-  <div class="flex h-full gap-7">
-    <div
-      class="mx-auto flex h-full min-h-[470px] min-w-0 max-w-[1360px] flex-1 flex-col motion-safe:animate-rise"
-    >
-      <header class="flex items-center gap-5 mb-3.5 justify-end">
-        <div class="first:hidden">
-          <p class="text-[10px] tracking-[0.04em] text-muted">
-            {{ t("studio.recentActivity") }}
-          </p>
-          <h1>{{ t("logs.title") }}</h1>
-        </div>
-        <div class="flex gap-2 first:hidden">
-          <button
-            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-            @click="copy(log.serializeLogs(visible))"
-          >
-            <IconPhCopy width="14" height="14" />{{ t("logs.copy") }}</button
-          ><button
-            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
-            :disabled="log.exporting.value"
-            @click="log.exportLogs"
-          >
-            <IconPhDownloadSimple width="14" height="14" />{{
-              t("logs.export")
-            }}
-          </button>
-        </div>
-      </header>
-      <div class="mb-4 flex gap-3 max-[1150px]:flex-wrap">
-        <label
-          class="flex flex-1 items-center gap-2 rounded-[5px] border border-line px-[11px] py-[7px] text-[11px] text-muted max-[1150px]:basis-full"
-          ><IconPhMagnifyingGlass width="14" height="14" /><input
-            v-model="search"
-            class="w-full text-ink outline-none"
-            :placeholder="t('studio.logSearch')"
-            :aria-label="t('studio.logSearch')" /></label
-        ><select
-          v-model="log.sourceFilter.value"
-          class="rounded-lg border border-line bg-raised px-3 py-2 text-sm text-ink focus:border-signal leading-[1.428571] max-w-[150px]"
-          :aria-label="t('studio.logSource')"
-        >
-          <option v-for="source in sources" :key="source" :value="source">
-            {{ t(`logs.source.${source}`) }}
-          </option></select
-        ><select
-          v-model="log.operationFilter.value"
-          class="rounded-lg border border-line bg-raised px-3 py-2 text-sm text-ink focus:border-signal leading-[1.428571] max-w-[150px]"
-          :aria-label="t('studio.logOperation')"
-        >
-          <option :value="null">{{ t("logs.allOperations") }}</option>
-          <option v-for="id in operationIds" :key="id" :value="id">
-            {{ id }}
-          </option>
-        </select>
+  <div class="flex h-full min-h-0 flex-col gap-3">
+    <header class="flex items-center gap-3">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-xl font-semibold">{{ t("logs.title") }}</h1>
+        <p class="truncate text-xs text-muted">{{ t("logs.subtitle") }}</p>
       </div>
-      <div
-        class="mb-[15px] flex items-center gap-[15px] text-[10px] text-muted"
+      <StudioButton @click="copy(log.serializeLogs(visible), visible.length)">
+        <IconPhCopy width="14" height="14" />{{ t("logs.copy") }}
+      </StudioButton>
+      <StudioButton
+        variant="primary"
+        :loading="log.exporting.value"
+        @click="log.exportLogs"
       >
-        <div class="flex gap-[5px]">
-          <button
-            v-for="level in levels"
-            :key="level"
-            class="rounded border border-line bg-surface px-2 py-[3px] text-[9px] aria-[pressed=false]:opacity-40 aria-[pressed=false]:line-through"
-            :aria-pressed="log.levelFilter.value.has(level)"
-            :class="levelClass(level)"
-            @click="log.toggleLevel(level)"
-          >
-            {{ level.toUpperCase() }}
-          </button>
-        </div>
-        <label class="ml-auto flex items-center gap-1.5"
-          ><input v-model="follow" type="checkbox" class="accent-signal" />{{
-            t("logs.follow")
-          }}</label
-        ><span class="max-[800px]:hidden">{{
-          t("logs.count", {
-            shown: visible.length,
-            total: log.entries.value.length,
-          })
-        }}</span>
+        <IconPhDownloadSimple width="14" height="14" />{{ t("logs.export") }}
+      </StudioButton>
+    </header>
+
+    <div class="flex items-center gap-2">
+      <StudioInput
+        v-model="search"
+        type="search"
+        class="min-w-[180px] flex-1"
+        :placeholder="t('studio.logSearch')"
+        :label="t('studio.logSearch')"
+      >
+        <template #icon
+          ><IconPhMagnifyingGlass width="14" height="14"
+        /></template>
+      </StudioInput>
+      <StudioSelect
+        v-model="log.sourceFilter.value"
+        :label="t('studio.logSource')"
+        class="w-[128px]"
+      >
+        <option v-for="source in sources" :key="source" :value="source">
+          {{ t(`logs.source.${source}`) }}
+        </option>
+      </StudioSelect>
+      <StudioSelect
+        v-model="log.operationFilter.value"
+        :label="t('studio.logOperation')"
+        class="w-[168px]"
+      >
+        <option :value="null">{{ t("logs.allOperations") }}</option>
+        <option v-for="id in operationIds" :key="id" :value="id">
+          {{ id }}
+        </option>
+      </StudioSelect>
+      <div
+        class="flex items-center gap-px rounded-control bg-ink/6 p-0.5"
+        role="group"
+        :aria-label="t('studio.logLevel')"
+      >
+        <button
+          v-for="level in levels"
+          :key="level"
+          class="h-6 rounded-[5px] px-2 font-mono text-2xs font-semibold transition-[background-color,opacity] aria-[pressed=false]:opacity-35 aria-[pressed=true]:bg-raised aria-[pressed=true]:shadow-control"
+          :class="levelClass(level)"
+          :aria-pressed="log.levelFilter.value.has(level)"
+          @click="log.toggleLevel(level)"
+        >
+          {{ level.toUpperCase() }}
+        </button>
       </div>
-      <div
-        ref="list"
-        class="min-h-0 flex-1 overflow-auto rounded-md border border-line [scrollbar-width:thin] [scrollbar-color:var(--color-line)_transparent]"
+      <label class="ml-1 flex items-center gap-1.5 text-xs text-muted"
+        ><input v-model="follow" type="checkbox" />{{ t("logs.follow") }}</label
       >
-        <table class="w-full border-collapse text-left text-[11px]">
-          <thead>
-            <tr class="hover:bg-surface data-[expanded=true]:bg-surface">
-              <th
-                class="sticky top-0 z-[1] bg-surface px-3.5 py-2.5 text-[12px] font-medium whitespace-nowrap text-muted max-[800px]:px-2.5"
-              >
-                {{ t("studio.logTime") }}
-              </th>
-              <th
-                class="sticky top-0 z-[1] bg-surface px-3.5 py-2.5 text-[12px] font-medium whitespace-nowrap text-muted max-[800px]:px-2.5"
-              >
-                {{ t("studio.logLevel") }}
-              </th>
-              <th
-                class="sticky top-0 z-[1] bg-surface px-3.5 py-2.5 text-[12px] font-medium whitespace-nowrap text-muted max-[800px]:px-2.5"
-              >
-                {{ t("studio.logSource") }}
-              </th>
-              <th
-                class="sticky top-0 z-[1] bg-surface px-3.5 py-2.5 text-[12px] font-medium whitespace-nowrap text-muted max-[800px]:px-2.5"
-              >
-                {{ t("studio.logMessage") }}
-              </th>
-              <th
-                class="sticky top-0 z-[1] bg-surface px-3.5 py-2.5 text-[12px] font-medium whitespace-nowrap text-muted max-[800px]:px-2.5"
-              >
-                <span class="sr-only">{{ t("studio.actions") }}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="entry in visible" :key="entry.id"
-              ><tr
-                :data-expanded="expandedId === entry.id"
-                class="hover:bg-surface data-[expanded=true]:bg-surface"
+    </div>
+
+    <div class="flex min-h-0 flex-1 gap-3">
+      <StudioPanel
+        class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+        :padded="false"
+      >
+        <div ref="table" class="min-h-0 flex-1 overflow-hidden">
+          <table class="w-full table-fixed border-collapse text-xs">
+            <colgroup>
+              <col class="w-[76px]" />
+              <col class="w-[52px]" />
+              <col class="w-[72px]" />
+              <col />
+            </colgroup>
+            <thead>
+              <tr class="h-[26px] bg-ink/4 text-2xs font-medium text-muted">
+                <th class="px-3 text-left font-medium">
+                  {{ t("studio.logTime") }}
+                </th>
+                <th class="px-1 text-left font-medium">
+                  {{ t("studio.logLevel") }}
+                </th>
+                <th class="px-1 text-left font-medium">
+                  {{ t("studio.logSource") }}
+                </th>
+                <th class="px-2 text-left font-medium">
+                  {{ t("studio.logMessage") }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="entry in pageEntries"
+                :key="entry.id"
+                class="h-6 cursor-default even:bg-ink/3 hover:bg-ink/6 aria-[selected=true]:bg-signal/12"
+                :aria-selected="selectedId === entry.id"
+                :data-level="entry.level"
+                @click="selectedId = selectedId === entry.id ? null : entry.id"
               >
                 <td
-                  class="border-t border-line px-3.5 py-2.5 text-[12px] first:w-[100px] first:font-mono first:text-[10px] first:text-muted nth-[2]:w-[70px] nth-[2]:text-[9px] nth-[3]:w-[95px] nth-[3]:text-[10px] nth-[3]:whitespace-nowrap nth-[3]:text-muted last:w-10 max-[800px]:px-2.5"
+                  class="px-3 font-mono text-2xs text-muted tabular-nums whitespace-nowrap"
                 >
-                  <time :title="new Date(entry.timestamp).toISOString()">{{
-                    d(entry.timestamp, "time")
-                  }}</time>
+                  {{ d(entry.timestamp, "time") }}
                 </td>
                 <td
-                  class="border-t border-line px-3.5 py-2.5 text-[12px] first:w-[100px] first:font-mono first:text-[10px] first:text-muted nth-[2]:w-[70px] nth-[2]:text-[9px] nth-[3]:w-[95px] nth-[3]:text-[10px] nth-[3]:whitespace-nowrap nth-[3]:text-muted last:w-10 max-[800px]:px-2.5"
+                  class="px-1 font-mono text-2xs font-semibold"
                   :class="levelClass(entry.level)"
                 >
-                  <span
-                    class="rounded-[3px] bg-current/7 px-1.5 py-[3px] font-mono"
-                    >{{ entry.level.toUpperCase() }}</span
-                  >
+                  {{ entry.level.toUpperCase() }}
                 </td>
-                <td
-                  class="border-t border-line px-3.5 py-2.5 text-[12px] first:w-[100px] first:font-mono first:text-[10px] first:text-muted nth-[2]:w-[70px] nth-[2]:text-[9px] nth-[3]:w-[95px] nth-[3]:text-[10px] nth-[3]:whitespace-nowrap nth-[3]:text-muted last:w-10 max-[800px]:px-2.5"
-                >
+                <td class="truncate px-1 text-muted">
                   {{ t(`logs.source.${entry.source}`) }}
                 </td>
-                <td
-                  class="border-t border-line px-3.5 py-2.5 text-[12px] first:w-[100px] first:font-mono first:text-[10px] first:text-muted nth-[2]:w-[70px] nth-[2]:text-[9px] nth-[3]:w-[95px] nth-[3]:text-[10px] nth-[3]:whitespace-nowrap nth-[3]:text-muted last:w-10 max-[800px]:px-2.5"
-                >
-                  {{ render(entry) }}
-                </td>
-                <td
-                  class="border-t border-line px-3.5 py-2.5 text-[12px] first:w-[100px] first:font-mono first:text-[10px] first:text-muted nth-[2]:w-[70px] nth-[2]:text-[9px] nth-[3]:w-[95px] nth-[3]:text-[10px] nth-[3]:whitespace-nowrap nth-[3]:text-muted last:w-10 max-[800px]:px-2.5"
-                >
-                  <button
-                    class="inline-flex items-center justify-center rounded p-[5px] text-muted hover:bg-track hover:text-ink"
-                    :aria-label="t('studio.logDetails')"
-                    :aria-expanded="expandedId === entry.id"
-                    @click="
-                      expandedId = expandedId === entry.id ? null : entry.id
-                    "
-                  >
-                    <component
-                      :is="
-                        expandedId === entry.id
-                          ? IconPhCaretDown
-                          : IconPhCaretRight
-                      "
-                      width="12"
-                      height="12"
-                    />
-                  </button>
-                </td>
+                <td class="truncate px-2">{{ render(entry) }}</td>
               </tr>
-              <tr
-                v-if="expandedId === entry.id"
-                class="hover:bg-surface data-[expanded=true]:bg-surface"
-              >
-                <td
-                  colspan="5"
-                  class="border-t border-line text-[12px] first:w-[100px] first:font-mono first:text-[10px] first:text-muted nth-[2]:w-[70px] nth-[2]:text-[9px] nth-[3]:w-[95px] nth-[3]:text-[10px] nth-[3]:whitespace-nowrap nth-[3]:text-muted last:w-10 bg-surface px-5 py-4 max-[800px]:px-5"
-                >
-                  <div class="flex flex-wrap gap-[18px] text-[10px]">
-                    <span>{{ new Date(entry.timestamp).toISOString() }}</span
-                    ><span>{{ entry.id }}</span
-                    ><span>{{ entry.operationId ?? "—" }}</span
-                    ><code>{{ entry.code }}</code>
-                  </div>
-                  <p class="mt-2.5 text-[11px] text-ink">{{ entry.message }}</p>
-                  <pre
-                    v-if="entry.params"
-                    class="mt-2.5 text-[10px] whitespace-pre-wrap"
-                    >{{ JSON.stringify(entry.params, null, 2) }}</pre>
-                </td>
-              </tr></template
-            >
-          </tbody>
-        </table>
-        <div
-          v-if="!visible.length"
-          class="flex min-h-[250px] items-center justify-center gap-2.5 text-[12px] text-muted"
-        >
-          <IconPhFileText width="24" height="24" />{{ t("logs.empty") }}
+            </tbody>
+          </table>
+          <div
+            v-if="!visible.length"
+            class="flex h-full items-center justify-center gap-2 text-sm text-muted"
+          >
+            <IconPhFileText width="18" height="18" />{{ t("logs.empty") }}
+          </div>
         </div>
-      </div>
-      <footer
-        class="mt-[15px] flex items-center justify-between gap-[18px] text-[9px] text-muted max-[800px]:flex-wrap"
-      >
-        <span class="flex items-center gap-1.5 whitespace-nowrap"
-          ><IconPhShieldCheck width="13" height="13" />{{
-            t("studio.logLocal")
-          }}</span
+        <footer
+          class="flex h-8 shrink-0 items-center gap-2 bg-ink/3 px-2 text-xs text-muted"
         >
-        <p :class="{ 'text-warning': log.storageFailed.value }">
-          {{
-            t(
-              log.storageFailed.value
-                ? "studio.logStorageFailed"
-                : "studio.logPersistent",
-            )
-          }}
-        </p>
-      </footer>
-    </div>
-    <aside
-      class="w-[220px] shrink-0 border-l border-line pl-6 text-[12px] max-[1150px]:w-[190px] max-[700px]:hidden"
-    >
-      <h2 class="text-[18px] font-semibold">{{ t("logs.title") }}</h2>
-      <h3 class="mt-5 mb-[7px] text-[12px] text-muted">
-        {{ t("studio.logSource") }}
-      </h3>
-      <button
-        v-for="source in sources"
-        :key="source"
-        :data-selected="log.sourceFilter.value === source"
-        class="mb-0.5 flex w-full items-center justify-between rounded-[5px] px-2.5 py-[5px] hover:bg-track data-[selected=true]:bg-track"
-        @click="log.sourceFilter.value = source"
+          <span class="mr-auto pl-1">{{
+            t("logs.count", {
+              shown: visible.length,
+              total: log.entries.value.length,
+            })
+          }}</span>
+          <span class="tabular-nums">{{
+            t("studio.logPage", { page, total: pageCount })
+          }}</span>
+          <StudioButton
+            size="sm"
+            variant="ghost"
+            :disabled="page <= 1"
+            :aria-label="t('studio.logPrevious')"
+            @click="go(page - 1)"
+          >
+            <IconPhCaretLeft width="13" height="13" />
+          </StudioButton>
+          <StudioButton
+            size="sm"
+            variant="ghost"
+            :disabled="page >= pageCount"
+            :aria-label="t('studio.logNext')"
+            @click="go(page + 1)"
+          >
+            <IconPhCaretRight width="13" height="13" />
+          </StudioButton>
+          <StudioButton
+            v-if="!follow && page < pageCount"
+            size="sm"
+            variant="link"
+            @click="
+              follow = true;
+              go(pageCount);
+            "
+          >
+            {{ t("studio.logLatest") }}
+          </StudioButton>
+        </footer>
+      </StudioPanel>
+
+      <StudioPanel
+        class="flex w-[264px] shrink-0 flex-col gap-3 overflow-hidden text-xs"
+        as="aside"
       >
-        {{ t(`logs.source.${source}`)
-        }}<span class="text-muted">{{
-          log.entries.value.filter(
-            (entry) => source === "all" || entry.source === source,
-          ).length
-        }}</span>
-      </button>
-      <h3 class="mt-5 mb-[7px] text-[12px] text-muted">
-        {{ t("studio.retention") }}
-      </h3>
-      <p>{{ t("studio.logLocal") }}</p>
-    </aside>
+        <template v-if="selected">
+          <div class="flex items-center justify-between gap-2">
+            <span
+              class="font-mono text-2xs font-semibold"
+              :class="levelClass(selected.level)"
+              >{{ selected.level.toUpperCase() }}</span
+            >
+            <StudioButton
+              size="sm"
+              variant="ghost"
+              @click="copy(entryText(selected), 1)"
+            >
+              <IconPhCopy width="12" height="12" />{{
+                t("studio.logCopyEntry")
+              }}
+            </StudioButton>
+          </div>
+          <p class="text-sm leading-[18px] text-ink">{{ render(selected) }}</p>
+          <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-2xs">
+            <dt class="text-muted">{{ t("studio.logTime") }}</dt>
+            <dd class="truncate font-mono">
+              {{ new Date(selected.timestamp).toISOString() }}
+            </dd>
+            <dt class="text-muted">{{ t("studio.logSource") }}</dt>
+            <dd>{{ t(`logs.source.${selected.source}`) }}</dd>
+            <dt class="text-muted">{{ t("studio.logEvent") }}</dt>
+            <dd class="truncate font-mono">{{ selected.id }}</dd>
+            <dt class="text-muted">{{ t("studio.logOperationId") }}</dt>
+            <dd class="truncate font-mono">
+              {{ selected.operationId ?? "—" }}
+            </dd>
+            <dt class="text-muted">code</dt>
+            <dd class="truncate font-mono">{{ selected.code }}</dd>
+          </dl>
+          <div v-if="selected.params" class="min-h-0 flex-1 overflow-hidden">
+            <p class="mb-1 text-2xs text-muted">{{ t("studio.logParams") }}</p>
+            <pre
+              class="max-h-full overflow-hidden rounded-control bg-ink/4 p-2 font-mono text-2xs leading-[14px] whitespace-pre-wrap"
+              >{{ JSON.stringify(selected.params, null, 1) }}</pre>
+          </div>
+        </template>
+        <template v-else>
+          <p class="text-muted">{{ t("studio.logInspectorEmpty") }}</p>
+          <p
+            class="mt-2 text-2xs font-semibold tracking-wide text-muted uppercase"
+          >
+            {{ t("studio.logSourceCounts") }}
+          </p>
+          <button
+            v-for="item in sourceCounts"
+            :key="item.source"
+            class="flex items-center justify-between rounded-control px-2 py-1 text-left hover:bg-ink/6 aria-[pressed=true]:bg-ink/6"
+            :aria-pressed="log.sourceFilter.value === item.source"
+            @click="log.sourceFilter.value = item.source"
+          >
+            {{ t(`logs.source.${item.source}`)
+            }}<span class="text-muted tabular-nums">{{ item.count }}</span>
+          </button>
+          <p class="mt-auto flex items-center gap-1.5 text-2xs text-muted">
+            <IconPhShieldCheck width="12" height="12" />{{
+              t("studio.logLocal")
+            }}
+          </p>
+          <p
+            class="text-2xs leading-[14px]"
+            :class="log.storageFailed.value ? 'text-warning' : 'text-muted'"
+          >
+            {{
+              t(
+                log.storageFailed.value
+                  ? "studio.logStorageFailed"
+                  : "studio.logPersistent",
+              )
+            }}
+          </p>
+        </template>
+      </StudioPanel>
+    </div>
   </div>
   <StudioDialog
     :open="log.exportText.value !== null"
     :title="t('studio.exportPreview')"
+    compact
     @close="log.exportText.value = null"
-    ><p class="text-xs text-muted mb-4">{{ t("studio.exportDescription") }}</p>
-    <textarea
-      class="w-full h-72 font-mono rounded-lg border border-line bg-raised px-3 py-2 text-sm text-ink focus:border-signal leading-[1.428571]"
-      :aria-label="t('studio.exportPreview')"
-      :value="log.exportText.value ?? ''"
-      readonly
-    /><button
-      class="mt-4 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
-      @click="copy(log.exportText.value ?? '')"
-    >
-      <IconPhCopy width="14" height="14" />{{ t("logs.copy") }}
-    </button></StudioDialog
   >
+    <p class="text-sm text-muted">{{ t("studio.exportDescription") }}</p>
+    <pre
+      class="mt-3 line-clamp-6 rounded-control bg-ink/4 p-2 font-mono text-2xs leading-[14px] whitespace-pre-wrap text-muted"
+      >{{ log.exportText.value }}</pre>
+    <div
+      class="mt-3 flex items-center justify-between gap-3 text-xs text-muted"
+    >
+      <span>{{
+        t("studio.exportLines", {
+          count: (log.exportText.value ?? "").split("\n").length,
+        })
+      }}</span>
+      <StudioButton
+        variant="primary"
+        @click="copy(log.exportText.value ?? '', log.entries.value.length)"
+      >
+        <IconPhCopy width="14" height="14" />{{ t("logs.copy") }}
+      </StudioButton>
+    </div>
+  </StudioDialog>
 </template>

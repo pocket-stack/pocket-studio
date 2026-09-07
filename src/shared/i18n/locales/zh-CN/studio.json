@@ -232,7 +232,18 @@
     "navigateBack": "后退",
     "navigateForward": "前进",
     "historyNavigation": "历史导航",
-    "stepOf": "步骤 {index}/{total}"
+    "stepOf": "步骤 {index}/{total}",
+    "logPage": "第 {page} / {total} 页",
+    "logPrevious": "上一页",
+    "logNext": "下一页",
+    "logLatest": "跳到最新",
+    "logInspectorEmpty": "选择一行查看事件详情。",
+    "logCopyEntry": "复制此条",
+    "logSourceCounts": "按来源统计",
+    "logParams": "参数",
+    "logEvent": "事件编号",
+    "logOperationId": "任务编号",
+    "exportLines": "共 {count} 行，已生成完整日志文本。"
   },
   "log": {
     "store": {

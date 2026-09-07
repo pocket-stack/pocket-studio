@@ -232,7 +232,18 @@
     "navigateBack": "Back",
     "navigateForward": "Forward",
     "historyNavigation": "Navigation history",
-    "stepOf": "Step {index}/{total}"
+    "stepOf": "Step {index}/{total}",
+    "logPage": "Page {page} / {total}",
+    "logPrevious": "Previous page",
+    "logNext": "Next page",
+    "logLatest": "Jump to latest",
+    "logInspectorEmpty": "Select a row to inspect the event.",
+    "logCopyEntry": "Copy entry",
+    "logSourceCounts": "By source",
+    "logParams": "Parameters",
+    "logEvent": "Event id",
+    "logOperationId": "Operation id",
+    "exportLines": "{count} lines generated as the full log text."
   },
   "log": {
     "store": {
