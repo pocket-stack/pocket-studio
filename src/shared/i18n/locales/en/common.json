@@ -53,7 +53,12 @@
   "reading": {
     "remaining": "{seconds} s of reading left",
     "timeMet": "Reading time met",
-    "content": "Reading content"
+    "content": "Reading content",
+    "page": "Page {page} / {total}",
+    "previous": "Previous page",
+    "next": "Next page",
+    "viewAll": "Turn through every page",
+    "allViewed": "Every page viewed"
   },
   "operation": {
     "pointOfNoReturn": "Point of no return",

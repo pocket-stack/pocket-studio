@@ -3,22 +3,30 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PreparationPlan, RiskSeverity } from "../../../shared/gateway";
-import ForcedReading from "../../../shared/ui/ForcedReading.vue";
+import ReadingPager from "../../../shared/ui/ReadingPager.vue";
 import StatusPill from "../../../shared/ui/StatusPill.vue";
+import StudioButton from "../../../shared/ui/StudioButton.vue";
 
-const props = defineProps<{
-  plan: PreparationPlan;
-}>();
-const emit = defineEmits<{
-  next: [readingSeconds: number];
-  back: [];
-}>();
+const RISKS_PER_PAGE = 2;
+
+const props = defineProps<{ plan: PreparationPlan }>();
+const emit = defineEmits<{ next: [readingSeconds: number]; back: [] }>();
 const { t } = useI18n();
 
 const riskNamespace = computed(() =>
   props.plan.workflow === "appSync"
     ? "preparation.appSync.risks"
     : "preparation.risks.items",
+);
+const page = ref(0);
+const pages = computed(() =>
+  Math.max(1, Math.ceil(props.plan.risks.length / RISKS_PER_PAGE)),
+);
+const pageRisks = computed(() =>
+  props.plan.risks.slice(
+    page.value * RISKS_PER_PAGE,
+    (page.value + 1) * RISKS_PER_PAGE,
+  ),
 );
 const readingReady = ref(false);
 const elapsed = ref(0);
@@ -27,7 +35,6 @@ function onReady(seconds: number): void {
   readingReady.value = true;
   elapsed.value = seconds;
 }
-
 function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
   if (severity === "high") return "danger";
   if (severity === "medium") return "warning";
@@ -36,79 +43,63 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-4">
-    <div class="text-[12px]">
-      <div class="flex items-start gap-3">
-        <IconPhWarning class="mt-0.5 text-danger hidden" />
-        <div>
-          <p class="font-semibold hidden m-0 text-[12px] leading-[1.428571]">
-            {{ t("preparation.risks.banner.title") }}
-          </p>
-          <p class="text-muted m-0 text-[12px] leading-[1.428571]">
-            {{
-              t(
-                plan.workflow === "appSync"
-                  ? "preparation.appSync.intro"
-                  : "preparation.risks.banner.body",
-              )
-            }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <ForcedReading
+  <div class="flex min-h-0 flex-1 flex-col gap-3">
+    <p class="text-sm text-muted">
+      {{
+        t(
+          plan.workflow === "appSync"
+            ? "preparation.appSync.intro"
+            : "preparation.risks.banner.body",
+        )
+      }}
+    </p>
+    <ReadingPager
+      v-model:page="page"
+      :pages="pages"
       :minimum-seconds="plan.minimumReadingSeconds.risks"
       @ready="onReady"
     >
-      <div class="space-y-3">
+      <div class="flex flex-col gap-2.5">
         <article
-          v-for="risk in plan.risks"
+          v-for="risk in pageRisks"
           :key="risk.id"
-          class="border-0 border-b border-line bg-transparent px-0 py-3"
+          class="rounded-panel bg-ink/4 px-4 py-3"
         >
           <div class="flex items-center gap-2">
             <StatusPill :tone="severityTone(risk.severity)">{{
               t(`preparation.risks.severity.${risk.severity}`)
             }}</StatusPill>
-            <h4 class="text-sm font-semibold">
+            <h4 class="text-base font-semibold">
               {{ t(`${riskNamespace}.${risk.id}.title`) }}
             </h4>
           </div>
-          <p class="mt-2 text-[12px] leading-[1.8]">
+          <p class="mt-1.5 text-sm leading-[19px]">
             {{ t(`${riskNamespace}.${risk.id}.body`) }}
           </p>
-          <p class="mt-2 text-muted text-[12px] leading-[1.8]">
-            <span class="font-medium">{{
+          <p class="mt-1.5 text-sm leading-[19px] text-muted">
+            <span class="font-medium text-ink">{{
               t("preparation.risks.mitigation")
             }}</span>
             {{ t(`${riskNamespace}.${risk.id}.mitigation`) }}
           </p>
         </article>
-        <p class="pt-2 text-center text-xs text-muted">
+        <p v-if="page === pages - 1" class="text-center text-xs text-muted">
           {{ t("preparation.risks.endOfList") }}
         </p>
       </div>
-    </ForcedReading>
-
+    </ReadingPager>
     <footer class="flex items-center justify-between">
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink px-3 py-1.5 text-[12px]"
-        @click="emit('back')"
+      <StudioButton variant="ghost" @click="emit('back')">
+        <IconPhArrowLeft width="14" height="14" />{{ t("common.back") }}
+      </StudioButton>
+      <StudioButton
+        variant="primary"
+        :disabled="!readingReady"
+        @click="emit('next', elapsed)"
       >
-        <IconPhArrowLeft width="16" height="16" />
-        {{ t("common.back") }}
-      </button>
-      <div class="flex items-center gap-3">
-        <button
-          class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06] px-3 py-1.5 text-[12px]"
-          :disabled="!readingReady"
-          @click="emit('next', elapsed)"
-        >
-          {{ t("preparation.risks.continue") }}
-          <IconPhArrowRight width="16" height="16" />
-        </button>
-      </div>
+        {{ t("preparation.risks.continue") }}
+        <IconPhArrowRight width="14" height="14" />
+      </StudioButton>
     </footer>
   </div>
 </template>

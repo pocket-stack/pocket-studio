@@ -8,7 +8,11 @@ import { computed, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PrerequisiteId, PreparationPlan } from "../../../shared/gateway";
-import StatusPill from "../../../shared/ui/StatusPill.vue";
+import { useGateway } from "../../../shared/gateway";
+import StudioButton from "../../../shared/ui/StudioButton.vue";
+import StudioCallout from "../../../shared/ui/StudioCallout.vue";
+import StudioInput from "../../../shared/ui/StudioInput.vue";
+import StudioPanel from "../../../shared/ui/StudioPanel.vue";
 
 const props = defineProps<{
   plan: PreparationPlan;
@@ -79,150 +83,168 @@ const prerequisiteIcons: Record<PrerequisiteId, Component> = {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-5">
-    <p
-      v-if="plan.entryMode === 'dfu'"
-      role="status"
-      class="rounded-lg border border-info/35 bg-info/5 p-4 text-sm leading-7"
-    >
+  <div class="flex h-full min-h-0 flex-col gap-3">
+    <header>
+      <h1 class="text-xl font-semibold">
+        {{ t("preparation.overview.whatHappens") }}
+      </h1>
+      <p
+        v-if="plan.entryMode === 'normal'"
+        class="mt-0.5 line-clamp-3 text-sm text-muted"
+      >
+        {{
+          t(
+            plan.workflow === "appSync"
+              ? "preparation.appSync.intro"
+              : "preparation.overview.intro",
+          )
+        }}
+      </p>
+    </header>
+    <StudioCallout v-if="plan.entryMode === 'dfu'" tone="info">
       {{ t("preparation.overview.dfuEntry") }}
-    </p>
-    <div class="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
-      <section class="p-5 rounded-lg border border-line bg-surface">
-        <h3 class="text-base font-semibold">
-          {{ t("preparation.overview.whatHappens") }}
-        </h3>
-        <p v-if="plan.entryMode === 'normal'" class="mt-1 text-sm text-muted">
-          {{
-            t(
-              plan.workflow === "appSync"
-                ? "preparation.appSync.intro"
-                : "preparation.overview.intro",
-            )
-          }}
-        </p>
-        <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <div
-            v-for="fact in facts"
-            :key="fact.label"
-            class="min-w-0 border-b border-line/60 py-2"
-          >
-            <dt class="text-xs text-muted">{{ fact.label }}</dt>
-            <dd class="mt-1 leading-6 font-medium">{{ fact.value }}</dd>
-          </div>
-        </dl>
-        <p class="mt-4 text-sm leading-6 text-muted">
-          {{ t("preparation.appSync.packages") }}
-        </p>
-        <ul
-          v-if="plan.systemPackages?.length"
-          class="mt-2 space-y-1 text-xs text-muted"
-        >
-          <li v-for="pkg in plan.systemPackages" :key="pkg.name">
-            {{ pkg.name }} · {{ pkg.version }}
-          </li>
-        </ul>
-        <h4 class="mt-5 text-sm font-semibold">
+    </StudioCallout>
+    <StudioPanel :padded="false" class="flex divide-x-0 px-2 py-2">
+      <div v-for="fact in facts" :key="fact.label" class="min-w-0 flex-1 px-3">
+        <dt class="truncate text-2xs text-muted">{{ fact.label }}</dt>
+        <dd class="truncate text-sm font-medium" :title="fact.value">
+          {{ fact.value }}
+        </dd>
+      </div>
+    </StudioPanel>
+    <div class="grid min-h-0 flex-1 grid-cols-[1.15fr_1fr] gap-3">
+      <StudioPanel class="flex min-h-0 flex-col overflow-hidden">
+        <h3 class="text-sm font-semibold">
           {{ t("preparation.overview.stepsHeading") }}
-        </h4>
-        <ol class="mt-2 space-y-1 text-sm">
+        </h3>
+        <ol
+          class="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs"
+          :class="plan.steps.length <= 7 && 'grid-cols-1'"
+        >
           <li
             v-for="(step, index) in plan.steps"
             :key="step.id"
-            class="flex items-center gap-2"
+            class="flex items-center gap-2 leading-[20px]"
           >
-            <span class="w-5 font-mono text-xs text-muted">{{
+            <span class="w-4 shrink-0 text-right font-mono text-muted">{{
               index + 1
             }}</span>
-            <span>{{ t(`preparation.steps.${step.id}.title`) }}</span>
-            <StatusPill v-if="step.pointOfNoReturn" tone="danger">{{
-              t("operation.pointOfNoReturn")
-            }}</StatusPill>
-            <StatusPill v-else-if="!step.cancellable" tone="neutral">{{
-              t("operation.notCancellable")
-            }}</StatusPill>
+            <span class="truncate">{{
+              t(`preparation.steps.${step.id}.title`)
+            }}</span>
+            <IconPhWarning
+              v-if="step.pointOfNoReturn"
+              width="12"
+              height="12"
+              class="shrink-0 text-danger"
+              :title="t('operation.pointOfNoReturn')"
+            />
+            <IconPhShieldCheck
+              v-else-if="!step.cancellable"
+              width="12"
+              height="12"
+              class="shrink-0 text-muted"
+              :title="t('operation.notCancellable')"
+            />
           </li>
         </ol>
-      </section>
-
-      <section class="p-5 rounded-lg border border-line bg-surface">
-        <h3 class="text-base font-semibold">
+        <div
+          class="mt-auto flex flex-wrap gap-x-4 gap-y-1 pt-3 text-2xs text-muted"
+        >
+          <span class="flex items-center gap-1"
+            ><IconPhWarning width="11" height="11" class="text-danger" />{{
+              t("operation.pointOfNoReturn")
+            }}</span
+          >
+          <span class="flex items-center gap-1"
+            ><IconPhShieldCheck width="11" height="11" />{{
+              t("operation.notCancellable")
+            }}</span
+          >
+        </div>
+        <p v-if="plan.systemPackages?.length" class="mt-2 text-2xs text-muted">
+          {{ t("preparation.appSync.packages") }}
+          <span v-for="pkg in plan.systemPackages" :key="pkg.name"
+            >{{ pkg.name }} {{ pkg.version }};
+          </span>
+        </p>
+      </StudioPanel>
+      <StudioPanel class="flex min-h-0 flex-col overflow-hidden">
+        <h3 class="text-sm font-semibold">
           {{ t("preparation.overview.prerequisites") }}
         </h3>
-        <p class="mt-1 text-sm text-muted">
+        <p class="mt-0.5 text-xs text-muted">
           {{ t("preparation.overview.prerequisitesHint") }}
         </p>
-        <label
-          v-if="sshPassword !== undefined"
-          class="mt-4 block rounded-lg border border-line p-3 text-sm"
-        >
-          {{ t("preparation.appSync.password") }}
-          <input
+        <label v-if="sshPassword !== undefined" class="mt-2 block text-xs">
+          <span class="mb-1 block font-medium">{{
+            t("preparation.appSync.password")
+          }}</span>
+          <StudioInput
+            :model-value="sshPassword"
             type="password"
+            size="sm"
+            class="w-full"
             autocomplete="off"
-            :value="sshPassword"
             maxlength="1024"
-            class="mt-2 w-full rounded border border-line bg-canvas px-3 py-2"
-            @input="
-              emit(
-                'update:sshPassword',
-                ($event.target as HTMLInputElement).value,
-              )
-            "
+            :label="t('preparation.appSync.password')"
+            @update:model-value="emit('update:sshPassword', $event)"
           />
-          <span class="mt-2 block text-xs leading-6 text-muted">{{
+          <span class="mt-1 block text-2xs text-muted">{{
             t("preparation.appSync.passwordHint")
           }}</span>
         </label>
-        <ul class="mt-4 space-y-2">
+        <ul class="mt-2 flex flex-col gap-1.5">
           <li v-for="id in plan.prerequisites" :key="id">
             <label
-              class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition"
+              class="flex cursor-pointer items-center gap-2.5 rounded-control px-2.5 py-1.5 transition-colors"
               :class="
                 confirmed.includes(id)
-                  ? 'border-success/50 bg-success/6'
-                  : 'border-line hover:border-muted'
+                  ? 'bg-success/8'
+                  : 'bg-ink/4 hover:bg-ink/6'
               "
             >
               <input
                 type="checkbox"
-                class="mt-1 accent-signal"
                 :checked="confirmed.includes(id)"
                 @change="emit('toggle', id)"
               />
               <component
                 :is="prerequisiteIcons[id]"
-                class="mt-0.5 text-muted"
+                width="15"
+                height="15"
+                class="shrink-0 text-muted"
               />
-              <span class="flex-1">
-                <span class="block text-sm font-medium">{{
+              <span class="min-w-0 flex-1">
+                <span class="block text-sm leading-[18px] font-medium">{{
                   t(`preparation.prerequisites.${id}.title`)
                 }}</span>
-                <span class="block text-xs text-muted">{{
+                <span class="block truncate text-2xs text-muted">{{
                   t(`preparation.prerequisites.${id}.detail`)
                 }}</span>
               </span>
             </label>
           </li>
         </ul>
-      </section>
+      </StudioPanel>
     </div>
-
-    <footer class="mt-auto flex items-center justify-between">
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink"
-        @click="emit('cancel')"
-      >
-        {{ t("common.cancel") }}
-      </button>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
-        :disabled="!allConfirmed"
-        @click="emit('next')"
-      >
-        {{ t("preparation.overview.continue") }}
-        <IconPhArrowRight width="16" height="16" />
-      </button>
+    <footer class="flex items-center justify-between gap-3">
+      <span v-if="useGateway().capabilities.demo" class="text-2xs text-muted">{{
+        t("preparation.demoNotice")
+      }}</span>
+      <div class="ml-auto flex gap-2">
+        <StudioButton variant="ghost" @click="emit('cancel')">
+          {{ t("common.cancel") }}
+        </StudioButton>
+        <StudioButton
+          variant="primary"
+          :disabled="!allConfirmed"
+          @click="emit('next')"
+        >
+          {{ t("preparation.overview.continue") }}
+          <IconPhArrowRight width="14" height="14" />
+        </StudioButton>
+      </div>
     </footer>
   </div>
 </template>

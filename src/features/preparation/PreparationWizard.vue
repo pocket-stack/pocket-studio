@@ -24,7 +24,7 @@ watch(preparation.consentVisible, async (visible) => {
 <template>
   <dialog
     ref="dialog"
-    class="m-auto h-[min(740px,calc(100dvh-70px))] max-h-none w-[640px] max-w-[calc(100vw-36px)] rounded-lg border border-[#b5b5b5] bg-canvas p-0 text-ink shadow-[0_10px_45px_#00000030] backdrop:bg-[#0000002b]"
+    class="m-auto h-[min(600px,calc(100dvh-60px))] max-h-none w-[640px] max-w-[calc(100vw-40px)] flex-col overflow-hidden rounded-panel bg-surface p-0 text-ink shadow-overlay backdrop:bg-[#0b1220]/35 backdrop:backdrop-blur-[2px] open:flex"
     :aria-label="
       t(
         preparation.stage.value === 'risks'
@@ -36,15 +36,18 @@ watch(preparation.consentVisible, async (visible) => {
   >
     <div
       v-if="preparation.consentVisible.value && preparation.plan.value"
-      class="flex h-full flex-col gap-4 p-6"
+      class="flex min-h-0 flex-1 flex-col gap-3 p-5"
     >
       <header class="flex items-center gap-3">
-        <span class="text-[12px] whitespace-nowrap text-muted">{{
-          t("studio.consentStep", {
-            step: preparation.stage.value === "risks" ? 1 : 2,
-          })
-        }}</span>
-        <h2 class="text-[18px] font-semibold">
+        <span
+          class="rounded-full bg-ink/6 px-2 py-px text-2xs font-semibold whitespace-nowrap text-muted"
+          >{{
+            t("studio.consentStep", {
+              step: preparation.stage.value === "risks" ? 1 : 2,
+            })
+          }}</span
+        >
+        <h2 class="text-lg font-semibold">
           {{
             t(
               preparation.stage.value === "risks"
@@ -54,11 +57,11 @@ watch(preparation.consentVisible, async (visible) => {
           }}
         </h2>
         <button
-          class="ml-auto inline-flex items-center justify-center rounded p-[5px] text-muted hover:bg-track hover:text-ink"
+          class="ml-auto -mr-1.5 inline-flex items-center justify-center rounded-control p-1 text-muted hover:bg-ink/6 hover:text-ink"
           :aria-label="t('common.close')"
           @click="preparation.close"
         >
-          <IconPhX width="17" height="17" />
+          <IconPhX width="16" height="16" />
         </button>
       </header>
       <RiskStep
@@ -73,10 +76,7 @@ watch(preparation.consentVisible, async (visible) => {
         @accept="preparation.acceptDisclaimer"
         @back="preparation.backToRisks"
       />
-      <p
-        v-if="useGateway().capabilities.demo"
-        class="text-[10px] leading-[1.7] text-muted"
-      >
+      <p v-if="useGateway().capabilities.demo" class="text-2xs text-muted">
         {{ t("studio.consentDemo") }}
       </p>
     </div>

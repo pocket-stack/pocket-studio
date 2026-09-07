@@ -260,26 +260,29 @@ onMounted(async () => {
         </button>
       </nav>
       <button
-        class="relative mx-auto flex h-[36px] w-[520px] min-w-[200px] flex-col justify-center overflow-hidden rounded-control bg-lcd px-3 text-left shadow-inset transition-colors hover:bg-lcd/80"
+        class="relative mx-auto flex h-[40px] w-[520px] min-w-[200px] flex-col justify-center overflow-hidden rounded-control bg-lcd px-3 text-left shadow-inset transition-colors hover:bg-lcd/80"
         :aria-label="t('studio.activity')"
         @click="showActivity"
       >
         <div
           class="flex items-baseline justify-between gap-3 text-sm leading-[16px]"
         >
-          <span class="shrink-0 truncate font-semibold">{{ lcdTitle }}</span
-          ><span class="truncate text-right text-xs text-muted"
-            >{{ lcdSubtitle
-            }}<template v-if="current">
-              · {{ progress }}%<template v-if="stepPosition">
-                · {{ stepPosition }}</template
-              ></template
-            ></span
+          <span class="min-w-0 truncate font-semibold">{{ lcdTitle }}</span
+          ><span v-if="current" class="shrink-0 text-xs text-muted tabular-nums"
+            >{{ progress }}%</span
           >
+        </div>
+        <div
+          class="flex items-baseline justify-between gap-3 text-xs leading-[14px] text-muted"
+        >
+          <span class="min-w-0 truncate">{{ lcdSubtitle }}</span
+          ><span v-if="stepPosition" class="shrink-0 tabular-nums">{{
+            stepPosition
+          }}</span>
         </div>
         <ProgressBar
           v-if="current"
-          class="mt-1.5"
+          class="mt-1"
           :percent="progress"
           :trickle-to="ceiling"
           active

@@ -125,7 +125,8 @@
           "title": "To leave DFU mode:",
           "body": "Hold Power and Home for about 15 seconds. The device reboots normally."
         }
-      }
+      },
+      "blackScreenHint": "A black screen is expected"
     },
     "execution": {
       "finishing": "Finishing…",
@@ -137,6 +138,10 @@
         "title": "Do not unplug or shut down",
         "body": "The device screen goes black and the device reboots a few times. This is expected.",
         "afterPointOfNoReturn": "Writing to the device has started. Interrupting now can leave the device unbootable and require a full restore."
+      },
+      "mode": {
+        "manual": "Your turn",
+        "auto": "Running automatically, keep the cable in"
       }
     },
     "result": {

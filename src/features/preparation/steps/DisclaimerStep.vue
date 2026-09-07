@@ -3,7 +3,11 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PreparationPlan } from "../../../shared/gateway";
-import ForcedReading from "../../../shared/ui/ForcedReading.vue";
+import ReadingPager from "../../../shared/ui/ReadingPager.vue";
+import StudioButton from "../../../shared/ui/StudioButton.vue";
+import StudioCallout from "../../../shared/ui/StudioCallout.vue";
+
+const SECTIONS_PER_PAGE = 3;
 
 const props = defineProps<{
   plan: PreparationPlan;
@@ -12,19 +16,28 @@ const props = defineProps<{
 const emit = defineEmits<{ accept: [readingSeconds: number]; back: [] }>();
 const { t, tm } = useI18n();
 
-const readingReady = ref(false);
-const elapsed = ref(0);
 const sections = computed(
   () =>
     tm(
       props.plan.workflow === "appSync"
         ? "preparation.appSync.disclaimerSections"
         : "preparation.disclaimer.sections",
-    ) as Array<{
-      heading: string;
-      body: string;
-    }>,
+    ) as Array<{ heading: string; body: string }>,
 );
+const page = ref(0);
+const pages = computed(() =>
+  Math.max(1, Math.ceil(sections.value.length / SECTIONS_PER_PAGE)),
+);
+const pageSections = computed(() =>
+  sections.value
+    .map((section, index) => ({ ...section, index }))
+    .slice(
+      page.value * SECTIONS_PER_PAGE,
+      (page.value + 1) * SECTIONS_PER_PAGE,
+    ),
+);
+const readingReady = ref(false);
+const elapsed = ref(0);
 
 function onReady(seconds: number): void {
   readingReady.value = true;
@@ -33,72 +46,59 @@ function onReady(seconds: number): void {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <div>
-        <h3 class="text-base font-semibold hidden">
-          {{ t("preparation.disclaimer.title") }}
-        </h3>
-        <p class="text-xs text-muted">
-          {{
-            t("preparation.disclaimer.version", {
-              version: plan.disclaimerVersion,
-            })
-          }}
-        </p>
-      </div>
-      <IconPhShieldCheck class="text-muted" width="22" height="22" />
+  <div class="flex min-h-0 flex-1 flex-col gap-3">
+    <div class="flex items-center justify-between gap-3 text-sm">
+      <p class="text-muted">
+        {{
+          t(
+            plan.workflow === "appSync"
+              ? "preparation.appSync.preamble"
+              : "preparation.disclaimer.preamble",
+          )
+        }}
+      </p>
+      <span class="shrink-0 text-xs text-muted">{{
+        t("preparation.disclaimer.version", { version: plan.disclaimerVersion })
+      }}</span>
     </div>
-
-    <ForcedReading
+    <ReadingPager
+      v-model:page="page"
+      :pages="pages"
       :minimum-seconds="plan.minimumReadingSeconds.disclaimer"
       @ready="onReady"
     >
-      <div class="space-y-4 text-sm">
-        <p class="font-medium">
-          {{
-            t(
-              plan.workflow === "appSync"
-                ? "preparation.appSync.preamble"
-                : "preparation.disclaimer.preamble",
-            )
-          }}
-        </p>
-        <section v-for="(section, index) in sections" :key="index">
-          <h4 class="font-semibold">{{ index + 1 }}. {{ section.heading }}</h4>
-          <p class="mt-1 text-muted">{{ section.body }}</p>
+      <div class="flex flex-col gap-3 text-sm">
+        <section v-for="section in pageSections" :key="section.index">
+          <h4 class="font-semibold">
+            {{ section.index + 1 }}. {{ section.heading }}
+          </h4>
+          <p class="mt-0.5 leading-[19px] text-muted">{{ section.body }}</p>
         </section>
-        <p class="pt-2 text-center text-xs text-muted">
+        <p v-if="page === pages - 1" class="text-center text-xs text-muted">
           {{ t("preparation.disclaimer.end") }}
         </p>
       </div>
-    </ForcedReading>
-
-    <p v-if="startError" class="text-xs text-danger">
+    </ReadingPager>
+    <StudioCallout v-if="startError" tone="danger">
       {{
         t(
           `preparation.startErrors.${startError}`,
           t("preparation.startErrors.unknown"),
         )
       }}
-    </p>
-
+    </StudioCallout>
     <footer class="flex items-center justify-between">
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink px-3 py-1.5 text-[12px]"
-        @click="emit('back')"
-      >
-        <IconPhArrowLeft width="16" height="16" />
-        {{ t("common.back") }}
-      </button>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06] px-3 py-1.5 text-[12px]"
+      <StudioButton variant="ghost" @click="emit('back')">
+        <IconPhArrowLeft width="14" height="14" />{{ t("common.back") }}
+      </StudioButton>
+      <StudioButton
+        variant="primary"
         :disabled="!readingReady"
         @click="emit('accept', elapsed)"
       >
-        <IconPhLightning width="16" height="16" />
+        <IconPhLightning width="14" height="14" />
         {{ t("preparation.disclaimer.acceptAndStart") }}
-      </button>
+      </StudioButton>
     </footer>
   </div>
 </template>

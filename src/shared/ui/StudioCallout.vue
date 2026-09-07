@@ -39,7 +39,7 @@ const toneClass = computed(
 
 <template>
   <div
-    :role="tone === 'danger' ? 'alert' : 'status'"
+    :role="tone === 'danger' || strong ? 'alert' : 'status'"
     class="flex items-start gap-2 rounded-control px-2.5 py-1.5 text-sm leading-[18px] text-ink"
     :class="[toneClass, strong && 'py-2.5 font-medium']"
   >
