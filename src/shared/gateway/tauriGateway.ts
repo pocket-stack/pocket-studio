@@ -70,6 +70,8 @@ export function createTauriGateway(): StudioGateway {
       installed: true,
     },
     devices: {
+      checkAppSync: (deviceId, sshPassword) =>
+        call("check_appsync", { deviceId, sshPassword }),
       list: () => call("list_devices"),
       checkReadiness: (deviceId) => call("check_readiness", { deviceId }),
       onEvent: (handler) => subscribe<DeviceEvent>("studio://device", handler),

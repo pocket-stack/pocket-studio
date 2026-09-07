@@ -139,6 +139,7 @@ impl PackageTarget for Target {
                 device,
                 facts: DeviceFacts {
                     appsync_installed: Some(true),
+                    appsync_last_observation: None,
                     pairing_trusted: Some(true),
                     jailbroken: None,
                     ssh_available: None,

@@ -46,7 +46,12 @@ function fixture() {
       packages: false,
       installed: false,
     },
-    devices: { list, onEvent: subscribe, checkReadiness: vi.fn() },
+    devices: {
+      checkAppSync: vi.fn(),
+      list,
+      onEvent: subscribe,
+      checkReadiness: vi.fn(),
+    },
   };
   return {
     gateway,

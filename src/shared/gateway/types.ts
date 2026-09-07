@@ -71,6 +71,7 @@ export type ReadinessCheckId =
 export type CheckStatus = "pass" | "fail" | "warn" | "unknown";
 
 export interface ReadinessCheck {
+  previousObservation?: { installed: boolean; observedAt: number };
   id: ReadinessCheckId;
   status: CheckStatus;
   /** Free-form value rendered next to the check, e.g. a version or percentage. */
@@ -444,6 +445,10 @@ export interface StudioGateway {
   devices: {
     list(): Promise<DiscoverySnapshot>;
     checkReadiness(deviceId: string): Promise<ReadinessReport>;
+    checkAppSync(
+      deviceId: string,
+      sshPassword: string,
+    ): Promise<ReadinessReport>;
     onEvent(
       handler: (event: DeviceEvent) => void,
     ): Unsubscribe | Promise<Unsubscribe>;

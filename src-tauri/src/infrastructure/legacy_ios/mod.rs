@@ -2,6 +2,7 @@
 //! leave this module. A scan opens existing services but never pairs or writes.
 
 pub mod appsync;
+mod appsync_observations;
 pub mod installed;
 pub mod packages;
 mod platform;
@@ -36,13 +37,25 @@ pub struct LegacyIosProbe {
     host: Box<dyn platform::HostEnvironment>,
     sessions: Mutex<HashMap<String, String>>,
     normal_access: Arc<RwLock<()>>,
+    appsync_observations: appsync_observations::AppSyncObservations,
     appsync_sessions: Mutex<HashMap<String, Arc<legacy_ios_services::RamdiskSsh>>>,
 }
 
 impl Default for LegacyIosProbe {
     fn default() -> Self {
+        Self::with_observations(appsync_observations::AppSyncObservations::memory())
+    }
+}
+impl LegacyIosProbe {
+    pub fn with_observation_path(path: &std::path::Path) -> rusqlite::Result<Self> {
+        Ok(Self::with_observations(
+            appsync_observations::AppSyncObservations::open(path)?,
+        ))
+    }
+    fn with_observations(appsync_observations: appsync_observations::AppSyncObservations) -> Self {
         let host = platform::current();
         Self {
+            appsync_observations,
             normal: NormalMux::new(host.normal_backend()),
             host,
             sessions: Mutex::new(HashMap::new()),
@@ -53,6 +66,54 @@ impl Default for LegacyIosProbe {
 }
 
 impl DeviceProbe for LegacyIosProbe {
+    fn check_appsync(
+        &self,
+        device_id: String,
+        password: String,
+    ) -> crate::application::discovery::AppSyncCheckFuture<'_> {
+        use crate::application::discovery::AppSyncCheckError as Error;
+        Box::pin(async move {
+            let password = legacy_ios_services::SshPassword::new(password);
+            let _access = self
+                .normal_access
+                .clone()
+                .try_read_owned()
+                .map_err(|_| Error::Busy)?;
+            let key = self
+                .application_session_key(&device_id)
+                .map_err(|_| Error::DeviceChanged)?;
+            let udid =
+                legacy_ios_core::Udid::new(key.strip_prefix("udid:").ok_or(Error::DeviceChanged)?);
+            let device = timeout(Duration::from_secs(5), self.normal.find_device(&udid))
+                .await
+                .map_err(|_| Error::DeviceChanged)?
+                .map_err(|_| Error::DeviceChanged)?;
+            let mut setup = appsync::AppSyncSetup::default();
+            setup
+                .connect(&device, &password, None)
+                .await
+                .map_err(|error| match error {
+                    crate::application::preparation::PreparationError::SshAuthenticationFailed => {
+                        Error::Authentication
+                    }
+                    _ => Error::Unavailable,
+                })?;
+            let session = setup.session.ok_or(Error::Unavailable)?;
+            let installed = appsync::read_status(&session)
+                .await
+                .ok_or(Error::Unavailable)?;
+            self.appsync_observations.observe(&key, Some(installed));
+            self.appsync_sessions
+                .lock()
+                .expect("AppSync sessions poisoned")
+                .insert(key, session);
+            tracing::info!(
+                installed,
+                "Completed user-requested read-only AppSync verification"
+            );
+            Ok(())
+        })
+    }
     fn scan(&self) -> ProbeFuture<'_> {
         Box::pin(self.scan_devices())
     }
@@ -127,7 +188,12 @@ impl LegacyIosProbe {
         // device's inspection budget or erase the fresh enumeration.
         while let Some(result) = reads.join_next().await {
             match result {
-                Ok((index, (record, issues))) => {
+                Ok((index, (mut record, issues))) => {
+                    if let Ok(key) = self.application_session_key(&record.summary.id) {
+                        record.facts.appsync_last_observation = self
+                            .appsync_observations
+                            .observe(&key, record.facts.appsync_installed);
+                    }
                     snapshot.records[index] = record;
                     snapshot.issues.extend(issues);
                 }
@@ -492,6 +558,55 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore = "read-only USB SSH check; requires the paired iPod4,1 with AppSync installed and its root password"]
+    async fn read_only_appsync_verification_preserves_history_after_session_restart() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("observations.sqlite");
+        let probe = LegacyIosProbe::with_observation_path(&path).unwrap();
+        let snapshot = probe.scan_devices().await;
+        assert_eq!(snapshot.records.len(), 1, "connect only the test device");
+        let record = &snapshot.records[0];
+        assert_eq!(record.summary.model_identifier.as_deref(), Some("iPod4,1"));
+        assert_eq!(record.summary.os_version.as_deref(), Some("6.1.6"));
+        let password =
+            std::env::var("POCKET_TEST_SSH_PASSWORD").unwrap_or_else(|_| "alpine".into());
+        timeout(
+            Duration::from_secs(60),
+            probe.check_appsync(record.summary.id.clone(), password),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        let current = probe.scan_devices().await;
+        assert_eq!(current.records[0].facts.appsync_installed, Some(true));
+        assert!(
+            current.records[0]
+                .facts
+                .appsync_last_observation
+                .unwrap()
+                .installed
+        );
+        drop(probe);
+        let restarted = LegacyIosProbe::with_observation_path(&path).unwrap();
+        assert!(restarted.appsync_sessions.lock().unwrap().is_empty());
+        let observed = restarted.scan_devices().await;
+        assert!(
+            observed.records[0]
+                .facts
+                .appsync_last_observation
+                .unwrap()
+                .installed
+        );
+        // If AFC2 is available, current presence can still be established. If
+        // not, history must remain distinct from the unavailable live result.
+        assert_ne!(observed.records[0].facts.appsync_installed, Some(false));
+        println!(
+            "AppSync live check: installed; new session: {:?}; previous record: installed",
+            observed.records[0].facts.appsync_installed
+        );
+    }
+
+    #[tokio::test]
     async fn verification_ownership_keeps_usb_presence_without_polling_services() {
         let access = Arc::new(RwLock::new(()));
         let owner = access.clone().write_owned().await;
@@ -516,6 +631,7 @@ mod tests {
             summary: observed.clone(),
             facts: DeviceFacts {
                 appsync_installed: Some(true),
+                appsync_last_observation: None,
                 jailbroken: Some(true),
                 pairing_trusted: Some(true),
                 ssh_available: Some(true),

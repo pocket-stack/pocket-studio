@@ -86,6 +86,8 @@ impl OperationLog {
 #[derive(Debug, thiserror::Error)]
 pub enum StudioError {
     #[error(transparent)]
+    AppSyncCheck(#[from] discovery::AppSyncCheckError),
+    #[error(transparent)]
     Package(#[from] packages::PackageError),
     #[error(transparent)]
     Installed(#[from] installed::InstalledError),
@@ -102,6 +104,7 @@ pub enum StudioError {
 impl StudioError {
     pub fn code(&self) -> &'static str {
         match self {
+            Self::AppSyncCheck(error) => error.code(),
             Self::Store(error) => error.code(),
             Self::Installed(error) => error.code(),
             Self::Package(error) => error.code(),

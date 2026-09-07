@@ -80,6 +80,21 @@ pub async fn check_readiness(
 }
 
 #[tauri::command]
+pub async fn check_appsync(
+    state: State<'_, AppState>,
+    device_id: String,
+    ssh_password: String,
+) -> CommandResult<ReadinessReport> {
+    state
+        .studio
+        .discovery
+        .check_appsync(device_id.clone(), ssh_password)
+        .await
+        .map_err(StudioError::from)?;
+    Ok(state.studio.check_readiness(&device_id).await?)
+}
+
+#[tauri::command]
 pub async fn plan_preparation(
     state: State<'_, AppState>,
     device_id: String,

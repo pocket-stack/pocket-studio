@@ -2,13 +2,14 @@
 import IconStudioCheck from "~icons/studio/check";
 import IconStudioWarning from "~icons/studio/warning";
 import IconStudioMinus from "~icons/studio/minus";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   useGateway,
   type DeviceSummary,
   type ReadinessReport,
 } from "../../shared/gateway";
+import AppSyncCheckDialog from "./AppSyncCheckDialog.vue";
 import { useOperations } from "../../shared/composables/useOperations";
 const props = defineProps<{
   report: ReadinessReport | null;
@@ -25,6 +26,22 @@ const emit = defineEmits<{
 const { t, d } = useI18n();
 const gateway = useGateway();
 const { active } = useOperations();
+const checkingAppSync = ref(false);
+const appSync = computed(() =>
+  props.report?.checks.find((check) => check.id === "appSyncInstalled"),
+);
+const canCheckAppSync = computed(
+  () =>
+    gateway.flavor === "tauri" &&
+    !!props.device &&
+    props.device.mode === "normal" &&
+    props.report?.checks.some(
+      (check) => check.id === "sshAvailable" && check.status === "pass",
+    ),
+);
+const appSyncUnconfirmed = computed(
+  () => appSync.value?.status === "unknown" || appSync.value?.status === "warn",
+);
 const checks = computed(
   () =>
     props.report?.checks.filter(
@@ -52,6 +69,8 @@ const canReviewPreparation = computed(() => {
     props.device.ecidMasked
   )
     return true;
+  if (props.report.requiredWorkflow === "appSync" && appSyncUnconfirmed.value)
+    return false;
   if (props.report.requiredWorkflow) return true;
   const checks = props.report.checks;
   return (
@@ -134,11 +153,35 @@ const canReviewPreparation = computed(() => {
             {{ t(`readiness.checks.${check.id}.title`) }}
           </h3>
           <p v-if="!compact" class="mt-1 text-[11px] text-muted">
-            {{ t(`readiness.checks.${check.id}.${check.status}`) }}
+            {{
+              check.id === "appSyncInstalled" &&
+              appSyncUnconfirmed &&
+              check.previousObservation
+                ? t(
+                    check.previousObservation.installed
+                      ? "readiness.appSyncCheck.previousInstalled"
+                      : "readiness.appSyncCheck.previousMissing",
+                    {
+                      time:
+                        d(check.previousObservation.observedAt, "date") +
+                        " " +
+                        d(check.previousObservation.observedAt, "time"),
+                    },
+                  )
+                : t(`readiness.checks.${check.id}.${check.status}`)
+            }}
           </p>
         </div>
         <span class="text-[12px] text-muted">{{
-          check.value || t(`studio.checkStates.${check.status}`)
+          check.id === "appSyncInstalled" &&
+          appSyncUnconfirmed &&
+          check.previousObservation
+            ? t(
+                check.previousObservation.installed
+                  ? "readiness.appSyncCheck.lastInstalled"
+                  : "readiness.appSyncCheck.lastMissing",
+              )
+            : check.value || t(`studio.checkStates.${check.status}`)
         }}</span>
       </li>
     </ul>
@@ -150,12 +193,26 @@ const canReviewPreparation = computed(() => {
       "
       class="mx-4 mt-3 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs leading-6 text-muted"
     >
-      {{ t("preparation.appSync.explanation") }}
+      {{
+        t(
+          appSyncUnconfirmed
+            ? "readiness.appSyncCheck.unknownExplanation"
+            : "preparation.appSync.explanation",
+        )
+      }}
     </p>
     <footer
       class="flex items-center justify-between gap-[15px] px-4 pt-3 pb-4 max-[800px]:flex-wrap"
     >
       <div class="flex flex-wrap gap-2">
+        <button
+          v-if="canCheckAppSync"
+          :disabled="checking || !!active.length"
+          class="rounded-md border border-line px-[15px] py-1.5 text-[13px] font-medium text-signal disabled:opacity-45"
+          @click="checkingAppSync = true"
+        >
+          {{ t("readiness.appSyncCheck.action") }}
+        </button>
         <button
           v-if="canReviewPreparation"
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
@@ -202,4 +259,11 @@ const canReviewPreparation = computed(() => {
       }}</span>
     </footer>
   </section>
+  <AppSyncCheckDialog
+    v-if="device"
+    :open="checkingAppSync"
+    :device-id="device.id"
+    @close="checkingAppSync = false"
+    @checked="emit('recheck')"
+  />
 </template>

@@ -86,7 +86,7 @@
         "pass": "已检测到 AppSync 安装记录；若 IPA 签名仍被拒绝，请检查插件加载和签名兼容性。",
         "fail": "未安装 AppSync，需要先补齐应用安装环境。",
         "warn": "AppSync 安装状态需要确认。",
-        "unknown": "暂时无法读取 AppSync 状态；未知不代表未安装。可通过准备流程连接 SSH 检查并补齐。"
+        "unknown": "本次无法读取系统包安装记录，不代表未安装。可点击“验证 AppSync”进行只读检查。"
       }
     },
     "guidance": {
@@ -99,6 +99,23 @@
         "action": "开始越狱准备"
       },
       "ready": "设备已满足核心接入条件，可以前往应用商店。"
+    },
+    "appSyncCheck": {
+      "title": "验证 AppSync 安装状态",
+      "action": "验证 AppSync",
+      "checking": "正在读取设备…",
+      "body": "通过 USB SSH 只读查询设备的系统包安装记录。此检查不会安装软件、重载服务或重启设备。",
+      "unknownExplanation": "当前没有可用的系统包读取连接，无法确认 AppSync 的实时状态。点击“验证 AppSync”进行只读检查，无需重新安装。",
+      "previousInstalled": "上次于 {time} 确认已安装。本次尚未读取到实时记录，请验证。",
+      "previousMissing": "上次于 {time} 未检测到安装记录。本次尚未读取到实时记录，请验证。",
+      "lastInstalled": "上次已安装 · 待确认",
+      "lastMissing": "上次未安装 · 待确认",
+      "errors": {
+        "sshAuthenticationFailed": "SSH 密码不正确，请重新输入。",
+        "deviceChanged": "设备已断开或发生切换，请重新选择设备。",
+        "operationBusy": "设备正在执行其他操作，请稍后验证。",
+        "appSyncCheckUnavailable": "无法读取系统包记录，状态仍为待确认。请检查 USB 连接和设备 SSH 服务。"
+      }
     }
   }
 }

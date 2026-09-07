@@ -31,6 +31,8 @@ pub enum CheckStatus {
 #[serde(rename_all = "camelCase")]
 pub struct ReadinessCheck {
     pub id: ReadinessCheckId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_observation: Option<super::device::AppSyncObservation>,
     pub status: CheckStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
@@ -113,14 +115,20 @@ pub fn evaluate(device: &DeviceSummary, facts: DeviceFacts) -> ReadinessReport {
             None,
         ),
         check(ReadinessCheckId::Jailbroken, facts.jailbroken, None),
-        check(
-            ReadinessCheckId::AppSyncInstalled,
-            facts.appsync_installed,
-            None,
-        ),
+        ReadinessCheck {
+            previous_observation: facts.appsync_last_observation,
+            status: match (facts.appsync_installed, facts.appsync_last_observation) {
+                (Some(true), _) => CheckStatus::Pass,
+                (Some(false), _) => CheckStatus::Fail,
+                (None, Some(_)) => CheckStatus::Warn,
+                (None, None) => CheckStatus::Unknown,
+            },
+            ..check(ReadinessCheckId::AppSyncInstalled, None, None)
+        },
         check(ReadinessCheckId::SshAvailable, facts.ssh_available, None),
         ReadinessCheck {
             id: ReadinessCheckId::BatteryLevel,
+            previous_observation: None,
             status: match device.battery_percent {
                 Some(percent) if percent >= MINIMUM_BATTERY_PERCENT => CheckStatus::Pass,
                 Some(_) => CheckStatus::Warn,
@@ -169,6 +177,7 @@ pub fn evaluate(device: &DeviceSummary, facts: DeviceFacts) -> ReadinessReport {
 fn check(id: ReadinessCheckId, value: Option<bool>, detail: Option<String>) -> ReadinessCheck {
     ReadinessCheck {
         id,
+        previous_observation: None,
         status: match value {
             Some(true) => CheckStatus::Pass,
             Some(false) => CheckStatus::Fail,
@@ -211,6 +220,7 @@ mod tests {
             &ipod4("6.1.6"),
             DeviceFacts {
                 appsync_installed: Some(true),
+                appsync_last_observation: None,
                 pairing_trusted: Some(true),
                 jailbroken: Some(false),
                 ssh_available: None,
@@ -224,6 +234,7 @@ mod tests {
     fn jailbroken_device_is_ready() {
         let facts = DeviceFacts {
             appsync_installed: Some(true),
+            appsync_last_observation: None,
             jailbroken: Some(true),
             ssh_available: Some(true),
             pairing_trusted: Some(true),
@@ -243,6 +254,7 @@ mod tests {
                 &ipod4("6.1.6"),
                 DeviceFacts {
                     appsync_installed,
+                    appsync_last_observation: None,
                     pairing_trusted: Some(true),
                     jailbroken: Some(true),
                     ssh_available: Some(true),
@@ -267,6 +279,41 @@ mod tests {
     }
 
     #[test]
+    fn remembered_installation_is_not_a_current_pass_and_live_absence_overrides_it() {
+        let mut facts = DeviceFacts {
+            pairing_trusted: Some(true),
+            jailbroken: Some(true),
+            ssh_available: Some(true),
+            appsync_installed: None,
+            appsync_last_observation: Some(super::super::device::AppSyncObservation {
+                installed: true,
+                observed_at: 1,
+            }),
+        };
+        let report = evaluate(&ipod4("6.1.6"), facts);
+        assert_eq!(report.status, ReadinessStatus::NeedsAttention);
+        let check = report
+            .checks
+            .iter()
+            .find(|c| c.id == ReadinessCheckId::AppSyncInstalled)
+            .unwrap();
+        assert_eq!(check.status, CheckStatus::Warn);
+        assert_eq!(check.previous_observation, facts.appsync_last_observation);
+        facts.appsync_installed = Some(false);
+        let report = evaluate(&ipod4("6.1.6"), facts);
+        assert_eq!(
+            report
+                .checks
+                .iter()
+                .find(|c| c.id == ReadinessCheckId::AppSyncInstalled)
+                .unwrap()
+                .status,
+            CheckStatus::Fail
+        );
+        assert_eq!(report.status, ReadinessStatus::NeedsPreparation);
+    }
+
+    #[test]
     fn os_outside_matrix_is_unsupported() {
         let report = evaluate(&ipod4("7.0"), DeviceFacts::default());
         assert_eq!(report.status, ReadinessStatus::Unsupported);
@@ -284,6 +331,7 @@ mod tests {
     fn unknown_jailbreak_does_not_request_a_destructive_workflow() {
         let facts = DeviceFacts {
             appsync_installed: Some(true),
+            appsync_last_observation: None,
             pairing_trusted: Some(true),
             ssh_available: Some(true),
             jailbroken: None,
@@ -307,12 +355,14 @@ mod tests {
         for facts in [
             DeviceFacts {
                 appsync_installed: Some(true),
+                appsync_last_observation: None,
                 jailbroken: Some(true),
                 ssh_available: Some(true),
                 pairing_trusted: None,
             },
             DeviceFacts {
                 appsync_installed: Some(true),
+                appsync_last_observation: None,
                 jailbroken: Some(true),
                 ssh_available: Some(false),
                 pairing_trusted: Some(true),

@@ -746,6 +746,7 @@ mod tests {
     fn ready() -> DeviceFacts {
         DeviceFacts {
             appsync_installed: Some(true),
+            appsync_last_observation: None,
             pairing_trusted: Some(true),
             jailbroken: Some(true),
             ssh_available: Some(true),
@@ -791,6 +792,7 @@ mod tests {
         device.build_number = Some("10B500".into());
         let stock = DeviceFacts {
             appsync_installed: Some(true),
+            appsync_last_observation: None,
             jailbroken: Some(false),
             ..ready()
         };

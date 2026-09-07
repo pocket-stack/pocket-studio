@@ -26,11 +26,40 @@ pub struct ProbeSnapshot {
 }
 
 pub type ProbeFuture<'a> = Pin<Box<dyn Future<Output = ProbeSnapshot> + Send + 'a>>;
+pub type AppSyncCheckFuture<'a> =
+    Pin<Box<dyn Future<Output = Result<(), AppSyncCheckError>> + Send + 'a>>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum AppSyncCheckError {
+    #[error("device changed or disconnected")]
+    DeviceChanged,
+    #[error("device access is busy")]
+    Busy,
+    #[error("device SSH password was rejected")]
+    Authentication,
+    #[error("could not read AppSync status")]
+    Unavailable,
+}
+impl AppSyncCheckError {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::DeviceChanged => "deviceChanged",
+            Self::Busy => "operationBusy",
+            Self::Authentication => "sshAuthenticationFailed",
+            Self::Unavailable => "appSyncCheckUnavailable",
+        }
+    }
+}
 
 /// Implementations may enumerate and read; they must never pair, change USB
 /// mode, install, or authenticate to a privileged shell as part of a scan.
 pub trait DeviceProbe: Send + Sync {
     fn scan(&self) -> ProbeFuture<'_>;
+    /// Explicit user-requested authentication for a read-only package check.
+    /// This must never be called implicitly by discovery or install a package.
+    fn check_appsync(&self, _device_id: String, _password: String) -> AppSyncCheckFuture<'_> {
+        Box::pin(async { Err(AppSyncCheckError::Unavailable) })
+    }
 }
 
 #[derive(Default)]
@@ -49,6 +78,19 @@ pub struct DeviceDiscovery {
 }
 
 impl DeviceDiscovery {
+    pub async fn check_appsync(
+        &self,
+        device_id: String,
+        password: String,
+    ) -> Result<(), AppSyncCheckError> {
+        let _scan = self.scan_lock.lock().await;
+        tokio::time::timeout(
+            Duration::from_secs(60),
+            self.probe.check_appsync(device_id, password),
+        )
+        .await
+        .map_err(|_| AppSyncCheckError::Unavailable)?
+    }
     pub fn new(
         probe: Arc<dyn DeviceProbe>,
         sink: Arc<dyn EventSink>,
@@ -208,7 +250,7 @@ mod tests {
                     "id": "session-a", "platform": "ios", "modelIdentifier": "iPod4,1",
                     "marketingName": "iPod touch 4", "osVersion": "6.1.6", "mode": "normal", "transport": "usb"
                 })).unwrap(),
-                facts: DeviceFacts { appsync_installed: Some(true), jailbroken: Some(true), pairing_trusted: Some(true), ssh_available: Some(true) },
+                facts: DeviceFacts { appsync_last_observation: None, appsync_installed: Some(true), jailbroken: Some(true), pairing_trusted: Some(true), ssh_available: Some(true) },
             }], issues: vec![],
         }
     }

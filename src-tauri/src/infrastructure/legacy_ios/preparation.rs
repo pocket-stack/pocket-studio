@@ -460,7 +460,20 @@ impl Target {
                         .insert(format!("udid:{udid}"), session.clone());
                 }
             }
-            StepId::InstallAppSync => self.appsync_setup.install().await?,
+            StepId::InstallAppSync => {
+                self.appsync_setup.install().await?;
+                let udid = self
+                    .returned_udid
+                    .as_ref()
+                    .or(match &self.entry {
+                        EntryPoint::Normal(udid) => Some(udid),
+                        _ => None,
+                    })
+                    .ok_or(failure(OperationErrorCode::DeviceDisconnected))?;
+                self.probe
+                    .appsync_observations
+                    .observe(&format!("udid:{udid}"), Some(true));
+            }
             StepId::ActivateAppSync => self.appsync_setup.activate().await?,
             StepId::VerifyAppSync => {
                 let session = self.appsync_setup.verify().await?;

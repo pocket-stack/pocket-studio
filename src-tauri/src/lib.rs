@@ -53,7 +53,11 @@ pub fn run() -> anyhow::Result<()> {
         .setup(|app| {
             let sink = Arc::new(TauriSink(app.handle().clone()));
             let log = Arc::new(OperationLog::new(sink.clone()));
-            let probe = Arc::new(LegacyIosProbe::default());
+            let environment_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&environment_dir)?;
+            let probe = Arc::new(LegacyIosProbe::with_observation_path(
+                &environment_dir.join("environment.sqlite"),
+            )?);
             let discovery = Arc::new(DeviceDiscovery::new(
                 probe.clone(),
                 sink.clone(),
@@ -117,6 +121,7 @@ pub fn run() -> anyhow::Result<()> {
         .invoke_handler(tauri::generate_handler![
             commands::list_devices,
             commands::check_readiness,
+            commands::check_appsync,
             commands::plan_preparation,
             commands::start_preparation,
             commands::list_catalog,

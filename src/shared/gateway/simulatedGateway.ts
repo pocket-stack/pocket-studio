@@ -505,6 +505,9 @@ export function createSimulatedGateway(): StudioGateway {
       installed: true,
     },
     devices: {
+      async checkAppSync(deviceId) {
+        return readiness(requireDevice(deviceId));
+      },
       async list() {
         return {
           revision: 0,

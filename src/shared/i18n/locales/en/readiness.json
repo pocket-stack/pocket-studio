@@ -86,7 +86,7 @@
         "pass": "AppSync is installed. If an IPA signature is still rejected, check plugin loading and signing compatibility.",
         "fail": "AppSync is missing. Prepare application installation support first.",
         "warn": "AppSync installation needs attention.",
-        "unknown": "AppSync could not be inspected. Unknown does not mean missing; the preparation flow can inspect and provision it over SSH."
+        "unknown": "Package records are currently unreadable; this does not mean AppSync is absent. Choose Verify AppSync for a read-only check."
       }
     },
     "guidance": {
@@ -99,6 +99,23 @@
         "action": "Start jailbreak preparation"
       },
       "ready": "Core requirements are met. You can browse the app store."
+    },
+    "appSyncCheck": {
+      "title": "Verify AppSync installation",
+      "action": "Verify AppSync",
+      "checking": "Reading device…",
+      "body": "Read the device package records over USB SSH. This check does not install software, reload services or restart the device.",
+      "unknownExplanation": "There is no available connection to read current package records. Use Verify AppSync for a read-only check; reinstalling is unnecessary.",
+      "previousInstalled": "Confirmed installed at {time}. Current records are unavailable; verify to refresh.",
+      "previousMissing": "No installed record was found at {time}. Current records are unavailable; verify to refresh.",
+      "lastInstalled": "Previously installed · unconfirmed",
+      "lastMissing": "Previously absent · unconfirmed",
+      "errors": {
+        "sshAuthenticationFailed": "The SSH password was rejected. Enter it again.",
+        "deviceChanged": "The device disconnected or changed. Select it again.",
+        "operationBusy": "The device is busy. Verify after the operation finishes.",
+        "appSyncCheckUnavailable": "Package records could not be read. Status remains unconfirmed; check USB and device SSH access."
+      }
     }
   }
 }

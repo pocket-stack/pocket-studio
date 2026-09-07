@@ -47,11 +47,19 @@ pub struct DeviceSummary {
     pub transport: Transport,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppSyncObservation {
+    pub installed: bool,
+    pub observed_at: u64,
+}
+
 /// Facts about the device that only a read-only probe can reveal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DeviceFacts {
     pub jailbroken: Option<bool>,
     pub appsync_installed: Option<bool>,
+    pub appsync_last_observation: Option<AppSyncObservation>,
     pub ssh_available: Option<bool>,
     pub pairing_trusted: Option<bool>,
 }

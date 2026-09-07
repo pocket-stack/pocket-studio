@@ -6,6 +6,7 @@ import {
   demoCatalog,
 } from "../../../shared/gateway/fixtures";
 import type { ReadinessReport } from "../../../shared/gateway";
+import AppSyncCheckDialog from "../../device/AppSyncCheckDialog.vue";
 import ReadinessPanel from "../../device/ReadinessPanel.vue";
 import PackageDetail from "../../store/PackageDetail.vue";
 import OverviewStep from "./OverviewStep.vue";
@@ -19,8 +20,15 @@ const gateway = vi.hoisted(() => ({
   capabilities: { demo: false, preparation: true, packages: true },
   demo: { setDeviceMode: vi.fn() },
   operations: { onEvent: () => () => {} },
+  devices: { checkAppSync: vi.fn().mockResolvedValue({}) },
+  preparation: { start: vi.fn() },
 }));
-vi.mock("../../../shared/gateway", () => ({ useGateway: () => gateway }));
+vi.mock("../../../shared/gateway", () => ({
+  useGateway: () => gateway,
+  GatewayError: class extends Error {
+    code = "appSyncCheckUnavailable";
+  },
+}));
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
@@ -336,7 +344,7 @@ it.each([
   },
 );
 
-it("offers AppSync preparation on an already jailbroken device with unknown AppSync status", () => {
+it("offers a read-only check instead of installation when AppSync status is unknown", () => {
   const root = mount(ReadinessPanel, {
     device: demoDevice,
     checking: false,
@@ -348,10 +356,12 @@ it("offers AppSync preparation on an already jailbroken device with unknown AppS
       checks: [
         { id: "jailbroken", status: "pass" },
         { id: "appSyncInstalled", status: "unknown" },
+        { id: "sshAvailable", status: "pass" },
       ],
     },
   });
-  expect(button(root, "preparation.appSync.action")).toBeDefined();
+  expect(button(root, "readiness.appSyncCheck.action")).toBeDefined();
+  expect(button(root, "preparation.appSync.action")).toBeUndefined();
   expect(button(root, "preparation.reviewPlan")).toBeUndefined();
 });
 
@@ -414,4 +424,56 @@ it("prominently asks for a manual reboot after activation failure without offeri
   click(button(root, "preparation.appSync.recheckAfterRestart"));
   expect(recheck).toHaveBeenCalledOnce();
   expect(retry).not.toHaveBeenCalled();
+});
+
+it("keeps a previous installation visibly separate from current verification", () => {
+  const root = mount(ReadinessPanel, {
+    device: demoDevice,
+    checking: false,
+    report: {
+      deviceId: demoDevice.id,
+      status: "needsAttention",
+      requiredWorkflow: "appSync",
+      checkedAt: 2,
+      checks: [
+        {
+          id: "appSyncInstalled",
+          status: "warn",
+          previousObservation: { installed: true, observedAt: 1 },
+        },
+        { id: "sshAvailable", status: "pass" },
+      ],
+    },
+  });
+  expect(text(root)).toContain("readiness.appSyncCheck.lastInstalled");
+  expect(text(root)).toContain("readiness.appSyncCheck.previousInstalled");
+  expect(text(root)).not.toContain("readiness.checks.appSyncInstalled.fail");
+  expect(button(root, "preparation.appSync.action")).toBeUndefined();
+});
+
+it("only authenticates and reads AppSync after an explicit verification submit", async () => {
+  gateway.devices.checkAppSync.mockClear();
+  const checked = vi.fn();
+  const root = mount(AppSyncCheckDialog, {
+    open: true,
+    deviceId: "selected-device",
+    onChecked: checked,
+  });
+  expect(gateway.devices.checkAppSync).not.toHaveBeenCalled();
+  const input = find(root, (n) => n.tag === "input")[0]!;
+  (input.props.onInput as (event: unknown) => void)({
+    target: { value: "test-password" },
+  });
+  const form = find(root, (n) => n.tag === "form")[0]!;
+  await (form.props.onSubmit as (event: unknown) => Promise<void>)({
+    preventDefault() {},
+  });
+  await nextTick();
+  expect(gateway.devices.checkAppSync).toHaveBeenCalledExactlyOnceWith(
+    "selected-device",
+    "test-password",
+  );
+  expect(checked).toHaveBeenCalledOnce();
+  expect(input.props.value).toBe("");
+  expect(gateway.preparation.start).not.toHaveBeenCalled();
 });
