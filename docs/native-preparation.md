@@ -44,7 +44,7 @@ macOS、Linux、Windows 都使用已有系统 usbmux 与共享 Rust USB / SSH �
 
 已完成 macOS 正常模式及 DFU 真机只读检测与方案预检，以及真实固件下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包校验。自动测试覆盖授权时序与重放、并发互斥、取消边界、失败终止、事件字段、资源损坏及 HFS 目录链接兼容。
 
-旧版 limera1n 执行曾在 USB 控制传输阶段失败，后续只读 GETSTATE 也观察到 IOKit `0xe0004051` 事务超时。此前紧凑 A4 流程已观察到真机 PWND 标记，随后 ramdisk 上传停在 DFU 状态 8；本次修复后仍需完成库集成后的完整引导、越狱写入和重启验收。三平台的真实写入均不应被视为硬件验证通过。后续验收需要用户在桌面应用亲自确认备份与风险、启动操作并按引导进入 DFU。
+旧版 limera1n 执行曾在 USB 控制传输阶段失败，后续只读 GETSTATE 也观察到 IOKit `0xe0004051` 事务超时。此前紧凑 A4 流程已观察到真机 PWND 标记，随后 ramdisk 上传停在 DFU 状态 8；经过后续引导及 HFS 修复，macOS 真机的临时引导、USB SSH 和只读系统核验已经通过；越狱写入和重启验收仍未执行。三平台的真实写入均不应被视为硬件验证通过。后续验收需要用户在桌面应用亲自确认备份与风险、启动操作并按引导进入 DFU。
 
 以下诊断工具位于 Git 忽略的 `src-tauri/examples/`，不随仓库分发；仅在本机保留对应文件时可运行。只验证电脑上的资源步骤：
 
@@ -80,11 +80,19 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices -- --pla
 
 ## IMG3 引导镜像的原版对照
 
-2026-09-07 的真机重试已通过 iBSS 上传和 USB 复位，但设备没有重新枚举，未进入 SSH 或安装步骤。使用本地 Legacy-iOS-Kit 的 `xpwntool` 与 `iBoot32Patcher` 仅在电脑上对照相同输入，定位到两个库问题：
+2026-09-07 的早期真机重试通过 iBSS 上传和 USB 复位后，设备没有重新枚举，未进入 SSH 或安装步骤。使用本地 Legacy-iOS-Kit 的 `xpwntool` 与 `iBoot32Patcher` 仅在电脑上对照相同输入，定位到两个库问题：
 
 - `decrypt_img3_payload` 保留了 KBAG，加密标记与明文 DATA 同时存在。现与 `xpwntool -decrypt` 一样移除全部 KBAG，并更新容器长度和 SHSH 偏移，保留其他元素及填充。
 - `debug-enabled` 的 Thumb 补丁字节序错误，现写入两个正确的 `MOVS R0, #1` 指令。
 
 修正后，iBSS 与 iBEC 的解密 IMG3、原始载荷、修补载荷和最终 IMG3 均与原版逐字节一致。原版可执行文件仅用于离线对照，应用仍只运行 Rust 实现。
 
-同次诊断验证了 DFU 状态 8 经 ABORT 返回状态 2。库在显式的新镜像上传前执行这一清理并重新读取状态；只在确实返回空闲后上传新内容，不执行旧缓冲区中的镜像。状态清理与镜像封装均有回归测试。完整引导与 SSH 验收仍需后续真机重试。
+同次诊断验证了 DFU 状态 8 经 ABORT 返回状态 2。库在显式的新镜像上传前执行这一清理并重新读取状态；只在确实返回空闲后上传新内容，不执行旧缓冲区中的镜像。状态清理与镜像封装均有回归测试。后续已完成引导与 SSH 验收，结果见下节。
+
+## ramdisk 启动与文件系统校验进展
+
+修复 HFS 之前的真机尝试已通过 A4 PWND 验证、iBSS 和 iBEC，进入 Recovery。A4 的 `getenv ramdisk-delay` 返回 STALL，而 `ramdisk` 激活正常；库现仅对原版注明需要该查询的 S5L8900 发送它，其他必要命令的错误继续保留。从当前 Recovery 继续后，ramdisk、设备树和内核已上传，全部引导命令完成，但 100 秒内没有 USB SSH，未挂载或修改设备磁盘。设备之后返回正常 iOS 6.1.6 / 10B500。
+
+对完整生成镜像执行电脑上的只读 `fsck_hfs`，发现并在本地库修正了三个 HFS 问题：新建目录记录缺少末尾字段（应为 88 字节）、覆盖文件后遗留孤立的扩展属性、32,000,000 字节卷的备份头未放在实际卷尾前 1024 字节。修正后的完整 ramdisk 已通过目录树、目录层级、扩展属性、空间位图和卷头检查，`fsck_hfs -fn` 返回 0。检查只附加电脑上的临时镜像为只读且不挂载文件系统，随后解除附加；应用执行链不依赖此工具。
+
+iBSS、iBEC、设备树和内核与本地原版工具的对应输出一致。完成 HFS 修复后，从新的 DFU 状态使用 Studio 同一原生准备适配器进行真机验收：A4 PWND、iBSS / iBEC、ramdisk 引导、USB SSH、随机会话标记、只读挂载和磁盘中的 6.1.6 / 10B500 核验全部通过。`retry_ramdisk --boot-and-check-readonly` 输出 `PASS MountFilesystem` 并正常退出。该验收没有执行 InstallUntether 或重启后的越狱验证；设备留在临时 ramdisk，系统分区只读。

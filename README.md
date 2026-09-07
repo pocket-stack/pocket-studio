@@ -41,7 +41,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices
 - DFU 与启动过程按 ECID 匹配，ramdisk SSH 按ECID 对应的 USB 端口和本次构建的随机标记核对，不会选择列表中的第一台设备。设备切换模式时，执行界面保持显示。
 - OpenSSH 会被安装并启用，风险页和成功页会提醒修改 root / mobile 默认密码。不会在发现阶段登录 SSH。
 
-已验证：macOS 正常模式真机只读预检（iPod4,1 / 6.1.6 / 10B500、电量 100%、已有配对）、DFU 真机型号识别及直接生成准备方案，以及真实 Apple 固件的下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。之前的紧凑 A4 流程已观察到真机 PWND 标记；后续 ramdisk 上传在 USB 复位时失败。A4 流程、释放接口后复位和 HFS 归档兼容现已移入本地库。**此次库迁移后的完整引导、越狱写入与重启验收仍待真机验证**；macOS/Linux/Windows 的实际写入路径均需后续硬件验证。
+已验证：macOS 正常模式及 DFU 真机识别、真实 Apple 固件校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。使用本地库的原生适配器已从新的 DFU 状态通过 A4 PWND 验证、iBSS / iBEC、ramdisk 引导、USB SSH、随机会话标记及磁盘中 iOS 6.1.6 / 10B500 的只读核验；完整 ramdisk 也通过电脑上的只读文件系统检查。USB 复位、A4、引导兼容及 HFS 修复均位于本地库。**越狱包安装和重启后的验收仍待真机验证**；Linux/Windows 的完整硬件流程也未验收。
 
 本机保留 `prepare_resources.rs` 诊断工具时，可以单独验证资源步骤（不连接设备）：
 
