@@ -3369,6 +3369,7 @@ dependencies = [
  "legacy-ios-core",
  "plist",
  "reqwest 0.12.15",
+ "rsa 0.9.7",
  "serde",
  "serde_json",
  "sha1 0.10.6",
@@ -3378,6 +3379,7 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+ "x509-cert",
  "zip",
 ]
 
@@ -3487,8 +3489,12 @@ dependencies = [
  "legacy-ios-services",
  "legacy-ios-transport",
  "plist",
+ "reqwest 0.12.15",
  "serde",
+ "serde_json",
+ "sha1 0.10.6",
  "sha2 0.10.9",
+ "tempfile",
  "thiserror 2.0.20",
  "tokio",
  "tracing",
