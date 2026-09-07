@@ -8,8 +8,8 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::application::store::CatalogSnapshot;
 use crate::application::{EventSink, Studio, StudioError};
-use crate::domain::catalog::InstalledPackage;
 use crate::domain::device::{DeviceEvent, DiscoverySnapshot};
+use crate::domain::installed::InstalledSnapshot;
 use crate::domain::log::LogEntry;
 use crate::domain::operation::{OperationEvent, OperationHandle};
 use crate::domain::preparation::{ConsentRecord, PreparationPlan};
@@ -129,9 +129,13 @@ pub async fn store_media(state: State<'_, AppState>, sha256: String) -> CommandR
 pub async fn list_installed(
     state: State<'_, AppState>,
     device_id: String,
-) -> CommandResult<Vec<InstalledPackage>> {
-    let _ = device_id;
-    state.studio.unavailable_operation().map_err(Into::into)
+) -> CommandResult<InstalledSnapshot> {
+    state
+        .studio
+        .installed
+        .snapshot(&device_id)
+        .await
+        .map_err(|error| StudioError::from(error).into())
 }
 
 #[tauri::command]

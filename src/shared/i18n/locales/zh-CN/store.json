@@ -168,6 +168,20 @@
     },
     "platform": {
       "ios": "iOS"
+    },
+    "installed": {
+      "refresh": "刷新设备应用",
+      "count": "{count} 个商店应用",
+      "readFailed": "无法读取设备应用。有历史记录时会继续显示；这不代表设备中没有安装应用。",
+      "observed": "最近观察时间：{time}",
+      "loading": "正在读取设备应用…",
+      "unavailable": "安装状态暂不可用",
+      "packageSize": "下载大小",
+      "revision": "商店修订",
+      "unknownRevision": "未识别的构建",
+      "unknownVersion": "版本未知",
+      "build": "构建号 {value}",
+      "notice": "包括通过其他途径安装、但原生身份匹配的应用。下载大小不代表设备上的实际占用。"
     }
   }
 }

@@ -3,6 +3,7 @@
 
 pub mod catalog;
 pub mod device;
+pub mod installed;
 pub mod log;
 pub mod operation;
 pub mod preparation;

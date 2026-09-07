@@ -67,6 +67,7 @@ export function createTauriGateway(): StudioGateway {
       preparation: true,
       catalog: true,
       packages: false,
+      installed: true,
     },
     devices: {
       list: () => call("list_devices"),

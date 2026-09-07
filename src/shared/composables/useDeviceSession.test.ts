@@ -44,6 +44,7 @@ function fixture() {
       preparation: false,
       catalog: false,
       packages: false,
+      installed: false,
     },
     devices: { list, onEvent: subscribe, checkReadiness: vi.fn() },
   };

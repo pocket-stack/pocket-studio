@@ -168,6 +168,20 @@
     },
     "platform": {
       "ios": "iOS"
+    },
+    "installed": {
+      "refresh": "Refresh device apps",
+      "count": "{count} store applications",
+      "readFailed": "Device applications could not be read. Previously observed records are shown when available; this does not mean the device is empty.",
+      "observed": "Last observed: {time}",
+      "loading": "Reading device applications…",
+      "unavailable": "Installation state is unavailable",
+      "packageSize": "Download size",
+      "revision": "Store revision",
+      "unknownRevision": "Unrecognized build",
+      "unknownVersion": "Unknown version",
+      "build": "Build {value}",
+      "notice": "Includes applications installed outside the store when their native identity matches. Download size is not the installed storage footprint."
     }
   }
 }

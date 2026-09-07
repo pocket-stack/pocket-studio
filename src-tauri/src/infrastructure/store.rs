@@ -1,5 +1,6 @@
 //! HTTP and disk implementations of the static catalog port. Cloud credentials
 //! are never accepted here; the only configured key material is public.
+mod installed;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -86,6 +87,7 @@ impl StoreCache {
             .map_err(|_| StoreError::Storage)?;
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
             CREATE TABLE IF NOT EXISTS catalog_cache(repository_id TEXT PRIMARY KEY,base_url TEXT NOT NULL,pointer_json TEXT NOT NULL,catalog_bytes BLOB NOT NULL,etag TEXT,sequence INTEGER NOT NULL,checked_at INTEGER NOT NULL,catalog_digest TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS installed_observations(device_key TEXT NOT NULL,repository_id TEXT NOT NULL,observation_json TEXT NOT NULL,PRIMARY KEY(device_key,repository_id));
             CREATE TABLE IF NOT EXISTS downloads(sha256 TEXT PRIMARY KEY,expected_size INTEGER NOT NULL,etag TEXT,downloaded_bytes INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL,updated_at INTEGER NOT NULL);").map_err(|_|StoreError::Storage)?;
         Ok(Self {
             root,

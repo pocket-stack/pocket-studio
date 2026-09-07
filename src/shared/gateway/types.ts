@@ -298,7 +298,25 @@ export interface CatalogEntry {
 export interface InstalledPackage {
   packageId: string;
   version: string;
-  installedAt: number;
+  installedAt: number | null;
+  native?: {
+    bundleId: string;
+    productVersion: string | null;
+    buildNumber: string | null;
+    applicationType: string | null;
+    receiptBuildId: string | null;
+  } | null;
+  releaseId?: string | null;
+  artifactId?: string | null;
+  revision?: number | null;
+}
+
+export interface InstalledSnapshot {
+  deviceId: string;
+  entries: InstalledPackage[];
+  state: "fresh" | "stale" | "unavailable";
+  observedAt: number | null;
+  issue: string | null;
 }
 
 export type LogLevel = "error" | "warn" | "info" | "debug";
@@ -347,6 +365,7 @@ export interface StudioGateway {
     preparation: boolean;
     catalog: boolean;
     packages: boolean;
+    installed: boolean;
   };
   devices: {
     list(): Promise<DiscoverySnapshot>;
@@ -362,7 +381,7 @@ export interface StudioGateway {
   store: {
     catalog(deviceId?: string, refresh?: boolean): Promise<CatalogSnapshot>;
     media(sha256: string): Promise<string>;
-    installed(deviceId: string): Promise<InstalledPackage[]>;
+    installed(deviceId: string): Promise<InstalledSnapshot>;
     uninstall(deviceId: string, packageId: string): Promise<void>;
     install(deviceId: string, packageId: string): Promise<OperationHandle>;
   };

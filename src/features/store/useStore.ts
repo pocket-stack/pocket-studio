@@ -14,6 +14,7 @@ import {
   type CatalogEntry,
   type CatalogSnapshot,
   type InstalledPackage,
+  type InstalledSnapshot,
   type PackageCategory,
 } from "../../shared/gateway";
 import {
@@ -25,6 +26,8 @@ import { packageText } from "./packageContent";
 const catalog = ref<CatalogEntry[]>([]);
 const snapshot = ref<CatalogSnapshot | null>(null);
 const installed = ref<InstalledPackage[]>([]);
+const installedSnapshot = ref<InstalledSnapshot | null>(null);
+const installedLoading = ref(false);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
 const installedIssue = ref<string | null>(null);
@@ -54,20 +57,36 @@ async function refreshInstalled(): Promise<void> {
   const current = device.value;
   if (installedDeviceId !== (current?.id ?? null)) {
     installed.value = [];
+    installedSnapshot.value = null;
     installedDeviceId = current?.id ?? null;
   }
   installedIssue.value = null;
-  if (!current || !useGateway().capabilities.packages) {
+  if (!current || !useGateway().capabilities.installed) {
+    installedLoading.value = false;
     installed.value = [];
     return;
   }
   try {
+    installedLoading.value = true;
     const result = await useGateway().store.installed(current.id);
-    if (request === installedRequest) installed.value = result;
+    if (request === installedRequest && result.deviceId === current.id) {
+      installed.value = result.entries;
+      installedSnapshot.value = result;
+      installedIssue.value = result.issue;
+    }
   } catch (error) {
-    if (request === installedRequest)
+    if (request === installedRequest) {
       installedIssue.value =
         error instanceof GatewayError ? error.code : "unknown";
+      if (installedSnapshot.value)
+        installedSnapshot.value = {
+          ...installedSnapshot.value,
+          state: "stale",
+          issue: installedIssue.value,
+        };
+    }
+  } finally {
+    if (request === installedRequest) installedLoading.value = false;
   }
 }
 
@@ -264,6 +283,9 @@ export function useStore() {
     catalog: readonly(catalog),
     snapshot: readonly(snapshot),
     installed: readonly(installed),
+    installedSnapshot: readonly(installedSnapshot),
+    installedLoading: readonly(installedLoading),
+    refreshInstalled,
     queuedIds: readonly(queuedIds),
     loading: readonly(loading),
     loadError: readonly(loadError),

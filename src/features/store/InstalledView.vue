@@ -21,8 +21,13 @@ const { device, isReady } = useDeviceSession();
 const sort = ref("name");
 const removingId = ref<string | null>(null);
 const installed = computed(() =>
-  store.allPackages.value
-    .filter((item) => item.installed)
+  store.installed.value
+    .flatMap((record) => {
+      const item = store.allPackages.value.find(
+        (item) => item.entry.id === record.packageId,
+      );
+      return item ? [{ ...item, installed: record }] : [];
+    })
     .sort((a, b) =>
       sort.value === "recent"
         ? (b.installed?.installedAt ?? 0) - (a.installed?.installedAt ?? 0)
@@ -38,13 +43,10 @@ const tasks = computed(() =>
       (item.operation && item.operation.status !== "finished"),
   ),
 );
-const totalSize = computed(() =>
-  installed.value.reduce((sum, item) => sum + item.entry.sizeBytes, 0),
-);
 </script>
 <template>
   <section
-    v-if="!gateway.capabilities.packages"
+    v-if="!gateway.capabilities.installed"
     class="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center"
   >
     <IconStudioGrid width="32" height="32" class="text-muted" />
@@ -58,6 +60,13 @@ const totalSize = computed(() =>
     class="mx-auto min-h-full max-w-[1360px] motion-safe:animate-rise"
   >
     <header class="flex items-center gap-5 mb-[15px] justify-end">
+      <button
+        class="text-sm text-signal disabled:opacity-50"
+        :disabled="!device || store.installedLoading.value"
+        @click="store.refreshInstalled()"
+      >
+        {{ t("store.installed.refresh") }}
+      </button>
       <div class="hidden">
         <p class="text-[10px] tracking-[0.04em] text-muted">
           {{ t("studio.onDevice") }}
@@ -71,6 +80,23 @@ const totalSize = computed(() =>
         <IconStudioStore width="14" height="14" />{{ t("studio.browseStore") }}
       </button>
     </header>
+    <p
+      v-if="store.installedIssue.value"
+      role="status"
+      class="mb-4 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-warning"
+    >
+      {{ t("store.installed.readFailed") }}
+    </p>
+    <p
+      v-if="store.installedSnapshot.value?.observedAt"
+      class="mb-4 text-xs text-muted"
+    >
+      {{
+        t("store.installed.observed", {
+          time: d(store.installedSnapshot.value.observedAt, "date"),
+        })
+      }}
+    </p>
     <section
       v-if="tasks.length"
       class="mb-[26px] rounded-lg border border-line bg-surface px-5 py-4"
@@ -139,10 +165,7 @@ const totalSize = computed(() =>
           class="mb-[15px] flex items-center justify-between gap-[15px] text-[12px] text-muted"
         >
           <span>{{
-            t("studio.installedSummary", {
-              count: installed.length,
-              size: formatBytes(totalSize),
-            })
+            t("store.installed.count", { count: installed.length })
           }}</span
           ><label class="flex items-center gap-2"
             >{{ t("studio.sort")
@@ -151,7 +174,9 @@ const totalSize = computed(() =>
               class="rounded border border-line bg-surface px-2 py-1 text-ink"
             >
               <option value="name">{{ t("studio.sortName") }}</option>
-              <option value="recent">{{ t("studio.sortRecent") }}</option>
+              <option v-if="gateway.flavor === 'browser'" value="recent">
+                {{ t("studio.sortRecent") }}
+              </option>
             </select></label
           >
         </div>
@@ -164,13 +189,29 @@ const totalSize = computed(() =>
             ><IconStudioGrid width="35" height="35"
           /></span>
           <h2 class="text-[17px] font-medium">
-            {{ t(device ? "studio.noInstalledTitle" : "device.empty.title") }}
+            {{
+              t(
+                !device
+                  ? "device.empty.title"
+                  : store.installedLoading.value
+                    ? "store.installed.loading"
+                    : store.installedIssue.value
+                      ? "store.installed.unavailable"
+                      : "studio.noInstalledTitle",
+              )
+            }}
           </h2>
           <p
             class="max-w-[380px] text-center text-[12px] leading-[1.8] text-muted"
           >
             {{
-              t(device ? "studio.noInstalledBody" : "studio.noDeviceInstalled")
+              t(
+                !device
+                  ? "studio.noDeviceInstalled"
+                  : store.installedIssue.value
+                    ? "store.installed.readFailed"
+                    : "studio.noInstalledBody",
+              )
             }}
           </p>
           <button
@@ -198,12 +239,12 @@ const totalSize = computed(() =>
                 <th
                   class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
                 >
-                  {{ t("store.detail.size") }}
+                  {{ t("store.installed.packageSize") }}
                 </th>
                 <th
                   class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
                 >
-                  {{ t("studio.installedAt") }}
+                  {{ t("store.installed.revision") }}
                 </th>
                 <th
                   class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
@@ -213,7 +254,10 @@ const totalSize = computed(() =>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in installed" :key="item.entry.id">
+              <tr
+                v-for="item in installed"
+                :key="item.installed.native?.bundleId ?? item.entry.id"
+              >
                 <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
                   <button
                     class="flex items-center gap-3 text-left"
@@ -234,13 +278,28 @@ const totalSize = computed(() =>
                   </button>
                 </td>
                 <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
-                  {{ item.installed?.version }}
+                  {{
+                    item.installed?.version ||
+                    t("store.installed.unknownVersion")
+                  }}
+                  <small
+                    v-if="item.installed?.native?.buildNumber"
+                    class="block text-muted"
+                    >{{
+                      t("store.installed.build", {
+                        value: item.installed.native.buildNumber,
+                      })
+                    }}</small
+                  >
                 </td>
                 <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
                   {{ formatBytes(item.entry.sizeBytes) }}
                 </td>
                 <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
-                  {{ d(item.installed!.installedAt, "date") }}
+                  {{
+                    item.installed?.revision ??
+                    t("store.installed.unknownRevision")
+                  }}
                 </td>
                 <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
                   <button
@@ -250,7 +309,10 @@ const totalSize = computed(() =>
                     {{ t("studio.viewDetails") }}
                   </button>
                   <button
-                    v-if="item.installed?.version !== item.entry.version"
+                    v-if="
+                      gateway.capabilities.packages &&
+                      item.installed?.version !== item.entry.version
+                    "
                     class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
                     :disabled="
                       !!item.queuePosition ||
@@ -261,7 +323,10 @@ const totalSize = computed(() =>
                     {{ t("store.detail.update") }}
                   </button>
                   <button
-                    v-if="removingId !== item.entry.id"
+                    v-if="
+                      gateway.capabilities.packages &&
+                      removingId !== item.entry.id
+                    "
                     class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
                     :disabled="
                       !!active.length || !!store.queuedIds.value.length
@@ -270,7 +335,7 @@ const totalSize = computed(() =>
                   >
                     {{ t("studio.uninstall") }}
                   </button>
-                  <template v-else
+                  <template v-else-if="gateway.capabilities.packages"
                     ><button
                       class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-danger bg-transparent text-danger enabled:hover:bg-danger/10"
                       @click="
@@ -318,7 +383,7 @@ const totalSize = computed(() =>
               t("store.source.unconfigured"))
         }}</b>
         <p class="mt-[7px] text-[12px] text-muted">
-          {{ t("studio.installedNotice") }}
+          {{ t("store.installed.notice") }}
         </p>
       </aside>
     </div>

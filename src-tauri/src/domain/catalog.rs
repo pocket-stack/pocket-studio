@@ -68,5 +68,9 @@ pub struct CatalogDetails {
 pub struct InstalledPackage {
     pub package_id: String,
     pub version: String,
-    pub installed_at: u64,
+    pub installed_at: Option<u64>,
+    pub native: Option<super::installed::NativeApplication>,
+    pub release_id: Option<String>,
+    pub artifact_id: Option<String>,
+    pub revision: Option<u64>,
 }

@@ -170,13 +170,13 @@ describe("device simulation", () => {
         error: expect.objectContaining({ code: "checksumMismatch" }),
       }),
     );
-    expect(await gateway.store.installed(id)).toEqual([]);
+    expect((await gateway.store.installed(id)).entries).toEqual([]);
   });
   it("registers a successful installation and its version", async () => {
     const id = await connect();
     await gateway.store.install(id, "pocket-reader");
     await vi.advanceTimersByTimeAsync(12_000);
-    expect(await gateway.store.installed(id)).toEqual([
+    expect((await gateway.store.installed(id)).entries).toEqual([
       expect.objectContaining({ packageId: "pocket-reader", version: "1.2.0" }),
     ]);
   });
@@ -192,6 +192,6 @@ describe("device simulation", () => {
         error: expect.objectContaining({ code: "deviceDisconnected" }),
       }),
     );
-    expect(await gateway.store.installed(id)).toEqual([]);
+    expect((await gateway.store.installed(id)).entries).toEqual([]);
   });
 });

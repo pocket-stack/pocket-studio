@@ -62,7 +62,7 @@ pub fn run() -> anyhow::Result<()> {
             ));
             let preparation = Arc::new(PreparationService::new(
                 Arc::new(LegacyPreparationDriver::new(
-                    probe,
+                    probe.clone(),
                     app.path().app_cache_dir()?.join("preparation"),
                 )),
                 sink,
@@ -70,11 +70,22 @@ pub fn run() -> anyhow::Result<()> {
             ));
             let cache = Arc::new(StoreCache::open(app.path().app_cache_dir()?.join("store"))?);
             let catalog = Arc::new(StaticCatalogRepository::new(
-                cache,
+                cache.clone(),
                 SourceConfig::from_environment()?,
             )?);
+            let installed = Arc::new(application::installed::InstalledService::new(
+                Arc::new(infrastructure::legacy_ios::installed::LegacyInstalledReader::new(probe)),
+                cache,
+                catalog.clone(),
+            ));
             let store = Arc::new(StoreService::new(catalog, discovery.clone()));
-            let studio = Studio::new(discovery.clone(), preparation, store, log.clone());
+            let studio = Studio::new(
+                discovery.clone(),
+                preparation,
+                store,
+                installed,
+                log.clone(),
+            );
             app.manage(AppState {
                 studio: Arc::new(studio),
             });

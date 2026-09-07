@@ -1,6 +1,7 @@
 //! Read-only Legacy-iOS-Kit-rs adapter. Device handles and full identifiers never
 //! leave this module. A scan opens existing services but never pairs or writes.
 
+pub mod installed;
 mod platform;
 pub mod preparation;
 pub mod preparation_resources;

@@ -2,6 +2,7 @@
 //! This layer knows nothing about Tauri or any platform.
 
 pub mod discovery;
+pub mod installed;
 pub mod preparation;
 pub mod store;
 
@@ -84,6 +85,8 @@ impl OperationLog {
 #[derive(Debug, thiserror::Error)]
 pub enum StudioError {
     #[error(transparent)]
+    Installed(#[from] installed::InstalledError),
+    #[error(transparent)]
     Store(#[from] store::StoreError),
     #[error(transparent)]
     Preparation(#[from] preparation::PreparationError),
@@ -97,6 +100,7 @@ impl StudioError {
     pub fn code(&self) -> &'static str {
         match self {
             Self::Store(error) => error.code(),
+            Self::Installed(error) => error.code(),
             Self::Preparation(error) => error.code(),
             Self::DeviceNotFound => "deviceNotFound",
             Self::OperationUnavailable => "operationUnavailable",
@@ -110,6 +114,7 @@ pub struct Studio {
     pub discovery: Arc<discovery::DeviceDiscovery>,
     pub preparation: Arc<preparation::PreparationService>,
     pub store: Arc<store::StoreService>,
+    pub installed: Arc<installed::InstalledService>,
     log: Arc<OperationLog>,
 }
 
@@ -118,12 +123,14 @@ impl Studio {
         discovery: Arc<discovery::DeviceDiscovery>,
         preparation: Arc<preparation::PreparationService>,
         store: Arc<store::StoreService>,
+        installed: Arc<installed::InstalledService>,
         log: Arc<OperationLog>,
     ) -> Self {
         Self {
             discovery,
             preparation,
             store,
+            installed,
             log,
         }
     }

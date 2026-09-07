@@ -297,7 +297,7 @@ onMounted(() => void store.initialize());
         >
           {{ t("studio.installedApps")
           }}<span class="text-muted">{{
-            gateway.capabilities.packages ? store.installed.value.length : "—"
+            gateway.capabilities.installed ? store.installed.value.length : "—"
           }}</span>
         </button>
         <button

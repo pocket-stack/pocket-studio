@@ -496,6 +496,7 @@ export function createSimulatedGateway(): StudioGateway {
       preparation: true,
       catalog: true,
       packages: true,
+      installed: true,
     },
     devices: {
       async list() {
@@ -632,7 +633,13 @@ export function createSimulatedGateway(): StudioGateway {
       },
       async installed(deviceId) {
         requireDevice(deviceId);
-        return installed.slice();
+        return {
+          deviceId,
+          entries: installed.slice(),
+          state: "fresh",
+          observedAt: Date.now(),
+          issue: null,
+        };
       },
       async install(deviceId, packageId) {
         const current = requireDevice(deviceId);
