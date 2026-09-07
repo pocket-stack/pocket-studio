@@ -26,6 +26,9 @@ const emit = defineEmits<{
 const { t, tm } = useI18n();
 
 const error = computed(() => props.operation?.error);
+const needsRestart = computed(
+  () => error.value?.code === "appSyncRestartRequired",
+);
 const recoverySteps = computed(() => {
   const code = error.value?.code;
   if (!code) return [] as string[];
@@ -39,6 +42,7 @@ const canRecheck = computed(
   () =>
     [
       "appSyncInstallFailed",
+      "appSyncRestartRequired",
       "appSyncDependencies",
       "appSyncVerificationFailed",
       "sshAuthenticationFailed",
@@ -61,6 +65,7 @@ const canRecheck = computed(
       class="mx-auto my-5"
     />
     <section
+      :class="needsRestart ? 'border-warning! bg-warning/8!' : ''"
       class="flex items-start gap-4 p-6 rounded-lg border border-line bg-surface group-data-[outcome=success]/result:border-0 group-data-[outcome=success]/result:bg-transparent group-data-[outcome=success]/result:px-5 group-data-[outcome=success]/result:py-3"
     >
       <span
@@ -111,8 +116,15 @@ const canRecheck = computed(
             )
           }}</template>
         </p>
+        <div
+          v-if="needsRestart"
+          role="alert"
+          class="mt-5 rounded-lg border border-warning bg-warning/15 p-4 text-base font-semibold leading-7"
+        >
+          {{ t("preparation.appSync.restartInstructions") }}
+        </div>
         <p
-          v-if="outcome === 'failed' && failedStepId"
+          v-if="outcome === 'failed' && failedStepId && !needsRestart"
           class="mt-2 text-xs text-muted"
         >
           {{
@@ -137,7 +149,7 @@ const canRecheck = computed(
           }}
         </p>
         <div
-          v-if="recoverySteps.length"
+          v-if="recoverySteps.length && !needsRestart"
           class="mt-4 rounded-lg border border-line bg-raised p-4"
         >
           <p class="text-sm font-medium">
@@ -150,7 +162,9 @@ const canRecheck = computed(
           </ol>
         </div>
         <div
-          v-if="outcome === 'failed' && error && !error.recoverable"
+          v-if="
+            outcome === 'failed' && error && !error.recoverable && !needsRestart
+          "
           class="mt-3 flex items-start gap-2 text-xs"
           :class="canRecheck ? 'text-warning' : 'text-danger'"
         >
@@ -191,7 +205,13 @@ const canRecheck = computed(
           @click="emit('recheck')"
         >
           <IconStudioRefresh width="16" height="16" />
-          {{ t("preparation.result.recheck") }}
+          {{
+            t(
+              needsRestart
+                ? "preparation.appSync.recheckAfterRestart"
+                : "preparation.result.recheck",
+            )
+          }}
         </button>
         <button
           v-else-if="

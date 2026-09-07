@@ -10,7 +10,7 @@
         "detail": "Send the limera1n payload to the A4 chip to reach pwned DFU. Nothing is persisted."
       },
       "fetchResources": {
-        "title": "Download firmware components and payload",
+        "title": "Download and verify preparation resources",
         "detail": "Fetch iBSS, iBEC, kernel and ramdisk from the iOS 6.1.6 firmware and verify their digests."
       },
       "buildRamdisk": {
@@ -46,8 +46,8 @@
         "detail": "Verify transferred packages and dependencies, then install. This step cannot be cancelled."
       },
       "activateAppSync": {
-        "title": "Reload installation service",
-        "detail": "Restart the device installation service to load its plugins."
+        "title": "Activate app installation support",
+        "detail": "Restart the installation service only when system packages changed, so it can load the plugin. If reloading fails, a manual device restart is required."
       },
       "verifyAppSync": {
         "title": "Verify AppSync installation",

@@ -181,7 +181,7 @@ export const preparationFailureCodes: Record<
 > = {
   connectAppSync: { code: "sshAuthenticationFailed", recoverable: false },
   installAppSync: { code: "appSyncInstallFailed", recoverable: false },
-  activateAppSync: { code: "appSyncInstallFailed", recoverable: false },
+  activateAppSync: { code: "appSyncRestartRequired", recoverable: false },
   verifyAppSync: { code: "appSyncVerificationFailed", recoverable: false },
 
   enterDfu: { code: "dfuTimeout", recoverable: true, retryFrom: "enterDfu" },

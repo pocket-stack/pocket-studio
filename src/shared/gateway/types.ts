@@ -198,6 +198,7 @@ export type OperationErrorCode =
   | "checksumMismatch"
   | "transferFailed"
   | "appSyncInstallFailed"
+  | "appSyncRestartRequired"
   | "appSyncDependencies"
   | "appSyncVerificationFailed"
   | "sshAuthenticationFailed"

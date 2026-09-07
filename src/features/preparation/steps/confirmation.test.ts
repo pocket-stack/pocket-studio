@@ -384,3 +384,34 @@ it("shows the device signature diagnosis and links to preparation from a failed 
   click(button(root, "preparation.appSync.action"));
   expect(prepare).toHaveBeenCalledOnce();
 });
+
+it("prominently asks for a manual reboot after activation failure without offering reinstall", () => {
+  const recheck = vi.fn();
+  const retry = vi.fn();
+  const root = mount(ResultStep, {
+    outcome: "failed",
+    attempt: 1,
+    workflow: "appSync",
+    onRecheck: recheck,
+    onRetry: retry,
+    operation: {
+      id: "activation-pending",
+      kind: "preparation",
+      status: "failed",
+      startedAt: 1,
+      steps: [{ id: "activateAppSync", status: "failed", percent: 0 }],
+      error: { code: "appSyncRestartRequired", recoverable: false },
+    },
+  });
+  expect(text(root)).toContain(
+    "preparation.errors.appSyncRestartRequired.title",
+  );
+  expect(find(root, (node) => node.props.role === "alert").map(text)).toEqual([
+    "preparation.appSync.restartInstructions",
+  ]);
+  expect(button(root, "preparation.result.retry")).toBeUndefined();
+  expect(recheck).not.toHaveBeenCalled();
+  click(button(root, "preparation.appSync.recheckAfterRestart"));
+  expect(recheck).toHaveBeenCalledOnce();
+  expect(retry).not.toHaveBeenCalled();
+});

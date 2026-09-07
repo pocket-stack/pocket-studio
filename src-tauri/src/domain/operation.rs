@@ -87,6 +87,7 @@ pub enum OperationErrorCode {
     TransferFailed,
     InstallRejected,
     AppSyncInstallFailed,
+    AppSyncRestartRequired,
     AppSyncDependencies,
     AppSyncVerificationFailed,
     SshAuthenticationFailed,

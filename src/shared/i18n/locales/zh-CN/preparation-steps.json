@@ -10,7 +10,7 @@
         "detail": "向 A4 芯片发送 limera1n 载荷，使设备进入 pwned DFU 状态。不会持久化任何内容。"
       },
       "fetchResources": {
-        "title": "下载固件组件与越狱载荷",
+        "title": "下载并校验准备资源",
         "detail": "从 iOS 6.1.6 固件中获取 iBSS、iBEC、内核与 ramdisk，并校验摘要。"
       },
       "buildRamdisk": {
@@ -46,8 +46,8 @@
         "detail": "验证传输文件并预检依赖，再安装系统包。此阶段不可取消。"
       },
       "activateAppSync": {
-        "title": "重载安装服务",
-        "detail": "重新启动设备安装服务以加载插件。"
+        "title": "激活应用安装环境",
+        "detail": "仅在系统包发生变更时重新启动安装后台服务，使其加载插件；无法重载时需要手动重启设备。"
       },
       "verifyAppSync": {
         "title": "验证 AppSync 安装",

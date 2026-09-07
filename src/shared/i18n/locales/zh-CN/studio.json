@@ -226,7 +226,8 @@
       "running": "进行中",
       "pending": "等待",
       "failed": "失败",
-      "cancelled": "已取消"
+      "cancelled": "已取消",
+      "restartRequired": "待重启"
     },
     "navigateBack": "后退",
     "navigateForward": "前进",

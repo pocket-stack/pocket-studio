@@ -74,7 +74,11 @@ const groupedSteps = computed(() => {
             )
           : 0;
         const status = members.some((step) => step.status === "failed")
-          ? "failed"
+          ? group.key === "appSync" &&
+            preparation.operation.value?.error?.code ===
+              "appSyncRestartRequired"
+            ? "restartRequired"
+            : "failed"
           : members.some((step) => step.status === "cancelled")
             ? "cancelled"
             : members.length && members.every((step) => step.status === "done")
@@ -236,7 +240,7 @@ function openLogs(): void {
           v-for="(step, index) in groupedSteps"
           :key="step.key"
           :data-status="step.status"
-          class="group/flow-step flex items-start gap-2.5 border-b border-line px-1.5 py-3.5 text-[12px] data-[status=running]:rounded data-[status=running]:bg-track data-[status=pending]:text-muted data-[status=failed]:text-danger"
+          class="group/flow-step flex items-start gap-2.5 border-b border-line px-1.5 py-3.5 text-[12px] data-[status=running]:rounded data-[status=running]:bg-track data-[status=pending]:text-muted data-[status=failed]:text-danger data-[status=restartRequired]:text-warning"
         >
           <span
             class="grid h-[18px] w-4 place-items-center text-[10px] text-muted group-data-[status=done]/flow-step:text-success"
@@ -244,6 +248,11 @@ function openLogs(): void {
               v-if="step.status === 'done'"
               width="14"
               height="14"
+            /><IconStudioWarning
+              v-else-if="step.status === 'restartRequired'"
+              width="14"
+              height="14"
+              class="text-warning"
             /><IconStudioCross
               v-else-if="step.status === 'failed'"
               width="14"

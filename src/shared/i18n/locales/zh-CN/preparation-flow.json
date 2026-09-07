@@ -166,7 +166,7 @@
     "errors": {
       "appSyncInstallFailed": {
         "title": "AppSync 安装未完成",
-        "body": "系统包安装或服务重载失败。部分包可能已经安装，请重新检测设备环境。",
+        "body": "系统包安装未完成。部分包可能已经安装，请重新检测设备环境。",
         "recovery": ["重新检测设备并查看准备方案。"]
       },
       "appSyncDependencies": {
@@ -183,6 +183,11 @@
         "title": "SSH 认证失败",
         "body": "设备拒绝了 root SSH 密码，请重新查看准备方案并输入正确密码。",
         "recovery": ["重新检测设备并查看准备方案。"]
+      },
+      "appSyncRestartRequired": {
+        "title": "AppSync 已安装，请重启设备",
+        "body": "系统包已核验，但应用安装服务无法重新启动，插件是否生效尚未确认。",
+        "recovery": ["手动将设备关机后开机，回到主屏幕后重新检测。"]
       }
     },
     "startErrors": {
@@ -197,7 +202,7 @@
       "password": "设备 root SSH 密码",
       "passwordHint": "未修改过的默认密码通常为 alpine。密码仅用于这次 USB SSH 连接，不写入日志或磁盘。",
       "successTitle": "应用安装环境准备完成",
-      "successBody": "已确认 AppSync 安装记录，并重载安装服务。可以返回应用商店尝试安装；若签名仍被拒绝，请检查插件加载或 IPA 签名兼容性。",
+      "successBody": "已核对 AppSync 及依赖的安装记录。可以前往应用商店试装应用；若是首次安装且尚未重启，请先重启设备。",
       "disclaimerSections": [
         {
           "heading": "系统插件变更",
@@ -229,7 +234,9 @@
           "body": "AppSync 及依赖由社区维护，可能与设备上的其他插件冲突。安装记录验证通过也不代表插件一定已成功加载。",
           "mitigation": "先备份，遇到冲突时查看设备包管理器中的状态。"
         }
-      }
+      },
+      "restartInstructions": "请手动将设备关机后重新开机。回到主屏幕后，点击下方“已重启，重新检测”，再前往应用商店试装应用。",
+      "recheckAfterRestart": "已重启，重新检测"
     }
   }
 }

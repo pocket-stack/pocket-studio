@@ -226,7 +226,8 @@
       "running": "In progress",
       "pending": "Waiting",
       "failed": "Failed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "restartRequired": "Restart needed"
     },
     "navigateBack": "Back",
     "navigateForward": "Forward",

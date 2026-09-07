@@ -35,6 +35,7 @@ pub struct AppSyncSetup {
     assets: Vec<(PackageSpec, Vec<u8>)>,
     pub session: Option<Arc<RamdiskSsh>>,
     staging: Option<String>,
+    package_changes: Option<bool>,
 }
 impl AppSyncSetup {
     pub async fn fetch(&mut self, cache: &Path) -> Result<(), PreparationError> {
@@ -125,6 +126,16 @@ impl AppSyncSetup {
             .session
             .as_ref()
             .ok_or(failure(OperationErrorCode::SshUnavailable))?;
+        // An already prepared device needs only a read. Re-running launchctl
+        // after every check can fail even after a successful device reboot.
+        let existing = ssh
+            .execute(&verification_script(&specs()))
+            .await
+            .map_err(|_| failure(OperationErrorCode::AppSyncVerificationFailed))?;
+        if existing.success() {
+            self.package_changes = Some(false);
+            return Ok(());
+        }
         if self.assets.len() != specs().len() {
             return Err(failure(OperationErrorCode::DownloadFailed));
         }
@@ -165,21 +176,40 @@ impl AppSyncSetup {
                 OperationErrorCode::AppSyncInstallFailed
             }));
         }
+        let changed = match result.stdout() {
+            b"changed\n" => true,
+            b"unchanged\n" => false,
+            _ => return Err(failure(OperationErrorCode::AppSyncVerificationFailed)),
+        };
+        // A later activation failure may only say "installed" after verifying
+        // every package, rather than trusting dpkg's exit status alone.
+        if !ssh
+            .execute(&verification_script(&specs()))
+            .await
+            .is_ok_and(|output| output.success())
+        {
+            return Err(failure(OperationErrorCode::AppSyncVerificationFailed));
+        }
+        self.package_changes = Some(changed);
         Ok(())
     }
     pub async fn activate(&self) -> Result<(), PreparationError> {
+        match self.package_changes {
+            Some(false) => return Ok(()),
+            Some(true) => {}
+            None => return Err(failure(OperationErrorCode::AppSyncVerificationFailed)),
+        }
         let ssh = self
             .session
             .as_ref()
             .ok_or(failure(OperationErrorCode::SshUnavailable))?;
-        // This is also the service reloading mechanism used by AppSync's postinst.
-        if !ssh
-            .execute("/bin/launchctl stop com.apple.mobile.installd")
-            .await
-            .map_err(|_| failure(OperationErrorCode::AppSyncInstallFailed))?
-            .success()
-        {
-            return Err(failure(OperationErrorCode::AppSyncInstallFailed));
+        let result = ssh.execute(ACTIVATE_SCRIPT).await;
+        if !result.as_ref().is_ok_and(|output| output.success()) {
+            tracing::warn!(
+                exit_status = result.ok().and_then(|output| output.exit_status()),
+                "AppSync packages verified; installation service activation needs a manual restart"
+            );
+            return Err(failure(OperationErrorCode::AppSyncRestartRequired));
         }
         Ok(())
     }
@@ -204,6 +234,14 @@ impl AppSyncSetup {
         Ok(ssh.clone())
     }
 }
+// Match the supported rootful package's launchctl locations. Never guess a
+// launchd socket or change the host's service manager to work around failure.
+const ACTIVATE_SCRIPT: &str = r#"set -eu
+if test -x /bin/launchctl; then tool=/bin/launchctl
+elif test -x /sbin/launchctl; then tool=/sbin/launchctl
+else exit 75; fi
+"$tool" stop com.apple.mobile.installd
+"#;
 use legacy_ios_services::SshTarget;
 pub async fn host_key(udid: &Udid) -> Result<String, PreparationError> {
     timeout(
@@ -236,7 +274,7 @@ fn install_script(stage: &str, packages: &[PackageSpec]) -> String {
     for p in packages {
         script.push_str(&format!("version=$(dpkg-query -W -f='${{Version}}' '{id}' 2>/dev/null || true)\nstatus=$(dpkg-query -W -f='${{Status}}' '{id}' 2>/dev/null || true)\nif test \"$status\" = 'install ok installed' || test \"$status\" = 'hold ok installed'; then\n  if dpkg --compare-versions \"$version\" ge '{version}'; then :; else set -- \"$@\" '{stage}/{id}.deb'; fi\nelse\n  if test -n \"$version\" && dpkg --compare-versions \"$version\" gt '{version}'; then exit 71; fi\n  set -- \"$@\" '{stage}/{id}.deb'\nfi\n",id=p.package,version=p.version));
     }
-    script.push_str(&format!("if test \"$#\" -gt 0; then\n  dpkg --simulate --install \"$@\" >'{stage}/preflight.log' 2>&1 || exit 72\n  dpkg --install \"$@\" >'{stage}/install.log' 2>&1 || exit 73\nfi\n"));
+    script.push_str(&format!("if test \"$#\" -gt 0; then\n  dpkg --simulate --install \"$@\" >'{stage}/preflight.log' 2>&1 || exit 72\n  dpkg --install \"$@\" >'{stage}/install.log' 2>&1 || exit 73\n  printf 'changed\\n'\nelse\n  printf 'unchanged\\n'\nfi\n"));
     script
 }
 
@@ -252,13 +290,29 @@ fn verification_script(packages: &[PackageSpec]) -> String {
 mod tests {
     use super::*;
 
+    struct ScriptResult {
+        status: std::process::ExitStatus,
+        stdout: Vec<u8>,
+        stderr: Vec<u8>,
+        calls: Vec<u8>,
+    }
+
+    #[tokio::test]
+    async fn unchanged_packages_never_require_an_ssh_reload() {
+        let setup = AppSyncSetup {
+            package_changes: Some(false),
+            ..Default::default()
+        };
+        assert!(setup.session.is_none());
+        assert!(setup.activate().await.is_ok());
+        assert_eq!(
+            AppSyncSetup::default().activate().await,
+            Err(failure(OperationErrorCode::AppSyncVerificationFailed))
+        );
+    }
+
     // Only shell functions run here: neither host dpkg nor device I/O is used.
-    fn run_script(
-        script: &str,
-        status: &str,
-        version: &str,
-        preflight: &str,
-    ) -> std::process::Output {
+    fn run_script(script: &str, status: &str, version: &str, preflight: &str) -> ScriptResult {
         let mocks = r#"
 query_mock() {
     case "$2" in
@@ -291,9 +345,11 @@ dpkg() {
             .output()
             .unwrap();
         let calls = std::fs::read(dir.path().join("calls")).unwrap_or_default();
-        std::process::Output {
-            stdout: calls,
-            ..output
+        ScriptResult {
+            status: output.status,
+            stdout: output.stdout,
+            stderr: output.stderr,
+            calls,
         }
     }
 
@@ -310,10 +366,12 @@ dpkg() {
         let script = install_script(stage.path().to_str().unwrap(), &[package()]);
         let failure = run_script(&script, "", "", "1");
         assert_eq!(failure.status.code(), Some(72));
-        assert_eq!(failure.stdout, b"preflight\n");
+        assert_eq!(failure.calls, b"preflight\n");
+        assert!(failure.stdout.is_empty());
         let success = run_script(&script, "", "", "0");
         assert!(success.status.success(), "{:?}", success.stderr);
-        assert_eq!(success.stdout, b"preflight\ninstall\n");
+        assert_eq!(success.calls, b"preflight\ninstall\n");
+        assert_eq!(success.stdout, b"changed\n");
     }
 
     #[test]
@@ -323,14 +381,16 @@ dpkg() {
         for status in ["install ok installed", "hold ok installed"] {
             let result = run_script(&script, status, "3", "0");
             assert!(result.status.success());
-            assert!(result.stdout.is_empty());
+            assert!(result.calls.is_empty());
+            assert_eq!(result.stdout, b"unchanged\n");
         }
         let result = run_script(&script, "install ok unpacked", "3", "0");
         assert_eq!(result.status.code(), Some(71));
         assert!(result.stdout.is_empty());
         let result = run_script(&script, "install ok installed", "1", "0");
         assert!(result.status.success());
-        assert_eq!(result.stdout, b"preflight\ninstall\n");
+        assert_eq!(result.calls, b"preflight\ninstall\n");
+        assert_eq!(result.stdout, b"changed\n");
     }
 
     #[test]

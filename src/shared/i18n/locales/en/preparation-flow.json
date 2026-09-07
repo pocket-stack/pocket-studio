@@ -166,7 +166,7 @@
     "errors": {
       "appSyncInstallFailed": {
         "title": "AppSync preparation incomplete",
-        "body": "Package installation or service reload failed. Some packages may be installed; recheck the environment.",
+        "body": "System package installation did not finish. Some packages may already be installed; recheck the device environment.",
         "recovery": ["Recheck the device and review a new preparation plan."]
       },
       "appSyncDependencies": {
@@ -183,6 +183,13 @@
         "title": "SSH authentication failed",
         "body": "The device rejected the root password. Review a new plan and enter the correct password.",
         "recovery": ["Recheck the device and review a new preparation plan."]
+      },
+      "appSyncRestartRequired": {
+        "title": "AppSync is installed. Restart your device.",
+        "body": "System packages are verified, but the app installation service could not be restarted. Plugin activation is not yet confirmed.",
+        "recovery": [
+          "Power the device off and on, then recheck after it returns to the Home screen."
+        ]
       }
     },
     "startErrors": {
@@ -197,7 +204,7 @@
       "password": "Device root SSH password",
       "passwordHint": "The unchanged default password is usually alpine. It is used only for this USB SSH connection and is not written to logs or disk.",
       "successTitle": "Application installation support prepared",
-      "successBody": "AppSync installation is verified and the installation service was reloaded. You can try the app store; continued signature rejection requires checking plugin loading or IPA compatibility.",
+      "successBody": "AppSync and its dependencies have verified installation records. Try installing an app from the store; if this is the first installation and you have not restarted yet, restart the device first.",
       "disclaimerSections": [
         {
           "heading": "System package changes",
@@ -229,7 +236,9 @@
           "body": "AppSync and its dependencies are community maintained and may conflict with other plugins. Verified package records do not prove successful plugin loading.",
           "mitigation": "Back up first and inspect the device package manager if conflicts occur."
         }
-      }
+      },
+      "restartInstructions": "Manually power your device off and on. Once the Home screen appears, choose “I restarted — recheck”, then try installing an app from the store.",
+      "recheckAfterRestart": "I restarted — recheck"
     }
   }
 }

@@ -241,9 +241,8 @@ impl PreparationTarget for Target {
                         StepId::RebootDevice => OperationErrorCode::RebootTimeout,
                         StepId::VerifyJailbreak => OperationErrorCode::VerificationUnavailable,
                         StepId::ConnectAppSync => OperationErrorCode::SshUnavailable,
-                        StepId::InstallAppSync | StepId::ActivateAppSync => {
-                            OperationErrorCode::AppSyncInstallFailed
-                        }
+                        StepId::InstallAppSync => OperationErrorCode::AppSyncInstallFailed,
+                        StepId::ActivateAppSync => OperationErrorCode::AppSyncRestartRequired,
                         StepId::VerifyAppSync => OperationErrorCode::AppSyncVerificationFailed,
                         _ => OperationErrorCode::VerificationFailed,
                     })
@@ -451,6 +450,15 @@ impl Target {
                 self.appsync_setup
                     .connect(&device, &self.ssh_password, self.ssh_key.as_deref())
                     .await?;
+                // Retain the authorized session for read-only status checks even
+                // if the subsequent package or service activation step fails.
+                if let Some(session) = &self.appsync_setup.session {
+                    self.probe
+                        .appsync_sessions
+                        .lock()
+                        .expect("AppSync sessions poisoned")
+                        .insert(format!("udid:{udid}"), session.clone());
+                }
             }
             StepId::InstallAppSync => self.appsync_setup.install().await?,
             StepId::ActivateAppSync => self.appsync_setup.activate().await?,
