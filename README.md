@@ -66,7 +66,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example prepare_resources -- /p
 
 组件布局、交互状态和响应式样式全部使用 Vue 模板中的 Tailwind CSS 4 工具类。`src/styles/main.css` 只保留 Tailwind 入口、主题变量、动画与基础重置，不再包含组件选择器。运行时进度、存储占比和图标尺寸通过 CSS 自定义属性传给静态工具类；不要拼接动态 Tailwind 类名。减少动态效果的系统偏好通过 `motion-safe` / `motion-reduce` 响应。
 
-界面层级靠 `shadow-panel` / `shadow-raised` / `shadow-control` / `shadow-overlay` 与背景色阶区分，只有顶栏和底栏保留发丝线，不要给面板、表格或输入框加边框。按钮、下拉、输入框、提示条、面板和分段控件统一使用 `src/shared/ui` 里的 `Studio*` 组件；图标来自 Phosphor（`~icons/ph/*`），加载态使用 `~icons/svg-spinners/*`，不要再手绘 SVG 图标。所有页面必须在 960×640 的最小窗口内完整显示：列表按可用高度分页，长文本分页或放入标签页，任何地方都不允许出现滚动条。进度条由 motion-v 弹簧驱动并在事件间缓慢爬行，非错误类通知显示在顶部 LCD 里，只有错误使用浮动提示。
+界面层级靠 `shadow-panel` / `shadow-raised` / `shadow-control` / `shadow-overlay` 与背景色阶区分，只有顶栏和底栏保留发丝线，不要给面板、表格或输入框加边框。按钮、下拉、输入框、提示条、面板和分段控件统一使用 `src/shared/ui` 里的 `Studio*` 组件；图标来自 Phosphor（`~icons/ph/*`），加载态使用 `~icons/svg-spinners/*`，不要再手绘 SVG 图标。所有页面必须在 960×640 的最小窗口内完整显示：列表按可用高度分页，长文本放入标签页，不允许出现滚动条；唯一的例外是风险与免责条款的阅读区，它以 `data-scroll-ok` 标记，视口检查会跳过它。进度条由 motion-v 弹簧驱动并在事件间缓慢爬行，非错误类通知显示在顶部 LCD 里，只有错误使用浮动提示。
 
 ## 技术栈
 
@@ -102,7 +102,7 @@ pnpm test:ui
 pnpm build
 ```
 
-`pnpm test:ui` 需要本机安装 Google Chrome：它会启动浏览器演示，在最小、默认和大窗口下走完设备、准备、商店、日志和设置页面，截图保存到 `.ui-shots/`，并在任何页面出现滚动或内容被裁切时失败。
+`pnpm test:ui` 需要本机安装 Google Chrome：它会启动浏览器演示，在最小、默认和大窗口下走完设备、准备、商店、日志和设置页面，截图保存到 `.ui-shots/`，并在任何页面出现滚动或内容被裁切时失败（标记为 `data-scroll-ok` 的阅读区除外）。
 
 lefthook 会在提交前执行前端检查、`cargo fmt --check` 和 Clippy。提交信息遵循 Conventional Commits。
 

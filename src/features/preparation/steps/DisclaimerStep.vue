@@ -3,11 +3,9 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PreparationPlan } from "../../../shared/gateway";
-import ReadingPager from "../../../shared/ui/ReadingPager.vue";
+import ReadingArea from "../../../shared/ui/ReadingArea.vue";
 import StudioButton from "../../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../../shared/ui/StudioCallout.vue";
-
-const SECTIONS_PER_PAGE = 3;
 
 const props = defineProps<{
   plan: PreparationPlan;
@@ -23,18 +21,6 @@ const sections = computed(
         ? "preparation.appSync.disclaimerSections"
         : "preparation.disclaimer.sections",
     ) as Array<{ heading: string; body: string }>,
-);
-const page = ref(0);
-const pages = computed(() =>
-  Math.max(1, Math.ceil(sections.value.length / SECTIONS_PER_PAGE)),
-);
-const pageSections = computed(() =>
-  sections.value
-    .map((section, index) => ({ ...section, index }))
-    .slice(
-      page.value * SECTIONS_PER_PAGE,
-      (page.value + 1) * SECTIONS_PER_PAGE,
-    ),
 );
 const readingReady = ref(false);
 const elapsed = ref(0);
@@ -61,24 +47,22 @@ function onReady(seconds: number): void {
         t("preparation.disclaimer.version", { version: plan.disclaimerVersion })
       }}</span>
     </div>
-    <ReadingPager
-      v-model:page="page"
-      :pages="pages"
+    <ReadingArea
       :minimum-seconds="plan.minimumReadingSeconds.disclaimer"
       @ready="onReady"
     >
-      <div class="flex flex-col gap-3 text-sm">
-        <section v-for="section in pageSections" :key="section.index">
-          <h4 class="font-semibold">
-            {{ section.index + 1 }}. {{ section.heading }}
+      <div class="flex flex-col gap-2">
+        <section v-for="(section, index) in sections" :key="index">
+          <h4 class="text-sm font-semibold">
+            {{ index + 1 }}. {{ section.heading }}
           </h4>
-          <p class="mt-0.5 leading-[19px] text-muted">{{ section.body }}</p>
+          <p class="text-xs leading-[17px] text-muted">{{ section.body }}</p>
         </section>
-        <p v-if="page === pages - 1" class="text-center text-xs text-muted">
+        <p class="py-1 text-center text-2xs text-muted">
           {{ t("preparation.disclaimer.end") }}
         </p>
       </div>
-    </ReadingPager>
+    </ReadingArea>
     <StudioCallout v-if="startError" tone="danger">
       {{
         t(

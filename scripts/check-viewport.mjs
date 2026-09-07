@@ -55,6 +55,8 @@ try {
           ...document.querySelectorAll("main *, dialog[open] *"),
         ]
           .filter((element) => {
+            // Consent text is the one region allowed to scroll; it opts out.
+            if (element.hasAttribute("data-scroll-ok")) return false;
             const style = getComputedStyle(element);
             return (
               /(auto|scroll)/.test(style.overflowY + style.overflowX) &&

@@ -58,12 +58,7 @@
   "reading": {
     "remaining": "还需阅读 {seconds} 秒",
     "timeMet": "阅读时间已满足",
-    "content": "阅读内容",
-    "page": "第 {page} / {total} 页",
-    "previous": "上一页",
-    "next": "下一页",
-    "viewAll": "请翻阅全部页面",
-    "allViewed": "已阅读全部页面"
+    "content": "阅读内容"
   },
   "operation": {
     "pointOfNoReturn": "不可回退",

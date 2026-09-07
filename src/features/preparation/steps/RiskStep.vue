@@ -3,11 +3,8 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PreparationPlan, RiskSeverity } from "../../../shared/gateway";
-import ReadingPager from "../../../shared/ui/ReadingPager.vue";
-import StatusPill from "../../../shared/ui/StatusPill.vue";
+import ReadingArea from "../../../shared/ui/ReadingArea.vue";
 import StudioButton from "../../../shared/ui/StudioButton.vue";
-
-const RISKS_PER_PAGE = 2;
 
 const props = defineProps<{ plan: PreparationPlan }>();
 const emit = defineEmits<{ next: [readingSeconds: number]; back: [] }>();
@@ -18,16 +15,6 @@ const riskNamespace = computed(() =>
     ? "preparation.appSync.risks"
     : "preparation.risks.items",
 );
-const page = ref(0);
-const pages = computed(() =>
-  Math.max(1, Math.ceil(props.plan.risks.length / RISKS_PER_PAGE)),
-);
-const pageRisks = computed(() =>
-  props.plan.risks.slice(
-    page.value * RISKS_PER_PAGE,
-    (page.value + 1) * RISKS_PER_PAGE,
-  ),
-);
 const readingReady = ref(false);
 const elapsed = ref(0);
 
@@ -35,11 +22,11 @@ function onReady(seconds: number): void {
   readingReady.value = true;
   elapsed.value = seconds;
 }
-function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
-  if (severity === "high") return "danger";
-  if (severity === "medium") return "warning";
-  return "info";
-}
+const severityClass: Record<RiskSeverity, string> = {
+  high: "before:bg-danger text-danger",
+  medium: "before:bg-warning text-warning",
+  low: "before:bg-info text-info",
+};
 </script>
 
 <template>
@@ -53,41 +40,38 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
         )
       }}
     </p>
-    <ReadingPager
-      v-model:page="page"
-      :pages="pages"
+    <ReadingArea
       :minimum-seconds="plan.minimumReadingSeconds.risks"
       @ready="onReady"
     >
-      <div class="flex flex-col gap-2.5">
-        <article
-          v-for="risk in pageRisks"
+      <ul class="flex flex-col gap-1">
+        <li
+          v-for="risk in plan.risks"
           :key="risk.id"
-          class="rounded-panel bg-ink/4 px-4 py-3"
+          class="relative py-1.5 pl-3 before:absolute before:top-2 before:bottom-2 before:left-0 before:w-[3px] before:rounded-full"
+          :class="severityClass[risk.severity]"
         >
-          <div class="flex items-center gap-2">
-            <StatusPill :tone="severityTone(risk.severity)">{{
-              t(`preparation.risks.severity.${risk.severity}`)
-            }}</StatusPill>
-            <h4 class="text-base font-semibold">
+          <div class="flex items-baseline gap-2">
+            <h4 class="text-sm font-semibold text-ink">
               {{ t(`${riskNamespace}.${risk.id}.title`) }}
             </h4>
+            <span class="text-2xs font-semibold">{{
+              t(`preparation.risks.severity.${risk.severity}`)
+            }}</span>
           </div>
-          <p class="mt-1.5 text-sm leading-[19px]">
+          <p class="text-xs leading-[17px] text-ink">
             {{ t(`${riskNamespace}.${risk.id}.body`) }}
           </p>
-          <p class="mt-1.5 text-sm leading-[19px] text-muted">
-            <span class="font-medium text-ink">{{
-              t("preparation.risks.mitigation")
-            }}</span>
+          <p class="text-xs leading-[17px] text-muted">
+            <b class="font-medium">{{ t("preparation.risks.mitigation") }}</b>
             {{ t(`${riskNamespace}.${risk.id}.mitigation`) }}
           </p>
-        </article>
-        <p v-if="page === pages - 1" class="text-center text-xs text-muted">
-          {{ t("preparation.risks.endOfList") }}
-        </p>
-      </div>
-    </ReadingPager>
+        </li>
+      </ul>
+      <p class="py-2 text-center text-2xs text-muted">
+        {{ t("preparation.risks.endOfList") }}
+      </p>
+    </ReadingArea>
     <footer class="flex items-center justify-between">
       <StudioButton variant="ghost" @click="emit('back')">
         <IconPhArrowLeft width="14" height="14" />{{ t("common.back") }}

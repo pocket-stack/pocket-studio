@@ -167,15 +167,6 @@ function button(root: Node, label: string): Node {
 function click(node: Node): void {
   (node.props.onClick as () => void)();
 }
-// Forced reading is paged: every page must be turned to before confirming.
-async function turnPages(root: Node): Promise<void> {
-  for (let guard = 0; guard < 20; guard += 1) {
-    const next = button(root, "reading.next");
-    if (!next || next.props.disabled) return;
-    click(next);
-    await nextTick();
-  }
-}
 
 beforeEach(() => {
   vi.useFakeTimers({
@@ -236,11 +227,6 @@ it.each([
     await vi.advanceTimersByTimeAsync(4999);
     expect(button(root, label).props.disabled).toBe(true);
     await vi.advanceTimersByTimeAsync(1);
-    if (_name === "risks") {
-      // Time alone is not enough: unread pages keep the confirmation locked.
-      expect(button(root, label).props.disabled).toBe(true);
-    }
-    await turnPages(root);
     expect(button(root, label).props.disabled).toBe(false);
     click(button(root, label));
     expect(confirm).toHaveBeenCalledExactlyOnceWith(5);
@@ -249,7 +235,6 @@ it.each([
 
 it("catches up confirmation time after background callbacks were throttled", async () => {
   const root = mount(RiskStep, { plan: buildJailbreakPlan("demo", 1) });
-  await turnPages(root);
   vi.spyOn(performance, "now").mockReturnValue(8000);
   windowEvents.dispatchEvent(new Event("focus"));
   await nextTick();
@@ -351,7 +336,6 @@ it.each([
     };
     const root = mount(component, { plan, startError: null, [event]: confirm });
     await nextTick();
-    await turnPages(root);
     expect(button(root, label).props.disabled).toBe(false);
     expect(confirm).not.toHaveBeenCalled();
     expect(text(root)).not.toContain("reading.remaining");
