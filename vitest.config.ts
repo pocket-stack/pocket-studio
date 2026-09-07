@@ -1,9 +1,12 @@
-import { defineConfig } from "vitest/config";
-import vue from "@vitejs/plugin-vue";
-export default defineConfig({
-  plugins: [vue()],
-  test: {
-    include: ["src/**/*.test.ts"],
-    environment: "./src/features/preparation/steps/client-test-environment.ts",
-  },
-});
+import { defineConfig, mergeConfig } from "vitest/config";
+import viteConfig from "./vite.config.ts";
+export default mergeConfig(
+  viteConfig,
+  defineConfig({
+    test: {
+      include: ["src/**/*.test.ts"],
+      environment:
+        "./src/features/preparation/steps/client-test-environment.ts",
+    },
+  }),
+);

@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import IconStudioCheck from "~icons/studio/check";
+import IconStudioWarning from "~icons/studio/warning";
+import IconStudioCross from "~icons/studio/cross";
+import IconStudioStop from "~icons/studio/stop";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGateway } from "../../../shared/gateway";
 
 import type { OperationState } from "../../../shared/composables/useOperations";
-import AppIcon from "../../../shared/ui/AppIcon.vue";
 import DeviceIllustration from "../../../shared/ui/DeviceIllustration.vue";
 
 const props = defineProps<{
@@ -62,17 +65,18 @@ const canRecheck = computed(
             outcome === 'cancelled' || (outcome === 'failed' && canRecheck),
         }"
       >
-        <AppIcon
-          :name="
+        <component
+          :is="
             outcome === 'success'
-              ? 'check'
+              ? IconStudioCheck
               : outcome === 'failed'
                 ? canRecheck
-                  ? 'warning'
-                  : 'cross'
-                : 'stop'
+                  ? IconStudioWarning
+                  : IconStudioCross
+                : IconStudioStop
           "
-          :size="26"
+          width="26"
+          height="26"
         />
       </span>
       <div class="min-w-0 flex-1">
@@ -129,7 +133,7 @@ const canRecheck = computed(
           class="mt-3 flex items-start gap-2 text-xs"
           :class="canRecheck ? 'text-warning' : 'text-danger'"
         >
-          <AppIcon name="warning" :size="14" class="mt-0.5" />
+          <IconStudioWarning width="14" height="14" class="mt-0.5" />
           {{
             t(
               canRecheck
@@ -149,7 +153,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink"
           @click="emit('openLogs')"
         >
-          <AppIcon name="logs" :size="16" />
+          <IconStudioLogs width="16" height="16" />
           {{ t("preparation.result.viewLogs") }}
         </button>
       </div>
@@ -165,7 +169,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('recheck')"
         >
-          <AppIcon name="refresh" :size="16" />
+          <IconStudioRefresh width="16" height="16" />
           {{ t("preparation.result.recheck") }}
         </button>
         <button
@@ -175,7 +179,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('openStore')"
         >
-          <AppIcon name="store" :size="16" />
+          <IconStudioStore width="16" height="16" />
           {{ t("preparation.result.openStore") }}
         </button>
         <button
@@ -183,7 +187,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('retry')"
         >
-          <AppIcon name="refresh" :size="16" />
+          <IconStudioRefresh width="16" height="16" />
           {{ t("preparation.result.retry") }}
         </button>
       </div>

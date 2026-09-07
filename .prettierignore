@@ -7,3 +7,6 @@ src-tauri/icons/
 
 # Read-only exported design references
 .design/
+
+# Generated component declarations
+src/components.d.ts

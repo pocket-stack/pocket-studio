@@ -6,7 +6,6 @@ import {
   operationProgress,
   type OperationState,
 } from "../../../shared/composables/useOperations";
-import AppIcon from "../../../shared/ui/AppIcon.vue";
 import ProgressBar from "../../../shared/ui/ProgressBar.vue";
 import StepList from "../../../shared/ui/StepList.vue";
 
@@ -85,8 +84,7 @@ function formatElapsed(seconds: number): string {
           : 'border-warning/40 bg-warning/8'
       "
     >
-      <AppIcon
-        name="warning"
+      <IconStudioWarning
         class="mt-0.5"
         :class="passedPointOfNoReturn ? 'text-danger' : 'text-warning'"
       />
@@ -116,7 +114,7 @@ function formatElapsed(seconds: number): string {
         :disabled="!canCancel"
         @click="emit('cancel')"
       >
-        <AppIcon name="stop" :size="16" />
+        <IconStudioStop width="16" height="16" />
         {{ t("preparation.execution.cancel") }}
       </button>
       <span class="text-xs text-muted">

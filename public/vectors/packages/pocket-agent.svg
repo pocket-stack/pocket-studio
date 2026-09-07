@@ -1,0 +1,21 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="80"
+  height="80"
+  viewBox="0 0 80 80"
+>
+  <rect width="80" height="80" rx="17.6" fill="#8db3a9" />
+  <svg
+    x="21.6"
+    y="21.6"
+    width="36.8"
+    height="36.8"
+    viewBox="0 0 24 24"
+    fill="#fff"
+    opacity="0.85"
+  >
+    <path
+      d="m12 2 11 6-11 6L1 8l11-6Zm0 2.3L5.2 8 12 11.7 18.8 8 12 4.3ZM2 11l10 5.5L22 11v2.3l-10 5.4-10-5.4V11Zm0 5 10 5.5L22 16v2.3l-10 5.4-10-5.4V16Z"
+    />
+  </svg>
+</svg>

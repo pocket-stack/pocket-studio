@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import AppIcon from "./AppIcon.vue";
 const props = defineProps<{
   open: boolean;
   title: string;
@@ -47,7 +46,7 @@ watch(
         :aria-label="t('common.close')"
         @click="emit('close')"
       >
-        <AppIcon name="cross" :size="18" />
+        <IconStudioCross width="18" height="18" />
       </button>
     </header>
     <div

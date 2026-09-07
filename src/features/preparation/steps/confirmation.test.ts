@@ -40,6 +40,13 @@ const node = (tag: string, text = ""): Node => ({
   children: [],
 });
 
+function insertNode(node: Node, parent: Node, anchor: Node | null = null) {
+  node.parent = parent;
+  const index = anchor ? parent.children.indexOf(anchor) : -1;
+  if (index < 0) parent.children.push(node);
+  else parent.children.splice(index, 0, node);
+}
+
 it("offers preparation for an identified DFU device despite unknown OS and pairing", () => {
   const device = {
     ...demoDevice,
@@ -106,11 +113,12 @@ const renderer = createRenderer<Node, Node>({
   patchProp: (node, key, _previous, next) => {
     node.props[key] = next;
   },
-  insert: (node, parent, anchor) => {
-    node.parent = parent;
-    const index = anchor ? parent.children.indexOf(anchor) : -1;
-    if (index < 0) parent.children.push(node);
-    else parent.children.splice(index, 0, node);
+  insert: insertNode,
+  insertStaticContent: (content, parent, anchor) => {
+    // SVG components can contain compiler-hoisted markup with no event handlers.
+    const staticNode = node("static", content);
+    insertNode(staticNode, parent, anchor);
+    return [staticNode, staticNode];
   },
   remove: (node) => {
     if (node.parent)

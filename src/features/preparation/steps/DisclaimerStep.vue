@@ -4,7 +4,6 @@ import { useI18n } from "vue-i18n";
 
 import type { PreparationPlan } from "../../../shared/gateway";
 import ForcedReading from "../../../shared/ui/ForcedReading.vue";
-import AppIcon from "../../../shared/ui/AppIcon.vue";
 
 defineProps<{ plan: PreparationPlan; startError: string | null }>();
 const emit = defineEmits<{ accept: [readingSeconds: number]; back: [] }>();
@@ -41,7 +40,7 @@ function onReady(seconds: number): void {
           }}
         </p>
       </div>
-      <AppIcon name="shield" class="text-muted" :size="22" />
+      <IconStudioShield class="text-muted" width="22" height="22" />
     </div>
 
     <ForcedReading
@@ -74,7 +73,7 @@ function onReady(seconds: number): void {
         class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink px-3 py-1.5 text-[12px]"
         @click="emit('back')"
       >
-        <AppIcon name="arrowLeft" :size="16" />
+        <IconStudioArrowLeft width="16" height="16" />
         {{ t("common.back") }}
       </button>
       <button
@@ -82,7 +81,7 @@ function onReady(seconds: number): void {
         :disabled="!readingReady"
         @click="emit('accept', elapsed)"
       >
-        <AppIcon name="bolt" :size="16" />
+        <IconStudioBolt width="16" height="16" />
         {{ t("preparation.disclaimer.acceptAndStart") }}
       </button>
     </footer>

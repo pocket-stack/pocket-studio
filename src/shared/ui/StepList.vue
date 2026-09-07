@@ -2,7 +2,6 @@
 import { useI18n } from "vue-i18n";
 
 import type { StepState } from "../composables/useOperations";
-import AppIcon from "./AppIcon.vue";
 import ProgressBar from "./ProgressBar.vue";
 
 defineProps<{ steps: readonly StepState[]; labelPrefix: string }>();
@@ -31,11 +30,17 @@ const { t } = useI18n();
           'border-warning text-warning': step.status === 'cancelled',
         }"
       >
-        <AppIcon v-if="step.status === 'done'" name="check" :size="14" />
-        <AppIcon v-else-if="step.status === 'failed'" name="cross" :size="14" />
-        <span
+        <IconStudioCheck v-if="step.status === 'done'" width="14" height="14" />
+        <IconStudioCross
+          v-else-if="step.status === 'failed'"
+          width="14"
+          height="14"
+        />
+        <IconStudioSpinnerCompact
           v-else-if="step.status === 'running'"
-          class="block h-3 w-3 rounded-full border-2 border-on-signal border-t-transparent motion-safe:animate-studio-spin"
+          width="12"
+          height="12"
+          class="text-on-signal motion-safe:animate-studio-spin"
         />
         <span v-else>{{ index + 1 }}</span>
       </span>
@@ -50,13 +55,13 @@ const { t } = useI18n();
               class="text-danger"
               :title="t('operation.pointOfNoReturn')"
             >
-              <AppIcon name="warning" :size="14" />
+              <IconStudioWarning width="14" height="14" />
             </span>
             <span
               v-if="!step.cancellable && step.status !== 'done'"
               :title="t('operation.notCancellable')"
             >
-              <AppIcon name="shield" :size="14" />
+              <IconStudioShield width="14" height="14" />
             </span>
             <span v-if="step.status === 'running'">{{ step.percent }}%</span>
             <span v-else-if="step.status === 'pending'"

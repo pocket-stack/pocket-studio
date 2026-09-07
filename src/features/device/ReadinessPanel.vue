@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import IconStudioCheck from "~icons/studio/check";
+import IconStudioWarning from "~icons/studio/warning";
+import IconStudioMinus from "~icons/studio/minus";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
@@ -7,7 +10,6 @@ import {
   type ReadinessReport,
 } from "../../shared/gateway";
 import { useOperations } from "../../shared/composables/useOperations";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 const props = defineProps<{
   report: ReadinessReport | null;
   device?: DeviceSummary | null;
@@ -100,10 +102,10 @@ const canReviewPreparation = computed(() => {
       >
     </header>
     <div v-if="!report" class="p-7 text-sm text-muted flex items-center gap-2">
-      <AppIcon
-        name="refresh"
+      <IconStudioRefresh
         :class="{ 'motion-safe:animate-studio-spin': checking }"
-        :size="16"
+        width="16"
+        height="16"
       />{{ t(checking ? "readiness.checking" : "studio.checkFailed") }}
     </div>
     <ul v-else class="px-4 py-0">
@@ -115,15 +117,16 @@ const canReviewPreparation = computed(() => {
         <span
           :data-status="check.status"
           class="grid h-[18px] w-4 place-items-center rounded-none bg-transparent text-muted data-[status=pass]:text-success data-[status=fail]:text-warning data-[status=warn]:text-warning"
-          ><AppIcon
-            :name="
+          ><component
+            :is="
               check.status === 'pass'
-                ? 'check'
+                ? IconStudioCheck
                 : check.status === 'fail'
-                  ? 'warning'
-                  : 'minus'
+                  ? IconStudioWarning
+                  : IconStudioMinus
             "
-            :size="14"
+            width="14"
+            height="14"
         /></span>
         <div class="flex-1">
           <h3 class="text-[13px]">
@@ -149,7 +152,7 @@ const canReviewPreparation = computed(() => {
           @click="emit('prepare')"
         >
           {{ t("preparation.reviewPlan")
-          }}<AppIcon name="arrowRight" :size="14" /></button
+          }}<IconStudioArrowRight width="14" height="14" /></button
         ><button
           v-else-if="
             report?.status === 'ready' && gateway.capabilities.packages
@@ -158,15 +161,15 @@ const canReviewPreparation = computed(() => {
           @click="emit('openStore')"
         >
           {{ t("device.next.action")
-          }}<AppIcon name="arrowRight" :size="14" /></button
+          }}<IconStudioArrowRight width="14" height="14" /></button
         ><button
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
           :disabled="checking"
           @click="emit('recheck')"
         >
-          <AppIcon
-            name="refresh"
-            :size="13"
+          <IconStudioRefresh
+            width="13"
+            height="13"
             :class="{ 'motion-safe:animate-studio-spin': checking }"
           />{{ t("readiness.recheck") }}
         </button>
@@ -177,7 +180,7 @@ const canReviewPreparation = computed(() => {
         @click="emit('details')"
       >
         {{ t("studio.allConditions")
-        }}<AppIcon name="chevronRight" :size="12" /></button
+        }}<IconStudioChevronRight width="12" height="12" /></button
       ><span v-else-if="report" class="text-xs text-muted">{{
         t("readiness.checkedAt", { time: d(report.checkedAt, "time") })
       }}</span>

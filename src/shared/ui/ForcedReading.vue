@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
-import AppIcon from "./AppIcon.vue";
 import ProgressBar from "./ProgressBar.vue";
 
 /** A minimum elapsed-time gate; background time counts toward confirmation. */
@@ -68,11 +67,11 @@ defineExpose({ elapsed });
         />
       </div>
       <span v-if="!timeSatisfied" class="flex items-center gap-1">
-        <AppIcon name="clock" :size="14" />
+        <IconStudioClock width="14" height="14" />
         {{ t("reading.remaining", { seconds: remaining }) }}
       </span>
       <span v-else class="flex items-center gap-1 text-success">
-        <AppIcon name="check" :size="14" />
+        <IconStudioCheck width="14" height="14" />
         {{ t("reading.timeMet") }}
       </span>
     </div>

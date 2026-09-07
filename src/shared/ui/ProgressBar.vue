@@ -33,14 +33,16 @@ const barClass = computed(() => {
     aria-valuemax="100"
   >
     <div
-      class="h-full rounded-full transition-[width] duration-300 ease-out w-(--progress-width)"
-      :class="[
-        barClass,
-        active
-          ? 'bg-[repeating-linear-gradient(-45deg,transparent_0_7px,color-mix(in_srgb,var(--color-on-signal)_35%,transparent)_7px_14px)] motion-safe:animate-progress-stripes'
-          : '',
-      ]"
+      class="relative overflow-hidden h-full rounded-full transition-[width] duration-300 ease-out w-(--progress-width)"
+      :class="barClass"
       :style="{ '--progress-width': width }"
-    />
+    >
+      <span
+        v-if="active"
+        aria-hidden="true"
+        class="absolute inset-0 bg-on-signal opacity-35 motion-safe:animate-progress-stripes"
+        style="mask-image: url(/vectors/indicators/progress-stripes.svg)"
+      />
+    </div>
   </div>
 </template>

@@ -5,7 +5,6 @@ import { useI18n } from "vue-i18n";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import { useOperations } from "../../shared/composables/useOperations";
 import type { PackageCategory } from "../../shared/gateway";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 import PackageCard from "./PackageCard.vue";
 import PackageDetail from "./PackageDetail.vue";
 import { useStore } from "./useStore";
@@ -57,7 +56,7 @@ onMounted(() => void store.initialize());
     v-if="!gateway.capabilities.packages"
     class="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center"
   >
-    <AppIcon name="grid" :size="32" class="text-muted" />
+    <IconStudioGrid width="32" height="32" class="text-muted" />
     <h1 class="text-xl font-semibold">{{ t("studio.nav.store") }}</h1>
     <p class="max-w-[500px] text-sm leading-7 text-muted">
       {{ t("connection.packagesUnavailable") }}
@@ -71,7 +70,7 @@ onMounted(() => void store.initialize());
       class="mb-5 inline-flex items-center gap-[5px] text-[11px] text-signal hover:underline hover:underline-offset-[3px]"
       @click="emit('openPackage', null)"
     >
-      <AppIcon name="arrowLeft" :size="14" />{{
+      <IconStudioArrowLeft width="14" height="14" />{{
         t("studio.backToStore")
       }}</button
     ><PackageDetail
@@ -94,10 +93,10 @@ onMounted(() => void store.initialize());
         :aria-label="t('studio.previousFeature')"
         @click="feature = (feature + 2) % 3"
       >
-        <AppIcon
-          name="chevronRight"
+        <IconStudioChevronRight
           class="rotate-180 opacity-35 absolute left-[15px]"
-          :size="17"
+          width="17"
+          height="17"
         />
       </button>
       <div
@@ -128,7 +127,8 @@ onMounted(() => void store.initialize());
                 : emit('openPackage', featuredId)
             "
           >
-            {{ t("studio.explore") }}<AppIcon name="arrowRight" :size="14" />
+            {{ t("studio.explore")
+            }}<IconStudioArrowRight width="14" height="14" />
           </button>
         </div>
       </div>
@@ -137,10 +137,10 @@ onMounted(() => void store.initialize());
         :aria-label="t('studio.nextFeature')"
         @click="feature = (feature + 1) % 3"
       >
-        <AppIcon
+        <IconStudioChevronRight
           class="opacity-35 absolute right-[15px]"
-          name="chevronRight"
-          :size="17"
+          width="17"
+          height="17"
         />
       </button>
     </section>
@@ -180,7 +180,7 @@ onMounted(() => void store.initialize());
           v-if="store.loading.value"
           class="flex min-h-[250px] items-center justify-center gap-2.5 text-[12px] text-muted"
         >
-          <AppIcon name="refresh" class="motion-safe:animate-studio-spin" />{{
+          <IconStudioRefresh class="motion-safe:animate-studio-spin" />{{
             t("store.loading")
           }}
         </div>
@@ -221,7 +221,7 @@ onMounted(() => void store.initialize());
                 "
               >
                 {{ t("studio.viewAll")
-                }}<AppIcon name="chevronRight" :size="12" />
+                }}<IconStudioChevronRight width="12" height="12" />
               </button>
             </header>
             <div
@@ -244,7 +244,7 @@ onMounted(() => void store.initialize());
               v-else
               class="flex min-h-[250px] items-center justify-center gap-2.5 text-[12px] text-muted"
             >
-              <AppIcon name="search" :size="26" />{{ t("store.empty") }}
+              <IconStudioSearch width="26" height="26" />{{ t("store.empty") }}
             </div>
           </section></template
         >
@@ -294,13 +294,17 @@ onMounted(() => void store.initialize());
         </h3>
         <div class="flex items-center gap-2 px-0 py-2 text-[12px]">
           <span class="rounded-md bg-track p-1.5 text-signal"
-            ><AppIcon name="pocket" :size="14" /></span
+            ><IconStudioPocket width="14" height="14" /></span
           ><span
             ><b class="text-[12px] font-medium">{{ t("studio.demoCatalog") }}</b
             ><small class="mt-[3px] block text-[11px] text-muted">{{
               t("studio.bundledCatalog")
             }}</small></span
-          ><AppIcon name="check" :size="13" class="ml-auto text-success" />
+          ><IconStudioCheck
+            width="13"
+            height="13"
+            class="ml-auto text-success"
+          />
         </div>
         <h3 class="mt-3.5 mb-2 text-[12px] text-muted">
           {{ t("studio.support") }}
@@ -310,13 +314,14 @@ onMounted(() => void store.initialize());
           @click="emit('openEnvironment')"
         >
           {{ t("studio.environmentGuide")
-          }}<AppIcon name="chevronRight" :size="12" /></button
+          }}<IconStudioChevronRight width="12" height="12" /></button
         ><a
           class="flex w-full items-center justify-between gap-2.5 px-0 py-[5px] text-left text-[13px] hover:text-signal"
           href="https://github.com/HalfSweet/Legacy-iOS-Kit-rs"
           target="_blank"
           rel="noreferrer"
-          >{{ t("studio.toolkitDocs") }}<AppIcon name="external" :size="12"
+          >{{ t("studio.toolkitDocs")
+          }}<IconStudioExternal width="12" height="12"
         /></a>
       </aside>
     </div>

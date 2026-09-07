@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import IconStudioChevronDown from "~icons/studio/chevron-down";
+import IconStudioChevronRight from "~icons/studio/chevron-right";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useLogMessage } from "../../shared/composables/useLogMessage";
 import { useOperationLog } from "../../shared/composables/useOperationLog";
 import { notify } from "../../shared/composables/useNotifications";
 import type { LogLevel, LogSource } from "../../shared/gateway";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 import StudioDialog from "../../shared/ui/StudioDialog.vue";
 const { t, d } = useI18n();
 const log = useOperationLog();
@@ -84,20 +85,22 @@ onMounted(() => void log.initialize());
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
             @click="copy(log.serializeLogs(visible))"
           >
-            <AppIcon name="copy" :size="14" />{{ t("logs.copy") }}</button
+            <IconStudioCopy width="14" height="14" />{{
+              t("logs.copy")
+            }}</button
           ><button
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
             :disabled="log.exporting.value"
             @click="log.exportLogs"
           >
-            <AppIcon name="download" :size="14" />{{ t("logs.export") }}
+            <IconStudioDownload width="14" height="14" />{{ t("logs.export") }}
           </button>
         </div>
       </header>
       <div class="mb-4 flex gap-3 max-[1150px]:flex-wrap">
         <label
           class="flex flex-1 items-center gap-2 rounded-[5px] border border-line px-[11px] py-[7px] text-[11px] text-muted max-[1150px]:basis-full"
-          ><AppIcon name="search" :size="14" /><input
+          ><IconStudioSearch width="14" height="14" /><input
             v-model="search"
             class="w-full text-ink outline-none"
             :placeholder="t('studio.logSearch')"
@@ -224,11 +227,14 @@ onMounted(() => void log.initialize());
                       expandedId = expandedId === entry.id ? null : entry.id
                     "
                   >
-                    <AppIcon
-                      :name="
-                        expandedId === entry.id ? 'chevronDown' : 'chevronRight'
+                    <component
+                      :is="
+                        expandedId === entry.id
+                          ? IconStudioChevronDown
+                          : IconStudioChevronRight
                       "
-                      :size="12"
+                      width="12"
+                      height="12"
                     />
                   </button>
                 </td>
@@ -261,14 +267,16 @@ onMounted(() => void log.initialize());
           v-if="!visible.length"
           class="flex min-h-[250px] items-center justify-center gap-2.5 text-[12px] text-muted"
         >
-          <AppIcon name="logs" :size="24" />{{ t("logs.empty") }}
+          <IconStudioLogs width="24" height="24" />{{ t("logs.empty") }}
         </div>
       </div>
       <footer
         class="mt-[15px] flex items-center justify-between gap-[18px] text-[9px] text-muted max-[800px]:flex-wrap"
       >
         <span class="flex items-center gap-1.5 whitespace-nowrap"
-          ><AppIcon name="shield" :size="13" />{{ t("studio.logLocal") }}</span
+          ><IconStudioShield width="13" height="13" />{{
+            t("studio.logLocal")
+          }}</span
         >
         <p :class="{ 'text-warning': log.storageFailed.value }">
           {{
@@ -322,7 +330,7 @@ onMounted(() => void log.initialize());
       class="mt-4 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
       @click="copy(log.exportText.value ?? '')"
     >
-      <AppIcon name="copy" :size="14" />{{ t("logs.copy") }}
+      <IconStudioCopy width="14" height="14" />{{ t("logs.copy") }}
     </button></StudioDialog
   >
 </template>

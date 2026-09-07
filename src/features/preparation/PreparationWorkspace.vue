@@ -8,7 +8,6 @@ import { useOperationLog } from "../../shared/composables/useOperationLog";
 import { operationProgress } from "../../shared/composables/useOperations";
 import DeviceIllustration from "../../shared/ui/DeviceIllustration.vue";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 import DfuGuideStep from "./steps/DfuGuideStep.vue";
 import ResultStep from "./steps/ResultStep.vue";
 import OverviewStep from "./steps/OverviewStep.vue";
@@ -173,9 +172,11 @@ function openLogs(): void {
             :width="220"
             :screen="currentStep?.id === 'rebootDevice' ? 'apple' : 'off'"
             cable
-          /><span
+          /><img
             v-if="currentStep?.id !== 'rebootDevice'"
-            class="absolute top-[43%] left-[calc(50%-13px)] size-[26px] rounded-full border-[3px] border-[#404040] border-t-[#9fbde6] motion-safe:animate-studio-spin"
+            src="/vectors/indicators/device-spinner.svg"
+            alt=""
+            class="absolute top-[43%] left-[calc(50%-13px)] size-[26px] motion-safe:animate-studio-spin"
           />
         </div>
         <p class="mb-5 text-center text-[16px]">
@@ -227,17 +228,19 @@ function openLogs(): void {
         >
           <span
             class="grid h-[18px] w-4 place-items-center text-[10px] text-muted group-data-[status=done]/flow-step:text-success"
-            ><AppIcon
+            ><IconStudioCheck
               v-if="step.status === 'done'"
-              name="check"
-              :size="14"
-            /><AppIcon
+              width="14"
+              height="14"
+            /><IconStudioCross
               v-else-if="step.status === 'failed'"
-              name="cross"
-              :size="14"
-            /><span
+              width="14"
+              height="14"
+            /><IconStudioSpinnerCompact
               v-else-if="step.status === 'running'"
-              class="size-3 rounded-full border-2 border-signal border-t-transparent motion-safe:animate-studio-spin"
+              width="12"
+              height="12"
+              class="text-signal motion-safe:animate-studio-spin"
             /><span v-else>{{ index + 1 }}</span></span
           >
           <div class="flex-1">

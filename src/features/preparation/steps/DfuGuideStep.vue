@@ -1,18 +1,16 @@
 <script setup lang="ts">
+import CountdownRing from "../../../assets/indicators/countdown-ring.svg?component";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { useGateway } from "../../../shared/gateway";
 import DeviceIllustration from "../../../shared/ui/DeviceIllustration.vue";
-import AppIcon from "../../../shared/ui/AppIcon.vue";
 
 /** Start fully powered off, hold Power + Home for 10 s, then Home for 8 s. */
 type Phase = "idle" | "holdBoth" | "holdHome" | "detecting" | "timeout";
 const HOLD_BOTH_SECONDS = 10;
 const HOLD_HOME_SECONDS = 8;
 const DETECT_TIMEOUT_SECONDS = 20;
-const RING_RADIUS = 54;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 const emit = defineEmits<{ cancel: [] }>();
 const { t } = useI18n();
@@ -36,7 +34,7 @@ const phaseTotal = computed(() => {
   }
 });
 const ringOffset = computed(
-  () => RING_CIRCUMFERENCE * (1 - secondsLeft.value / phaseTotal.value),
+  () => 100 * (1 - secondsLeft.value / phaseTotal.value),
 );
 const pressPower = computed(() => phase.value === "holdBoth");
 const pressHome = computed(
@@ -156,42 +154,24 @@ onBeforeUnmount(() => {
             v-if="phase !== 'idle' && phase !== 'timeout'"
             class="absolute top-[146px] left-16 size-[92px] text-white max-[1150px]:top-[105px] max-[1150px]:left-[39px]"
           >
-            <svg
-              width="92"
-              height="92"
-              viewBox="0 0 128 128"
-              class="-rotate-90"
-            >
-              <circle
-                cx="64"
-                cy="64"
-                :r="RING_RADIUS"
-                stroke="var(--ps-line)"
-                stroke-width="8"
-                fill="none"
-              />
-              <circle
-                cx="64"
-                cy="64"
-                :r="RING_RADIUS"
-                :stroke="
-                  phase === 'detecting' ? 'var(--ps-info)' : 'var(--ps-signal)'
-                "
-                stroke-width="8"
-                fill="none"
-                stroke-linecap="round"
-                :stroke-dasharray="RING_CIRCUMFERENCE"
-                :stroke-dashoffset="ringOffset"
-                class="transition-[stroke-dashoffset] duration-1000 ease-linear"
-              />
-            </svg>
+            <CountdownRing
+              aria-hidden="true"
+              class="block size-full"
+              :style="{
+                '--countdown-color':
+                  phase === 'detecting' ? 'var(--ps-info)' : 'var(--ps-signal)',
+                '--countdown-offset': ringOffset,
+              }"
+            />
             <span
               class="absolute inset-0 flex items-center justify-center font-mono font-semibold tabular-nums text-[25px] leading-[1.2]"
             >
               {{ phase === "detecting" ? "" : secondsLeft }}
-              <span
+              <IconStudioSpinner
                 v-if="phase === 'detecting'"
-                class="block h-6 w-6 rounded-full border-2 border-info border-t-transparent motion-safe:animate-studio-spin"
+                width="24"
+                height="24"
+                class="text-info motion-safe:animate-studio-spin"
               />
             </span>
           </div>
@@ -231,7 +211,7 @@ onBeforeUnmount(() => {
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
             @click="start"
           >
-            <AppIcon name="play" :size="16" />
+            <IconStudioPlay width="16" height="16" />
             {{
               phase === "timeout"
                 ? t("preparation.dfu.retry")
@@ -243,7 +223,7 @@ onBeforeUnmount(() => {
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
             @click="reset"
           >
-            <AppIcon name="refresh" :size="16" />
+            <IconStudioRefresh width="16" height="16" />
             {{ t("preparation.dfu.restart") }}
           </button>
         </div>
@@ -255,7 +235,7 @@ onBeforeUnmount(() => {
         class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-danger bg-transparent text-danger enabled:hover:bg-danger/10"
         @click="emit('cancel')"
       >
-        <AppIcon name="stop" :size="16" />
+        <IconStudioStop width="16" height="16" />
         {{ t("preparation.execution.cancel") }}
       </button>
       <span class="text-xs text-muted">{{

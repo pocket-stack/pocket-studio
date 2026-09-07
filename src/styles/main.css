@@ -48,21 +48,12 @@
       transform: rotate(360deg);
     }
   }
-  @keyframes ps-pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.35;
-    }
-  }
   @keyframes ps-stripes {
     from {
-      background-position: 0 0;
+      mask-position: 0 0;
     }
     to {
-      background-position: 28px 0;
+      mask-position: 28px 0;
     }
   }
 }

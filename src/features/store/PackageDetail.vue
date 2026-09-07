@@ -5,7 +5,6 @@ import {
   operationProgress,
   useOperations,
 } from "../../shared/composables/useOperations";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
 import StepList from "../../shared/ui/StepList.vue";
 import PackageArtwork from "./PackageArtwork.vue";
@@ -128,7 +127,7 @@ const facts = computed(() => [
               @click="emit('dependency', id)"
             >
               {{ t(`catalog.${id}.name`)
-              }}<AppIcon name="chevronRight" :size="11" />
+              }}<IconStudioChevronRight width="11" height="11" />
             </button>
           </div>
         </div>
@@ -202,22 +201,24 @@ const facts = computed(() => [
           :key="index"
           class="flex h-[270px] w-[150px] shrink-0 flex-col items-center gap-[18px] rounded-lg bg-track p-3.5 max-[600px]:h-[245px] max-[600px]:w-[135px]"
         >
-          <span class="flex w-full gap-[3px]" aria-hidden="true"
-            ><i class="size-[3px] rounded-full bg-muted" /><i
-              class="size-[3px] rounded-full bg-muted" /><i
-              class="size-[3px] rounded-full bg-muted" /></span
-          ><PackageArtwork :package-id="item.entry.id" :size="40" />
-          <div class="flex w-full flex-col gap-3.5" aria-hidden="true">
-            <i
-              class="h-[7px] w-full rounded-[2px] bg-muted/12 nth-[2]:w-[70%]"
-            /><i
-              class="h-[7px] w-full rounded-[2px] bg-muted/12 nth-[2]:w-[70%]"
-            /><i
-              class="h-[7px] w-full rounded-[2px] bg-muted/12 nth-[2]:w-[70%]"
-            /><i
-              class="h-[7px] w-full rounded-[2px] bg-muted/12 nth-[2]:w-[70%]"
+          <span class="w-full" aria-hidden="true">
+            <span
+              class="block h-[3px] w-[15px] bg-muted"
+              style="
+                mask: url(/vectors/illustrations/preview-dots.svg) center /
+                  contain no-repeat;
+              "
             />
-          </div>
+          </span>
+          <PackageArtwork :package-id="item.entry.id" :size="40" />
+          <span
+            class="h-[70px] w-full bg-muted/12"
+            aria-hidden="true"
+            style="
+              mask: url(/vectors/illustrations/preview-lines.svg) center / 100%
+                100% no-repeat;
+            "
+          />
           <small class="mt-auto text-[10px] text-muted">{{
             t("studio.previewNumber", { index })
           }}</small>

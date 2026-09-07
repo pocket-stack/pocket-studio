@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import IconStudioBattery from "~icons/studio/battery";
+import IconStudioDevice from "~icons/studio/device";
+import IconStudioShield from "~icons/studio/shield";
+import IconStudioCable from "~icons/studio/cable";
+import IconStudioClock from "~icons/studio/clock";
+import { computed, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PrerequisiteId, PreparationPlan } from "../../../shared/gateway";
-import AppIcon from "../../../shared/ui/AppIcon.vue";
 import StatusPill from "../../../shared/ui/StatusPill.vue";
 
 const props = defineProps<{
@@ -52,12 +56,12 @@ const facts = computed(() => [
   },
 ]);
 
-const prerequisiteIcons: Record<PrerequisiteId, string> = {
-  batteryAbove50: "battery",
-  workingButtons: "device",
-  backupCompleted: "shield",
-  stableCable: "cable",
-  computerAwake: "clock",
+const prerequisiteIcons: Record<PrerequisiteId, Component> = {
+  batteryAbove50: IconStudioBattery,
+  workingButtons: IconStudioDevice,
+  backupCompleted: IconStudioShield,
+  stableCable: IconStudioCable,
+  computerAwake: IconStudioClock,
 };
 </script>
 
@@ -134,8 +138,8 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
                 :checked="confirmed.includes(id)"
                 @change="emit('toggle', id)"
               />
-              <AppIcon
-                :name="prerequisiteIcons[id]"
+              <component
+                :is="prerequisiteIcons[id]"
                 class="mt-0.5 text-muted"
               />
               <span class="flex-1">
@@ -165,7 +169,7 @@ const prerequisiteIcons: Record<PrerequisiteId, string> = {
         @click="emit('next')"
       >
         {{ t("preparation.overview.continue") }}
-        <AppIcon name="arrowRight" :size="16" />
+        <IconStudioArrowRight width="16" height="16" />
       </button>
     </footer>
   </div>

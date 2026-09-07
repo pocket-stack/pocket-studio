@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import IconStudioDevice from "~icons/studio/device";
+import IconStudioGrid from "~icons/studio/grid";
+import IconStudioLogs from "~icons/studio/logs";
+import IconStudioStore from "~icons/studio/store";
+import IconStudioChevronDown from "~icons/studio/chevron-down";
+import IconStudioChevronUp from "~icons/studio/chevron-up";
+import { computed, nextTick, onMounted, ref, watch, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   createStudioNavigation,
@@ -24,7 +30,6 @@ import {
   useOperations,
 } from "./shared/composables/useOperations";
 import { useGateway } from "./shared/gateway";
-import AppIcon from "./shared/ui/AppIcon.vue";
 import StudioDialog from "./shared/ui/StudioDialog.vue";
 
 const { t, d } = useI18n();
@@ -100,11 +105,11 @@ watch(navigationHistory.current, async (location) => {
   await nextTick();
   mainContent.value?.scrollTo({ top: 0 });
 });
-const navigation: Array<{ id: StudioView; icon: string }> = [
-  { id: "device", icon: "device" },
-  { id: "installed", icon: "grid" },
-  { id: "logs", icon: "logs" },
-  { id: "store", icon: "store" },
+const navigation: Array<{ id: StudioView; icon: Component }> = [
+  { id: "device", icon: IconStudioDevice },
+  { id: "installed", icon: IconStudioGrid },
+  { id: "logs", icon: IconStudioLogs },
+  { id: "store", icon: IconStudioStore },
 ];
 function showDevice(section: DeviceSection): void {
   navigationHistory.navigate({ view: "device", section });
@@ -177,9 +182,9 @@ onMounted(async () => {
             :aria-label="t('studio.navigateBack')"
             @click="navigationHistory.back"
           >
-            <AppIcon
-              name="chevronRight"
-              :size="16"
+            <IconStudioChevronRight
+              width="16"
+              height="16"
               class="rotate-180 max-[600px]:size-[17px]"
             />
           </button>
@@ -190,10 +195,10 @@ onMounted(async () => {
             :aria-label="t('studio.navigateForward')"
             @click="navigationHistory.forward"
           >
-            <AppIcon
+            <IconStudioChevronRight
               class="max-[600px]:size-[17px]"
-              name="chevronRight"
-              :size="16"
+              width="16"
+              height="16"
             />
           </button>
         </div>
@@ -212,10 +217,11 @@ onMounted(async () => {
             :aria-current="view === item.id ? 'page' : undefined"
             @click="showPage(item.id)"
           >
-            <AppIcon
+            <component
+              :is="item.icon"
               class="max-[600px]:size-[17px]"
-              :name="item.icon"
-              :size="20"
+              width="20"
+              height="20"
             />
           </button>
         </nav>
@@ -250,7 +256,8 @@ onMounted(async () => {
           <summary
             class="flex h-[34px] min-w-[115px] list-none items-center gap-2 rounded-[5px] border border-[#d0d0d0] px-2.5 py-0 text-muted hover:bg-track group-open/device-menu:bg-track max-[850px]:min-w-auto [&::-webkit-details-marker]:hidden"
           >
-            <AppIcon name="device" :size="21" /><span class="max-[800px]:hidden"
+            <IconStudioDevice width="21" height="21" /><span
+              class="max-[800px]:hidden"
               ><b
                 class="block text-[12px] font-semibold whitespace-nowrap text-ink"
                 >{{
@@ -271,7 +278,7 @@ onMounted(async () => {
                     : t("studio.disconnected")
                 }}</small
               ></span
-            ><AppIcon name="chevronDown" :size="13" />
+            ><IconStudioChevronDown width="13" height="13" />
           </summary>
           <div
             class="absolute top-[47px] right-0 z-20 w-[248px] rounded-lg border border-line bg-raised p-2 shadow-[0_12px_35px_#00000020]"
@@ -287,15 +294,15 @@ onMounted(async () => {
               :aria-pressed="session.device.value?.id === connected.id"
               @click="session.select(connected.id)"
             >
-              <AppIcon name="device" />
+              <IconStudioDevice />
               <span class="min-w-0 flex-1 truncate">{{
                 connected.marketingName
               }}</span>
-              <AppIcon
+              <IconStudioCheck
                 v-if="session.device.value?.id === connected.id"
-                name="check"
                 class="text-signal"
-                :size="15"
+                width="15"
+                height="15"
               />
             </button>
             <p
@@ -310,7 +317,7 @@ onMounted(async () => {
               :disabled="session.scanning.value"
               @click="detect"
             >
-              <AppIcon name="refresh" :size="15" />{{
+              <IconStudioRefresh width="15" height="15" />{{
                 t("studio.detectDevice")
               }}</button
             ><button
@@ -319,13 +326,13 @@ onMounted(async () => {
               :disabled="!session.device.value || !!active.length"
               @click="eject"
             >
-              <AppIcon name="eject" :size="15" />{{ t("studio.eject") }}
+              <IconStudioEject width="15" height="15" />{{ t("studio.eject") }}
             </button>
           </div>
         </details>
         <label
           class="flex h-8 w-[180px] items-center gap-[7px] rounded-2xl border border-line bg-raised px-2.5 py-0 text-muted focus-within:border-signal focus-within:ring-2 focus-within:ring-signal/15 max-[1150px]:w-[135px] max-[600px]:w-[100px]"
-          ><AppIcon name="search" :size="15" /><input
+          ><IconStudioSearch width="15" height="15" /><input
             v-model="store.query.value"
             class="w-full min-w-0 text-[12px] text-ink outline-none"
             type="search"
@@ -389,7 +396,7 @@ onMounted(async () => {
           <div
             class="mx-2 mt-0 mb-2.5 flex items-center gap-2 border-b border-line px-0.5 py-3.5 text-[11px] text-muted"
           >
-            <AppIcon name="usb" :size="14" /><span>{{
+            <IconStudioUsb width="14" height="14" /><span>{{
               session.device.value
                 ? t("studio.usbConnected")
                 : t("studio.disconnected")
@@ -403,7 +410,9 @@ onMounted(async () => {
             class="group/nav-item m-0 flex w-full items-center gap-2.5 rounded-none px-3.5 py-1.5 text-left text-[13px] text-ink hover:bg-track hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 aria-[current=page]:bg-[#2f6fd6] aria-[current=page]:font-normal aria-[current=page]:text-white aria-[current=page]:hover:bg-[#2f6fd6] aria-[current=page]:hover:text-white"
             @click="settingsOpen = true"
           >
-            <AppIcon name="settings" :size="16" />{{ t("studio.preferences") }}
+            <IconStudioSettings width="16" height="16" />{{
+              t("studio.preferences")
+            }}
           </button>
         </div>
       </aside>
@@ -447,7 +456,8 @@ onMounted(async () => {
             logsExpanded = false;
           "
         >
-          {{ t("studio.allLogs") }}<AppIcon name="arrowRight" :size="12" />
+          {{ t("studio.allLogs")
+          }}<IconStudioArrowRight width="12" height="12" />
         </button>
       </div>
       <div
@@ -472,7 +482,7 @@ onMounted(async () => {
         :aria-expanded="logsExpanded"
         @click="logsExpanded = !logsExpanded"
       >
-        <AppIcon name="terminal" :size="14" /><b
+        <IconStudioTerminal width="14" height="14" /><b
           class="font-medium whitespace-nowrap text-ink"
           >{{ t("nav.logs") }}</b
         ><time
@@ -480,29 +490,30 @@ onMounted(async () => {
           class="font-mono text-[10px] max-[600px]:hidden"
           >{{ d(latestLog.timestamp, "time") }}</time
         ><span class="truncate">{{ latestMessage }}</span
-        ><AppIcon
-          :name="logsExpanded ? 'chevronDown' : 'chevronUp'"
-          :size="13"
+        ><component
+          :is="logsExpanded ? IconStudioChevronDown : IconStudioChevronUp"
+          width="13"
+          height="13"
         /></button
       ><button
         class="inline-flex shrink-0 items-center gap-[5px] text-[10px] whitespace-nowrap text-muted enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
         :disabled="!navigationHistory.enabled.value"
         @click="showPage('installed')"
       >
-        <AppIcon name="download" :size="13" />{{ t("studio.queue") }}
+        <IconStudioDownload width="13" height="13" />{{ t("studio.queue") }}
         {{ active.length + store.queuedIds.value.length }}</button
       ><button
         v-if="gateway.capabilities.demo"
         class="flex items-center gap-[5px] border-l border-line pl-3 whitespace-nowrap"
         @click="demoOpen = true"
       >
-        <AppIcon name="lab" :size="13" />{{ t("demo.title") }}</button
+        <IconStudioLab width="13" height="13" />{{ t("demo.title") }}</button
       ><button
         class="inline-flex items-center justify-center rounded p-[5px] text-muted hover:bg-track hover:text-ink"
         :aria-label="t('studio.preferences')"
         @click="settingsOpen = true"
       >
-        <AppIcon name="settings" :size="14" />
+        <IconStudioSettings width="14" height="14" />
       </button>
     </footer>
   </div>

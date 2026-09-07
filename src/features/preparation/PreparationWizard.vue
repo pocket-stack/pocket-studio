@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import AppIcon from "../../shared/ui/AppIcon.vue";
 import RiskStep from "./steps/RiskStep.vue";
 import DisclaimerStep from "./steps/DisclaimerStep.vue";
 import { useGateway } from "../../shared/gateway";
@@ -59,7 +58,7 @@ watch(preparation.consentVisible, async (visible) => {
           :aria-label="t('common.close')"
           @click="preparation.close"
         >
-          <AppIcon name="cross" :size="17" />
+          <IconStudioCross width="17" height="17" />
         </button>
       </header>
       <RiskStep

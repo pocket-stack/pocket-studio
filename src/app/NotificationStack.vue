@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import IconStudioInfo from "~icons/studio/info";
+import IconStudioCheck from "~icons/studio/check";
+import IconStudioWarning from "~icons/studio/warning";
+import IconStudioCross from "~icons/studio/cross";
 import { useI18n } from "vue-i18n";
 
 import { useNotifications } from "../shared/composables/useNotifications";
-import AppIcon from "../shared/ui/AppIcon.vue";
 
 const { t } = useI18n();
 const { items, dismiss } = useNotifications();
@@ -14,10 +17,10 @@ const tones = {
   error: "border-danger/40 text-danger",
 };
 const icons = {
-  info: "info",
-  success: "check",
-  warning: "warning",
-  error: "cross",
+  info: IconStudioInfo,
+  success: IconStudioCheck,
+  warning: IconStudioWarning,
+  error: IconStudioCross,
 };
 </script>
 
@@ -38,10 +41,15 @@ const icons = {
         :class="tones[item.tone]"
         role="status"
       >
-        <AppIcon :name="icons[item.tone]" :size="16" class="mt-0.5" />
+        <component
+          :is="icons[item.tone]"
+          width="16"
+          height="16"
+          class="mt-0.5"
+        />
         <p class="flex-1 text-ink">{{ t(item.key, item.params ?? {}) }}</p>
         <button class="text-muted hover:text-ink" @click="dismiss(item.id)">
-          <AppIcon name="cross" :size="14" />
+          <IconStudioCross width="14" height="14" />
         </button>
       </div>
     </TransitionGroup>
