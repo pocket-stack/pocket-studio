@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PackageOperations from "./PackageOperations.vue";
 import { useGateway } from "../../shared/gateway";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -24,11 +23,11 @@ const ROW_HEIGHT = 44;
 const HEAD_HEIGHT = 28;
 
 const emit = defineEmits<{ openStore: []; detail: [id: string] }>();
-const { t, d, locale } = useI18n();
+const { t, locale } = useI18n();
 const store = useStore();
 const gateway = useGateway();
 const { active } = useOperations();
-const { device, isReady } = useDeviceSession();
+const { device } = useDeviceSession();
 const sort = ref("name");
 const removingId = ref<string | null>(null);
 const page = ref(0);
@@ -74,20 +73,6 @@ const tasks = computed(() =>
     )
     .slice(0, 3),
 );
-const subtitle = computed(() =>
-  [
-    t("store.installed.count", { count: installed.value.length }),
-    device.value ? device.value.marketingName : t("app.noDevice"),
-    store.installedSnapshot.value?.observedAt
-      ? t("store.installed.observed", {
-          time: d(store.installedSnapshot.value.observedAt, "date"),
-        })
-      : null,
-    t(isReady.value ? "studio.allReady" : "studio.needsPreparation"),
-  ]
-    .filter(Boolean)
-    .join(" · "),
-);
 </script>
 <template>
   <section
@@ -107,7 +92,6 @@ const subtitle = computed(() =>
     <header class="flex items-center gap-3">
       <div class="min-w-0 flex-1">
         <h1 class="text-xl font-semibold">{{ t("studio.installedApps") }}</h1>
-        <p class="truncate text-xs text-muted">{{ subtitle }}</p>
       </div>
       <label class="flex items-center gap-1.5 text-xs text-muted"
         >{{ t("studio.sort")
@@ -138,10 +122,6 @@ const subtitle = computed(() =>
     <StudioCallout v-if="store.installedIssue.value" tone="warning">
       {{ t("store.installed.readFailed") }}
     </StudioCallout>
-    <PackageOperations
-      v-if="gateway.flavor === 'tauri'"
-      @detail="emit('detail', $event)"
-    />
     <StudioPanel
       v-if="gateway.flavor === 'browser' && tasks.length"
       :padded="false"
