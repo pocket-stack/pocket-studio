@@ -5,7 +5,19 @@ import type { DeviceSummary } from "../../shared/gateway";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import DeviceIllustration from "../../shared/ui/DeviceIllustration.vue";
 import StatusPill from "../../shared/ui/StatusPill.vue";
-const props = defineProps<{ device: DeviceSummary }>();
+import StudioPanel from "../../shared/ui/StudioPanel.vue";
+
+export interface StorageSegment {
+  key: string;
+  gigabytes: number;
+  color: string;
+}
+
+const props = defineProps<{
+  device: DeviceSummary;
+  storage?: { total: number; free: number; segments: StorageSegment[] };
+  sample?: boolean;
+}>();
 const { t } = useI18n();
 const { isReady, readiness } = useDeviceSession();
 const screen = computed(() =>
@@ -56,23 +68,11 @@ const rows = computed(() => [
 ]);
 </script>
 <template>
-  <section
-    class="mb-6 flex min-h-[236px] items-center gap-9 p-0 max-[850px]:gap-[22px] max-[800px]:items-start"
-  >
-    <div class="relative flex w-[118px] shrink-0 justify-center">
-      <DeviceIllustration
-        class="relative z-[1]"
-        :width="118"
-        shadow
-        :screen="screen"
-      />
-      <div
-        class="absolute bottom-[7px] h-[7px] w-[82px] rounded-[50%] bg-[#00000012] blur-[4px]"
-      />
-    </div>
+  <StudioPanel class="flex items-center gap-6 px-5 py-4">
+    <DeviceIllustration class="shrink-0" :width="92" :screen="screen" shadow />
     <div class="min-w-0 flex-1">
-      <div class="m-0 flex items-center gap-3 max-[800px]:flex-wrap">
-        <h1 class="text-[26px] leading-[1.3] font-semibold tracking-[-0.26px]">
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="truncate text-2xl font-semibold tracking-tight">
           {{ device.marketingName }}
         </h1>
         <StatusPill :tone="isReady ? 'success' : 'warning'" dot>{{
@@ -80,21 +80,62 @@ const rows = computed(() => [
         }}</StatusPill>
       </div>
       <dl
-        class="mt-3.5 grid grid-cols-[1fr_1fr_1.5fr] gap-x-8 gap-y-2 max-[1150px]:grid-cols-2 max-[1150px]:gap-x-3.5 max-[1150px]:gap-y-2.5 max-[850px]:grid-cols-1"
+        class="mt-3 grid grid-cols-3 gap-x-6 gap-y-1.5 text-sm max-[1100px]:grid-cols-2"
       >
-        <div
-          v-for="row in rows"
-          :key="row.key"
-          class="flex gap-[5px] text-[13px]"
-        >
-          <dt class="min-w-auto text-muted">
+        <div v-for="row in rows" :key="row.key" class="flex min-w-0 gap-1.5">
+          <dt class="shrink-0 text-muted">
             {{ t(`device.fields.${row.key}`) }}
           </dt>
-          <dd class="text-[13px]" :class="{ 'font-mono': row.mono }">
+          <dd class="truncate" :class="{ 'font-mono': row.mono }">
             {{ row.value }}
           </dd>
         </div>
       </dl>
+      <div v-if="storage" class="mt-4">
+        <div
+          class="flex h-2 overflow-hidden rounded-full bg-track"
+          role="img"
+          :aria-label="
+            t('studio.storageAvailable', {
+              free: storage.free.toFixed(1),
+              total: storage.total,
+            })
+          "
+        >
+          <span
+            v-for="segment in storage.segments"
+            :key="segment.key"
+            class="h-full w-(--segment-width) bg-(--segment-color) transition-[width] duration-500"
+            :style="{
+              '--segment-width': `${(segment.gigabytes / (storage.total || 1)) * 100}%`,
+              '--segment-color': segment.color,
+            }"
+          />
+        </div>
+        <div
+          class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-2xs text-muted"
+        >
+          <span
+            v-for="segment in storage.segments"
+            :key="segment.key"
+            class="flex items-center gap-1.5"
+            ><i
+              class="size-1.5 rounded-[2px] bg-(--segment-color)"
+              :style="{ '--segment-color': segment.color }"
+            />{{ t(`studio.storageTypes.${segment.key}`) }}
+            <b class="font-medium text-ink"
+              >{{ segment.gigabytes.toFixed(1) }} GB</b
+            ></span
+          >
+          <span class="ml-auto">{{
+            t("studio.storageAvailable", {
+              free: storage.free.toFixed(1),
+              total: storage.total,
+            })
+          }}</span>
+          <span v-if="sample">{{ t("studio.sampleStorage") }}</span>
+        </div>
+      </div>
     </div>
-  </section>
+  </StudioPanel>
 </template>

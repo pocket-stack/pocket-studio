@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import IconPhCheck from "~icons/ph/check";
-import IconPhWarning from "~icons/ph/warning";
-import IconPhMinus from "~icons/ph/minus";
+import IconPhCheckCircleFill from "~icons/ph/check-circle-fill";
+import IconPhWarningFill from "~icons/ph/warning-fill";
+import IconPhCircleDashed from "~icons/ph/circle-dashed";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
@@ -11,6 +11,10 @@ import {
 } from "../../shared/gateway";
 import AppSyncCheckDialog from "./AppSyncCheckDialog.vue";
 import { useOperations } from "../../shared/composables/useOperations";
+import StatusPill from "../../shared/ui/StatusPill.vue";
+import StudioButton from "../../shared/ui/StudioButton.vue";
+import StudioCallout from "../../shared/ui/StudioCallout.vue";
+import StudioPanel from "../../shared/ui/StudioPanel.vue";
 const props = defineProps<{
   report: ReadinessReport | null;
   device?: DeviceSummary | null;
@@ -89,70 +93,72 @@ const canReviewPreparation = computed(() => {
     )
   );
 });
+const statusIcon = {
+  pass: IconPhCheckCircleFill,
+  fail: IconPhWarningFill,
+  warn: IconPhWarningFill,
+  unknown: IconPhCircleDashed,
+};
+const statusClass = {
+  pass: "text-success",
+  fail: "text-warning",
+  warn: "text-warning",
+  unknown: "text-muted",
+};
 </script>
 <template>
-  <section
-    :data-detailed="!compact"
-    class="group/readiness overflow-hidden rounded-lg border border-line bg-surface data-[detailed=true]:mb-5"
+  <StudioPanel
+    :padded="false"
+    class="flex min-h-0 flex-col overflow-hidden"
     :aria-busy="checking"
   >
-    <header
-      class="flex items-center justify-between gap-[15px] px-4 pt-4 pb-1.5"
-    >
-      <div>
-        <h2 class="text-[15px] font-semibold">
-          {{
-            t(
-              report?.status === "ready"
-                ? "studio.readinessReady"
-                : report?.status === "needsAttention"
-                  ? "connection.readinessPendingTitle"
-                  : report?.status === "unsupported"
-                    ? "connection.unsupportedTitle"
-                    : "studio.readinessTitle",
-            )
-          }}
-        </h2>
-      </div>
-      <span
+    <header class="flex items-center justify-between gap-3 px-4 pt-3 pb-1">
+      <h2 class="text-base font-semibold">
+        {{
+          t(
+            report?.status === "ready"
+              ? "studio.readinessReady"
+              : report?.status === "needsAttention"
+                ? "connection.readinessPendingTitle"
+                : report?.status === "unsupported"
+                  ? "connection.unsupportedTitle"
+                  : "studio.readinessTitle",
+          )
+        }}
+      </h2>
+      <StatusPill
         v-if="report"
-        :data-ready="report.status === 'ready'"
-        class="rounded-[10px] border border-line px-2 py-px text-[12px] whitespace-nowrap text-muted data-[ready=true]:border-success/35 data-[ready=true]:text-success"
-        >{{ passCount }} / {{ checks.length }} {{ t("studio.passed") }}</span
+        :tone="report.status === 'ready' ? 'success' : 'neutral'"
+        >{{ passCount }} / {{ checks.length }}
+        {{ t("studio.passed") }}</StatusPill
       >
     </header>
-    <div v-if="!report" class="p-7 text-sm text-muted flex items-center gap-2">
-      <IconPhArrowsClockwise
-        :class="{ 'motion-safe:animate-studio-spin': checking }"
-        width="16"
-        height="16"
-      />{{ t(checking ? "readiness.checking" : "studio.checkFailed") }}
+    <div
+      v-if="!report"
+      class="flex items-center gap-2 px-4 py-5 text-sm text-muted"
+    >
+      <IconSvgSpinners90Ring v-if="checking" width="15" height="15" />
+      <IconPhWarning v-else width="15" height="15" />
+      {{ t(checking ? "readiness.checking" : "studio.checkFailed") }}
     </div>
-    <ul v-else class="px-4 py-0">
+    <ul v-else class="px-2" :class="!compact && 'grid grid-cols-2 gap-x-4'">
       <li
         v-for="check in checks"
         :key="check.id"
-        class="flex items-center gap-2.5 border-b border-line px-0 py-[9px] last:border-0 group-data-[detailed=true]/readiness:py-[15px]"
+        class="flex items-center gap-2.5 rounded-control px-2 hover:bg-ink/4"
+        :class="compact ? 'py-1.5' : 'py-[7px]'"
       >
-        <span
-          :data-status="check.status"
-          class="grid h-[18px] w-4 place-items-center rounded-none bg-transparent text-muted data-[status=pass]:text-success data-[status=fail]:text-warning data-[status=warn]:text-warning"
-          ><component
-            :is="
-              check.status === 'pass'
-                ? IconPhCheck
-                : check.status === 'fail'
-                  ? IconPhWarning
-                  : IconPhMinus
-            "
-            width="14"
-            height="14"
-        /></span>
-        <div class="flex-1">
-          <h3 class="text-[13px]">
+        <component
+          :is="statusIcon[check.status] ?? IconPhCircleDashed"
+          width="15"
+          height="15"
+          :class="statusClass[check.status] ?? 'text-muted'"
+        />
+        <div class="min-w-0 flex-1">
+          <h3 class="text-sm leading-[18px]">
             {{ t(`readiness.checks.${check.id}.title`) }}
           </h3>
-          <p v-if="!compact" class="mt-1 text-[11px] text-muted">
+          <p v-if="!compact" class="truncate text-xs text-muted">
             {{
               check.id === "appSyncInstalled" &&
               appSyncUnconfirmed &&
@@ -172,7 +178,7 @@ const canReviewPreparation = computed(() => {
             }}
           </p>
         </div>
-        <span class="text-[12px] text-muted">{{
+        <span class="shrink-0 text-xs text-muted">{{
           check.id === "appSyncInstalled" &&
           appSyncUnconfirmed &&
           check.previousObservation
@@ -185,13 +191,14 @@ const canReviewPreparation = computed(() => {
         }}</span>
       </li>
     </ul>
-    <p
+    <StudioCallout
       v-if="
         report?.checks.some(
           (check) => check.id === 'appSyncInstalled' && check.status !== 'pass',
         )
       "
-      class="mx-4 mt-3 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs leading-6 text-muted"
+      tone="warning"
+      class="mx-4 mt-2"
     >
       {{
         t(
@@ -200,22 +207,19 @@ const canReviewPreparation = computed(() => {
             : "preparation.appSync.explanation",
         )
       }}
-    </p>
-    <footer
-      class="flex items-center justify-between gap-[15px] px-4 pt-3 pb-4 max-[800px]:flex-wrap"
-    >
+    </StudioCallout>
+    <footer class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
       <div class="flex flex-wrap gap-2">
-        <button
+        <StudioButton
           v-if="canCheckAppSync"
           :disabled="checking || !!active.length"
-          class="rounded-md border border-line px-[15px] py-1.5 text-[13px] font-medium text-signal disabled:opacity-45"
           @click="checkingAppSync = true"
         >
           {{ t("readiness.appSyncCheck.action") }}
-        </button>
-        <button
+        </StudioButton>
+        <StudioButton
           v-if="canReviewPreparation"
-          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
+          variant="primary"
           :disabled="checking || !!active.length"
           @click="emit('prepare')"
         >
@@ -225,40 +229,34 @@ const canReviewPreparation = computed(() => {
                 ? "preparation.appSync.action"
                 : "preparation.reviewPlan",
             )
-          }}<IconPhArrowRight width="14" height="14" /></button
-        ><button
+          }}<IconPhArrowRight width="14" height="14" />
+        </StudioButton>
+        <StudioButton
           v-else-if="
             report?.status === 'ready' && gateway.capabilities.packages
           "
-          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
+          variant="primary"
           @click="emit('openStore')"
         >
           {{ t("device.next.action")
-          }}<IconPhArrowRight width="14" height="14" /></button
-        ><button
-          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-          :disabled="checking"
-          @click="emit('recheck')"
-        >
-          <IconPhArrowsClockwise
-            width="13"
-            height="13"
-            :class="{ 'motion-safe:animate-studio-spin': checking }"
-          />{{ t("readiness.recheck") }}
-        </button>
+          }}<IconPhArrowRight width="14" height="14" />
+        </StudioButton>
+        <StudioButton :disabled="checking" @click="emit('recheck')">
+          <IconSvgSpinners90Ring v-if="checking" width="13" height="13" />
+          <IconPhArrowsClockwise v-else width="13" height="13" />{{
+            t("readiness.recheck")
+          }}
+        </StudioButton>
       </div>
-      <button
-        v-if="compact"
-        class="inline-flex items-center gap-[5px] text-[11px] text-signal hover:underline hover:underline-offset-[3px]"
-        @click="emit('details')"
-      >
+      <StudioButton v-if="compact" variant="link" @click="emit('details')">
         {{ t("studio.allConditions")
-        }}<IconPhCaretRight width="12" height="12" /></button
-      ><span v-else-if="report" class="text-xs text-muted">{{
+        }}<IconPhCaretRight width="12" height="12" />
+      </StudioButton>
+      <span v-else-if="report" class="text-xs text-muted">{{
         t("readiness.checkedAt", { time: d(report.checkedAt, "time") })
       }}</span>
     </footer>
-  </section>
+  </StudioPanel>
   <AppSyncCheckDialog
     v-if="device"
     :open="checkingAppSync"

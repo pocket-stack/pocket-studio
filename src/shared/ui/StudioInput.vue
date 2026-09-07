@@ -29,13 +29,14 @@ const inputAttrs = computed(() =>
       ><slot name="icon"
     /></span>
     <input
-      v-model="model"
       v-bind="inputAttrs"
+      :value="model"
       :type="type"
       :placeholder="placeholder"
       :aria-label="label"
       :disabled="disabled"
       class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted"
+      @input="model = ($event.target as HTMLInputElement).value"
     />
   </label>
 </template>

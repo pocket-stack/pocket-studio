@@ -138,7 +138,8 @@
       "system": "System",
       "media": "Media",
       "apps": "Apps",
-      "free": "Available"
+      "free": "Available",
+      "used": "Used"
     },
     "checkStates": {
       "pass": "Passed",

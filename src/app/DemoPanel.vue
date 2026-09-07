@@ -4,6 +4,8 @@ import { useI18n } from "vue-i18n";
 
 import { useDeviceSession } from "../shared/composables/useDeviceSession";
 import { useGateway, type StepId } from "../shared/gateway";
+import StudioButton from "../shared/ui/StudioButton.vue";
+import StudioSelect from "../shared/ui/StudioSelect.vue";
 
 /**
  * Demo controls stand in for physical actions (plugging a cable, a failing
@@ -38,52 +40,33 @@ async function armFailure(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 text-xs">
-    <p class="flex items-center gap-2 font-semibold text-muted">
-      <IconPhFlask width="14" height="14" />
-      {{ t("demo.title") }}
-    </p>
+  <div class="flex flex-col gap-3 text-sm">
     <p class="text-muted">{{ t("demo.hint") }}</p>
-    <div class="grid grid-cols-2 gap-1.5">
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-        :disabled="!!device"
-        @click="gateway.demo.attachDevice()"
-      >
+    <div class="grid grid-cols-2 gap-2">
+      <StudioButton :disabled="!!device" @click="gateway.demo.attachDevice()">
         {{ t("demo.attach") }}
-      </button>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-        :disabled="!device"
-        @click="gateway.demo.detachDevice()"
-      >
+      </StudioButton>
+      <StudioButton :disabled="!device" @click="gateway.demo.detachDevice()">
         {{ t("demo.detach") }}
-      </button>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+      </StudioButton>
+      <StudioButton
         :disabled="!device"
         @click="gateway.demo.setDeviceMode('normal')"
       >
         {{ t("demo.exitDfu") }}
-      </button>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-        @click="setJailbroken(true)"
-      >
+      </StudioButton>
+      <StudioButton @click="setJailbroken(true)">
         {{ t("demo.markJailbroken") }}
-      </button>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-        @click="setJailbroken(false)"
-      >
+      </StudioButton>
+      <StudioButton @click="setJailbroken(false)">
         {{ t("demo.markStock") }}
-      </button>
+      </StudioButton>
     </div>
     <label class="flex flex-col gap-1">
-      <span class="text-muted">{{ t("demo.failNext") }}</span>
-      <select
+      <span class="text-xs text-muted">{{ t("demo.failNext") }}</span>
+      <StudioSelect
         v-model="failStep"
-        class="rounded-lg border border-line bg-raised px-3 py-2 text-sm text-ink focus:border-signal leading-[1.428571]"
+        :label="t('demo.failNext')"
         @change="armFailure"
       >
         <option value="">{{ t("demo.noFailure") }}</option>
@@ -94,7 +77,7 @@ async function armFailure(): Promise<void> {
             )
           }}
         </option>
-      </select>
+      </StudioSelect>
     </label>
   </div>
 </template>

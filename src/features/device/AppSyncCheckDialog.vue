@@ -2,7 +2,10 @@
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { GatewayError, useGateway } from "../../shared/gateway";
+import StudioButton from "../../shared/ui/StudioButton.vue";
+import StudioCallout from "../../shared/ui/StudioCallout.vue";
 import StudioDialog from "../../shared/ui/StudioDialog.vue";
+import StudioInput from "../../shared/ui/StudioInput.vue";
 
 const props = defineProps<{ open: boolean; deviceId: string }>();
 const emit = defineEmits<{ close: []; checked: [] }>();
@@ -51,54 +54,45 @@ async function check(): Promise<void> {
     compact
     @close="emit('close')"
   >
-    <form class="space-y-4" @submit.prevent="check">
-      <p class="text-sm leading-6 text-muted">
-        {{ t("readiness.appSyncCheck.body") }}
-      </p>
+    <form class="flex flex-col gap-3" @submit.prevent="check">
+      <p class="text-sm text-muted">{{ t("readiness.appSyncCheck.body") }}</p>
       <label class="block text-sm">
-        {{ t("preparation.appSync.password") }}
-        <input
-          :value="password"
-          :disabled="pending"
+        <span class="mb-1 block font-medium">{{
+          t("preparation.appSync.password")
+        }}</span>
+        <StudioInput
+          v-model="password"
           type="password"
+          class="w-full"
           autocomplete="off"
           maxlength="1024"
-          class="mt-2 w-full rounded border border-line bg-canvas px-3 py-2"
-          @input="password = ($event.target as HTMLInputElement).value"
+          :disabled="pending"
+          :label="t('preparation.appSync.password')"
         />
       </label>
-      <p class="text-xs leading-5 text-muted">
+      <p class="text-xs text-muted">
         {{ t("preparation.appSync.passwordHint") }}
       </p>
-      <p v-if="error" role="alert" class="text-sm text-danger">
+      <StudioCallout v-if="error" tone="danger">
         {{
           t(
             `readiness.appSyncCheck.errors.${error}`,
             t("readiness.appSyncCheck.errors.appSyncCheckUnavailable"),
           )
         }}
-      </p>
-      <div class="flex justify-end gap-3">
-        <button
-          type="button"
-          class="rounded border border-line px-3 py-2 text-sm"
-          @click="emit('close')"
-        >
-          {{ t("common.close") }}
-        </button>
-        <button
+      </StudioCallout>
+      <div class="mt-1 flex justify-end gap-2">
+        <StudioButton @click="emit('close')">{{
+          t("common.close")
+        }}</StudioButton>
+        <StudioButton
           type="submit"
-          :disabled="pending || !password"
-          class="rounded bg-signal px-3 py-2 text-sm text-on-signal disabled:opacity-45"
+          variant="primary"
+          :loading="pending"
+          :disabled="!password"
         >
-          {{
-            t(
-              pending
-                ? "readiness.appSyncCheck.checking"
-                : "readiness.appSyncCheck.action",
-            )
-          }}
-        </button>
+          {{ t("readiness.appSyncCheck.action") }}
+        </StudioButton>
       </div>
     </form>
   </StudioDialog>

@@ -138,7 +138,8 @@
       "system": "系统",
       "media": "媒体",
       "apps": "应用",
-      "free": "可用"
+      "free": "可用",
+      "used": "已使用"
     },
     "checkStates": {
       "pass": "已通过",

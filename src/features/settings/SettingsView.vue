@@ -1,74 +1,64 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 import { saveLocale, type AppLocale } from "../../shared/i18n";
 import { useTheme, type ThemePreference } from "../../shared/theme";
+import StudioPanel from "../../shared/ui/StudioPanel.vue";
+import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 
 const { t, locale } = useI18n();
 const theme = useTheme();
 
-const themes: ThemePreference[] = ["system", "light", "dark"];
-const locales: AppLocale[] = ["zh-CN", "en"];
-
-function chooseLocale(next: AppLocale): void {
-  locale.value = next;
-  saveLocale(next);
-}
+const themeOptions = computed(() =>
+  (["system", "light", "dark"] as ThemePreference[]).map((value) => ({
+    value,
+    label: t(`settings.theme.${value}`),
+  })),
+);
+const localeOptions = computed(() =>
+  (["zh-CN", "en"] as AppLocale[]).map((value) => ({
+    value,
+    label: t(`settings.language.${value}`),
+  })),
+);
+const themeModel = computed({
+  get: () => theme.preference.value,
+  set: (value) => theme.setThemePreference(value as ThemePreference),
+});
+const localeModel = computed({
+  get: () => locale.value,
+  set: (value) => {
+    locale.value = value as AppLocale;
+    saveLocale(value as AppLocale);
+  },
+});
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-3xl flex-col gap-5">
-    <header>
-      <h1 class="text-2xl font-semibold tracking-tight">
-        {{ t("settings.title") }}
-      </h1>
-      <p class="mt-1 text-sm text-muted">{{ t("settings.subtitle") }}</p>
-    </header>
-
-    <section class="p-5 rounded-lg border border-line bg-surface">
-      <h2 class="text-sm font-semibold">{{ t("settings.theme.title") }}</h2>
-      <div class="mt-3 flex gap-2">
-        <button
-          v-for="option in themes"
-          :key="option"
-          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45"
-          :class="
-            theme.preference.value === option
-              ? 'bg-signal text-on-signal enabled:hover:brightness-[1.06]'
-              : 'border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted'
-          "
-          @click="theme.setThemePreference(option)"
-        >
-          {{ t(`settings.theme.${option}`) }}
-        </button>
+  <div class="flex flex-col gap-3 text-sm">
+    <p class="text-muted">{{ t("settings.subtitle") }}</p>
+    <StudioPanel :padded="false" class="bg-canvas/60">
+      <div class="flex items-center justify-between gap-4 px-4 py-3">
+        <span class="font-medium">{{ t("settings.theme.title") }}</span>
+        <StudioSegmented
+          v-model="themeModel"
+          :options="themeOptions"
+          :label="t('settings.theme.title')"
+        />
       </div>
-    </section>
-
-    <section class="p-5 rounded-lg border border-line bg-surface">
-      <h2 class="text-sm font-semibold">{{ t("settings.language.title") }}</h2>
-      <div class="mt-3 flex gap-2">
-        <button
-          v-for="option in locales"
-          :key="option"
-          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45"
-          :class="
-            locale === option
-              ? 'bg-signal text-on-signal enabled:hover:brightness-[1.06]'
-              : 'border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted'
-          "
-          @click="chooseLocale(option)"
-        >
-          {{ t(`settings.language.${option}`) }}
-        </button>
+      <div class="flex items-center justify-between gap-4 px-4 py-3">
+        <span class="font-medium">{{ t("settings.language.title") }}</span>
+        <StudioSegmented
+          v-model="localeModel"
+          :options="localeOptions"
+          :label="t('settings.language.title')"
+        />
       </div>
-    </section>
-
-    <section class="p-5 text-sm rounded-lg border border-line bg-surface">
-      <h2 class="text-sm font-semibold">{{ t("settings.about.title") }}</h2>
-      <dl class="mt-3 grid grid-cols-[140px_1fr] gap-y-1 text-muted">
-        <dt>{{ t("settings.about.version") }}</dt>
-        <dd class="font-mono text-ink">0.1.0</dd>
-      </dl>
-    </section>
+      <div class="flex items-center justify-between gap-4 px-4 py-3">
+        <span class="font-medium">{{ t("settings.about.version") }}</span>
+        <span class="font-mono text-muted">0.1.0</span>
+      </div>
+    </StudioPanel>
   </div>
 </template>

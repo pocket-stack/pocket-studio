@@ -9,11 +9,12 @@ withDefaults(
 <template>
   <span class="relative inline-flex">
     <select
-      v-model="model"
+      :value="model"
       :aria-label="label"
       :disabled="disabled"
       class="w-full appearance-none rounded-control bg-raised pr-7 pl-2.5 text-ink shadow-control transition-colors enabled:hover:bg-track disabled:opacity-45"
       :class="size === 'sm' ? 'h-6 text-xs' : 'h-7 text-sm'"
+      @change="model = ($event.target as HTMLSelectElement).value"
     >
       <slot />
     </select>
