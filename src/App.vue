@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import IconPhDeviceMobile from "~icons/ph/device-mobile-fill";
-import IconPhSquaresFour from "~icons/ph/squares-four-fill";
-import IconPhFileText from "~icons/ph/file-text-fill";
 import IconPhStorefront from "~icons/ph/storefront-fill";
 import IconPhCaretDown from "~icons/ph/caret-down";
 import IconPhCaretUp from "~icons/ph/caret-up";
@@ -154,12 +152,19 @@ watch(navigationHistory.current, async (location) => {
   await nextTick();
   mainContent.value?.scrollTo({ top: 0 });
 });
+// Installed apps and logs live under the device, so only two top-level tabs.
 const navigation: Array<{ id: StudioView; icon: Component }> = [
   { id: "device", icon: IconPhDeviceMobile },
-  { id: "installed", icon: IconPhSquaresFour },
   { id: "store", icon: IconPhStorefront },
-  { id: "logs", icon: IconPhFileText },
 ];
+const navCurrent = computed<StudioView>(() =>
+  view.value === "store" ? "store" : "device",
+);
+const sidebarVisible = computed(
+  () =>
+    ["device", "installed", "logs"].includes(view.value) &&
+    !!session.device.value,
+);
 function showDevice(section: DeviceSection): void {
   navigationHistory.navigate({ view: "device", section });
 }
@@ -209,75 +214,77 @@ onMounted(async () => {
 <template>
   <div class="flex h-dvh flex-col" :inert="modalOpen">
     <header
-      class="flex h-[52px] shrink-0 items-center gap-3 border-b border-line bg-chrome px-3"
+      class="grid h-[52px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-chrome px-3"
     >
-      <div
-        class="flex shrink-0 items-center gap-0.5"
-        role="group"
-        :aria-label="t('studio.historyNavigation')"
-      >
-        <button
-          v-for="direction in ['back', 'forward'] as const"
-          :key="direction"
-          class="inline-flex size-7 items-center justify-center rounded-control text-muted transition-colors enabled:hover:bg-ink/6 enabled:hover:text-ink disabled:opacity-30"
-          :disabled="
-            direction === 'back'
-              ? !navigationHistory.canGoBack.value
-              : !navigationHistory.canGoForward.value
-          "
-          :title="
-            t(
-              direction === 'back'
-                ? 'studio.navigateBack'
-                : 'studio.navigateForward',
-            )
-          "
-          :aria-label="
-            t(
-              direction === 'back'
-                ? 'studio.navigateBack'
-                : 'studio.navigateForward',
-            )
-          "
-          @click="
-            direction === 'back'
-              ? navigationHistory.back()
-              : navigationHistory.forward()
-          "
+      <div class="flex min-w-0 items-center gap-3">
+        <div
+          class="flex shrink-0 items-center gap-0.5"
+          role="group"
+          :aria-label="t('studio.historyNavigation')"
         >
-          <IconPhCaretRight
-            width="15"
-            height="15"
-            :class="{ 'rotate-180': direction === 'back' }"
-          />
-        </button>
+          <button
+            v-for="direction in ['back', 'forward'] as const"
+            :key="direction"
+            class="inline-flex size-7 items-center justify-center rounded-control text-muted transition-colors enabled:hover:bg-ink/6 enabled:hover:text-ink disabled:opacity-30"
+            :disabled="
+              direction === 'back'
+                ? !navigationHistory.canGoBack.value
+                : !navigationHistory.canGoForward.value
+            "
+            :title="
+              t(
+                direction === 'back'
+                  ? 'studio.navigateBack'
+                  : 'studio.navigateForward',
+              )
+            "
+            :aria-label="
+              t(
+                direction === 'back'
+                  ? 'studio.navigateBack'
+                  : 'studio.navigateForward',
+              )
+            "
+            @click="
+              direction === 'back'
+                ? navigationHistory.back()
+                : navigationHistory.forward()
+            "
+          >
+            <IconPhCaretRight
+              width="15"
+              height="15"
+              :class="{ 'rotate-180': direction === 'back' }"
+            />
+          </button>
+        </div>
+        <nav
+          class="flex shrink-0 items-center gap-px rounded-control bg-ink/6 p-0.5"
+          :aria-label="t('studio.navigation')"
+        >
+          <button
+            v-for="item in navigation"
+            :key="item.id"
+            class="inline-flex h-[26px] items-center gap-1.5 rounded-[5px] px-2.5 text-sm text-muted transition-[background-color,color,box-shadow] duration-150 enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 aria-[current=page]:bg-raised aria-[current=page]:text-ink aria-[current=page]:shadow-control"
+            :disabled="!navigationHistory.enabled.value"
+            :title="t(`studio.nav.${item.id}`)"
+            :aria-current="navCurrent === item.id ? 'page' : undefined"
+            @click="showPage(item.id)"
+          >
+            <component :is="item.icon" width="16" height="16" />
+            <span class="max-[1100px]:sr-only">{{
+              t(`studio.nav.${item.id}`)
+            }}</span>
+          </button>
+        </nav>
       </div>
-      <nav
-        class="flex shrink-0 items-center gap-px rounded-control bg-ink/6 p-0.5"
-        :aria-label="t('studio.navigation')"
-      >
-        <button
-          v-for="item in navigation"
-          :key="item.id"
-          class="inline-flex h-[26px] items-center gap-1.5 rounded-[5px] px-2.5 text-sm text-muted transition-[background-color,color,box-shadow] duration-150 enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 aria-[current=page]:bg-raised aria-[current=page]:text-ink aria-[current=page]:shadow-control"
-          :disabled="!navigationHistory.enabled.value"
-          :title="t(`studio.nav.${item.id}`)"
-          :aria-current="view === item.id ? 'page' : undefined"
-          @click="showPage(item.id)"
-        >
-          <component :is="item.icon" width="16" height="16" />
-          <span class="max-[1100px]:sr-only">{{
-            t(`studio.nav.${item.id}`)
-          }}</span>
-        </button>
-      </nav>
       <button
-        class="relative mx-auto flex h-[40px] w-[520px] min-w-[200px] flex-col justify-center overflow-hidden rounded-control bg-lcd px-3 text-left shadow-inset transition-colors hover:bg-lcd/80"
+        class="relative flex h-[40px] w-[360px] max-w-[30vw] min-w-[200px] flex-col justify-center justify-self-center overflow-hidden rounded-control bg-lcd px-3 text-center shadow-inset transition-colors hover:bg-lcd/80"
         :aria-label="t('studio.activity')"
         @click="showActivity"
       >
         <div
-          class="flex items-baseline justify-between gap-3 text-sm leading-[16px]"
+          class="flex items-baseline justify-center gap-2 text-sm leading-[16px]"
         >
           <Transition
             mode="out-in"
@@ -289,7 +296,7 @@ onMounted(async () => {
             <span
               v-if="lcdNotice"
               :key="lcdNotice.id"
-              class="flex min-w-0 items-center gap-1.5 truncate font-semibold"
+              class="flex min-w-0 items-center justify-center gap-1.5 truncate font-semibold"
               role="status"
             >
               <IconPhInfo
@@ -314,21 +321,21 @@ onMounted(async () => {
                 t(lcdNotice.key, lcdNotice.params ?? {})
               }}</span>
             </span>
-            <span v-else key="title" class="min-w-0 truncate font-semibold">{{
-              lcdTitle
-            }}</span>
+            <span v-else key="title" class="min-w-0 truncate font-semibold"
+              >{{ lcdTitle
+              }}<span v-if="current" class="text-xs text-muted tabular-nums">
+                · {{ progress }}%</span
+              ></span
+            >
           </Transition>
-          <span v-if="current" class="shrink-0 text-xs text-muted tabular-nums"
-            >{{ progress }}%</span
-          >
         </div>
         <div
-          class="flex items-baseline justify-between gap-3 text-xs leading-[14px] text-muted"
+          class="flex items-baseline justify-center gap-2 text-xs leading-[14px] text-muted"
         >
           <span class="min-w-0 truncate">{{ lcdSubtitle }}</span
-          ><span v-if="stepPosition" class="shrink-0 tabular-nums">{{
-            stepPosition
-          }}</span>
+          ><span v-if="stepPosition" class="shrink-0 tabular-nums"
+            >· {{ stepPosition }}</span
+          >
         </div>
         <ProgressBar
           v-if="current"
@@ -339,33 +346,24 @@ onMounted(async () => {
           compact
         />
       </button>
-      <div class="flex shrink-0 items-center gap-2.5">
+      <div class="flex min-w-0 items-center justify-end gap-2.5">
         <details ref="deviceMenu" class="group/device-menu relative">
           <summary
-            class="flex h-8 min-w-[112px] list-none items-center gap-2 rounded-control bg-raised px-2.5 text-muted shadow-control transition-colors hover:bg-track group-open/device-menu:bg-track [&::-webkit-details-marker]:hidden"
+            class="flex h-7 list-none items-center gap-1.5 rounded-control bg-raised px-2.5 text-muted shadow-control transition-colors hover:bg-track group-open/device-menu:bg-track [&::-webkit-details-marker]:hidden"
           >
-            <IconPhDeviceMobile width="18" height="18" /><span
-              class="max-[900px]:hidden"
-              ><b
-                class="block text-sm leading-[15px] font-semibold whitespace-nowrap text-ink"
-                >{{
-                  session.device.value
-                    ? session.device.value.marketingName
-                    : t("app.noDevice")
-                }}</b
-              ><small
-                class="flex items-center gap-1 text-2xs leading-[13px] whitespace-nowrap"
-                ><i
-                  class="inline-block size-[5px] shrink-0 rounded-full"
-                  :class="session.device.value ? 'bg-success' : 'bg-muted'"
-                />{{
-                  session.device.value
-                    ? session.device.value.mode === "normal"
-                      ? t("studio.usbConnected")
-                      : t(`device.mode.${session.device.value.mode}`)
-                    : t("studio.disconnected")
-                }}</small
-              ></span
+            <IconPhDeviceMobile width="16" height="16" /><span
+              class="max-w-[150px] truncate text-sm font-semibold whitespace-nowrap text-ink max-[1100px]:hidden"
+              >{{
+                session.device.value
+                  ? session.device.value.marketingName
+                  : t("app.noDevice")
+              }}</span
+            ><span
+              v-if="
+                session.device.value && session.device.value.mode !== 'normal'
+              "
+              class="text-xs whitespace-nowrap max-[1100px]:hidden"
+              >· {{ t(`device.mode.${session.device.value.mode}`) }}</span
             ><IconPhCaretDown width="12" height="12" />
           </summary>
           <div
@@ -423,7 +421,7 @@ onMounted(async () => {
         <StudioInput
           v-model="store.query.value"
           type="search"
-          class="w-[180px] max-[1100px]:w-[140px]"
+          class="w-[160px] shrink-0 max-[1100px]:w-[120px]"
           :disabled="preparing"
           :placeholder="t('studio.search')"
           :label="t('studio.search')"
@@ -438,7 +436,7 @@ onMounted(async () => {
     </header>
     <div class="flex min-h-0 flex-1">
       <aside
-        v-if="view === 'device' && session.device.value"
+        v-if="sidebarVisible"
         class="flex w-[208px] shrink-0 flex-col bg-sidebar pt-2 max-[1100px]:w-[184px]"
       >
         <p
@@ -455,7 +453,11 @@ onMounted(async () => {
             :key="section"
             :disabled="preparing && section !== 'environment'"
             class="group/nav-item flex w-full items-center gap-2.5 rounded-control px-2.5 py-[5px] text-left text-base text-ink transition-colors hover:bg-ink/6 disabled:cursor-not-allowed disabled:opacity-40 aria-[current=page]:bg-signal aria-[current=page]:text-on-signal aria-[current=page]:hover:bg-signal"
-            :aria-current="deviceSection === section ? 'page' : undefined"
+            :aria-current="
+              view === 'device' && deviceSection === section
+                ? 'page'
+                : undefined
+            "
             @click="showDevice(section)"
           >
             {{ t(`studio.sections.${section}`)
@@ -472,20 +474,26 @@ onMounted(async () => {
         </p>
         <div class="flex flex-col gap-px px-2">
           <button
-            class="flex w-full items-center gap-2.5 rounded-control px-2.5 py-[5px] text-left text-base text-ink transition-colors hover:bg-ink/6 disabled:cursor-not-allowed disabled:opacity-40"
+            class="flex w-full items-center gap-2.5 rounded-control px-2.5 py-[5px] text-left text-base text-ink transition-colors hover:bg-ink/6 disabled:cursor-not-allowed disabled:opacity-40 aria-[current=page]:bg-signal aria-[current=page]:text-on-signal aria-[current=page]:hover:bg-signal"
             :disabled="preparing"
+            :aria-current="view === 'installed' ? 'page' : undefined"
             @click="showPage('installed')"
           >
             {{ t("studio.installedApps")
-            }}<span class="ml-auto text-xs text-muted">{{
-              gateway.capabilities.installed
-                ? store.installed.value.length
-                : "—"
-            }}</span>
+            }}<span
+              class="ml-auto text-xs text-muted"
+              :class="view === 'installed' && 'text-on-signal/80'"
+              >{{
+                gateway.capabilities.installed
+                  ? store.installed.value.length
+                  : "—"
+              }}</span
+            >
           </button>
           <button
-            class="flex w-full items-center gap-2.5 rounded-control px-2.5 py-[5px] text-left text-base text-ink transition-colors hover:bg-ink/6 disabled:cursor-not-allowed disabled:opacity-40"
+            class="flex w-full items-center gap-2.5 rounded-control px-2.5 py-[5px] text-left text-base text-ink transition-colors hover:bg-ink/6 disabled:cursor-not-allowed disabled:opacity-40 aria-[current=page]:bg-signal aria-[current=page]:text-on-signal aria-[current=page]:hover:bg-signal"
             :disabled="preparing"
+            :aria-current="view === 'logs' ? 'page' : undefined"
             @click="showPage('logs')"
           >
             {{ t("nav.logs") }}

@@ -51,6 +51,13 @@ const pageEntries = computed(() => {
     visible.value.length - (pageCount.value - page.value) * rowsPerPage.value;
   return visible.value.slice(Math.max(0, end - rowsPerPage.value), end);
 });
+// Native selects only carry strings; "" stands for "every operation".
+const operationModel = computed({
+  get: () => log.operationFilter.value ?? "",
+  set: (value) => {
+    log.operationFilter.value = value ? String(value) : null;
+  },
+});
 const selected = computed(
   () =>
     log.entries.value.find((entry) => entry.id === selectedId.value) ?? null,
@@ -167,11 +174,11 @@ watch(
         </option>
       </StudioSelect>
       <StudioSelect
-        v-model="log.operationFilter.value"
+        v-model="operationModel"
         :label="t('studio.logOperation')"
         class="w-[168px]"
       >
-        <option :value="null">{{ t("logs.allOperations") }}</option>
+        <option value="">{{ t("logs.allOperations") }}</option>
         <option v-for="id in operationIds" :key="id" :value="id">
           {{ id }}
         </option>

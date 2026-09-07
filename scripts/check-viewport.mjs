@@ -100,6 +100,9 @@ try {
     };
     const side = (index) => page.locator("aside nav button").nth(index).click();
     const nav = (index) => page.locator("header nav button").nth(index).click();
+    // Installed apps and logs are sidebar entries under the device tab.
+    const sideItem = (text) =>
+      page.locator("aside button", { hasText: text }).first().click();
 
     await page.goto(base);
     await page.waitForSelector("aside", { timeout: 20000 });
@@ -144,13 +147,14 @@ try {
       .first()
       .waitFor({ timeout: 120000 });
     await check("result");
-    await nav(2);
+    await nav(1);
     await check("store");
     await page.locator("main article button").first().click();
     await check("package-detail");
-    await nav(1);
+    await nav(0);
+    await sideItem("已安装应用");
     await check("installed");
-    await nav(3);
+    await sideItem("操作日志");
     await check("logs");
     await page.getByRole("button", { name: "偏好设置" }).last().click();
     await check("settings");
