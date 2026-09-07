@@ -64,6 +64,7 @@ async function check(): Promise<void> {
           v-model="password"
           type="password"
           class="w-full"
+          autofocus
           autocomplete="off"
           maxlength="1024"
           :disabled="pending"

@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import RiskStep from "./steps/RiskStep.vue";
 import DisclaimerStep from "./steps/DisclaimerStep.vue";
 import { useGateway } from "../../shared/gateway";
+import { focusInitial } from "../../shared/ui/dialogFocus";
 import { usePreparation } from "./usePreparation";
 const { t } = useI18n();
 const preparation = usePreparation();
@@ -14,6 +15,7 @@ watch(preparation.consentVisible, async (visible) => {
     previousFocus = document.activeElement as HTMLElement;
     await nextTick();
     dialog.value?.showModal();
+    focusInitial(dialog.value);
   } else {
     dialog.value?.close();
     await nextTick();
@@ -24,7 +26,7 @@ watch(preparation.consentVisible, async (visible) => {
 <template>
   <dialog
     ref="dialog"
-    class="m-auto h-[min(600px,calc(100dvh-60px))] max-h-none w-[640px] max-w-[calc(100vw-40px)] flex-col overflow-hidden rounded-panel bg-surface p-0 text-ink shadow-overlay backdrop:bg-[#0b1220]/35 backdrop:backdrop-blur-[2px] open:flex"
+    class="m-auto h-[min(600px,calc(100dvh-60px))] max-h-none w-[640px] max-w-[calc(100vw-40px)] flex-col overflow-hidden rounded-panel outline-none bg-surface p-0 text-ink shadow-overlay backdrop:bg-[#0b1220]/35 backdrop:backdrop-blur-[2px] open:flex"
     :aria-label="
       t(
         preparation.stage.value === 'risks'
@@ -32,6 +34,7 @@ watch(preparation.consentVisible, async (visible) => {
           : 'preparation.disclaimer.title',
       )
     "
+    tabindex="-1"
     @cancel.prevent="preparation.close"
   >
     <div

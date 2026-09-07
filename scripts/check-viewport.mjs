@@ -8,7 +8,7 @@
  */
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
-import { chromium } from "playwright-core";
+import { chromium, webkit } from "playwright-core";
 
 const sizes = [
   { name: "min", width: 960, height: 640 },
@@ -34,7 +34,11 @@ if (!process.env.VIEWPORT_BASE) {
 mkdirSync(".ui-shots", { recursive: true });
 
 const failures = [];
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+// WKWebView lays out like Playwright's WebKit; VIEWPORT_BROWSER=webkit checks it.
+const browser =
+  process.env.VIEWPORT_BROWSER === "webkit"
+    ? await webkit.launch({ headless: true })
+    : await chromium.launch({ channel: "chrome", headless: true });
 try {
   for (const size of sizes.filter(
     (item) => !selected || selected.includes(item.name),
