@@ -28,13 +28,13 @@ src-tauri/src/
 └── main.rs            # anyhow 应用入口
 ```
 
-当前原生接入由 `infrastructure/legacy_ios` 实现 `application::discovery::DeviceProbe`。它使用本地路径依赖的 Legacy-iOS-Kit-rs 库，不调用外部 CLI。`DeviceDiscovery` 串行执行刷新、缓存设备事实、计算接入报告，并发送带版本的完整 `DiscoverySnapshot`；后台轮询与手动检测共享这条链路。
+当前原生接入由 `infrastructure/legacy_ios` 实现 `application::discovery::DeviceProbe`。它使用本地路径依赖的 Legacy-iOS-Kit-rs 库，不调用外部 CLI。`DeviceDiscovery` 串行执行刷新、缓存设备事实、计算接入报告，并发送带版本的完整 `DiscoverySnapshot`；后台轮询与手动检测共享这条链路，同时到来的刷新复用已经进行中的扫描结果。
 
 Tauri 命令读取真实 inventory，并将显式准备请求交给 `PreparationService`。安装、卸载等未实现操作返回稳定错误 `operationUnavailable`；`Studio` 不连接模拟工作流驱动。浏览器单独使用 `simulatedGateway.ts`，保留完整交互演示。界面通过 gateway capabilities 显示实际可用功能。
 
 型号、版本、电量、容量及受保护标识均可以为空。越狱、SSH、配对事实采用 `Option<bool>`，未确认与检测失败分开表示。Ready 必须同时满足支持的型号与系统、正常模式、有效配对、已验证越狱和 SSH。未知信息得到 `needsAttention`，不会自动产生越狱方案。用户可主动为硬件已识别的 DFU 设备生成方案；此时保留系统和配对状态未知，兼容性检查推迟到只读 ramdisk 检查完成后，确认通过才写入。
 
-设备事件一次性携带设备和接入报告，前端按 revision 丢弃过期结果。事件订阅完成后才请求初始 inventory。发现失败或超时会清除之前的 readiness；断开不保留旧连接句柄。设备列表支持显式选择，不因另一台设备接入而覆盖当前选择。
+设备事件一次性携带设备和接入报告，前端按 revision 丢弃过期结果。事件订阅完成后才请求初始 inventory。整次发现失败会清除之前的 readiness；单个服务读取失败仍保留本次 USB/usbmux 枚举到的设备，检测事实变为未知。正常模式设备分别限时并发读取，避免一个慢设备拖垮整次扫描；断开不保留旧连接句柄。设备列表支持显式选择，不因另一台设备接入而覆盖当前选择。
 
 原生操作日志的 ID 在进程会话内唯一；webview 保存最近 2,000 条，并将真实设备日志与浏览器模拟日志分开存储。导出提供文本预览与复制，浏览器另外触发文件下载。
 
@@ -113,3 +113,11 @@ Vue 顶部区域只是一条应用工具栏，不绘制红绿灯、最小化、�
 `application/preparation.rs` 负责方案缓存、限时且一次性的授权、互斥、取消边界及事件。`PreparationDriver` 只读捕获目标；`PreparationTarget` 在 native 适配器内部保留 UDID / ECID，并在写入前重新验证。平台选择继续由 `HostEnvironment` 定义，所有平台使用现有系统 usbmux；不隐式修改驱动或提权。
 
 `infrastructure/legacy_ios/preparation_resources.rs` 负责固定资源清单、校验与电脑上的临时镜像构建；`preparation.rs` 将应用方案、设备身份、用户授权和步骤事件接入库的 USB / SSH 操作。A4 利用、USB 复位、HFS 归档导入及 ramdisk 引导状态机均在库中实现；Studio 不保留第二套协议实现。发现不调用这两个执行入口。详见 [原生准备流程](native-preparation.md)。
+
+## Post-reboot verification coordination
+
+重启前，准备适配器等待已有普通模式读取结束，并持有共享访问门直到最终验证结束。此期间后台只枚举连接，不再打开配对服务；不会把旧的就绪状态当成当前证据。验证成功立即释放访问门，失败或取消目标时也会释放，后续发现恢复完整检查。
+
+超时按层级分配：库的配对检查为 20 秒，准备适配器包含查找设备的单次预算为 25 秒；后台每台设备最多读取 24 秒（包括库检查和失败后最多 3 秒的部分字段回退），整次发现为 30 秒。不同设备的读取并行，因此设备数量不会线性耗尽发现预算。正常读取成功时不再同时启动重复的未配对查询。
+
+最终验证到期使用 `verificationUnavailable`，表示安装与重启已完成但核验未确认。结果页提供只读重新检测入口并导航到接入条件，不会重放写入步骤，也不会依据当前选择的其他设备把历史操作改判为成功。

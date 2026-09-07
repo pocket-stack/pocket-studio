@@ -6,7 +6,7 @@ pub mod preparation;
 pub mod preparation_resources;
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use idevice::{Idevice, IdeviceError, services::lockdown::LockdownClient};
@@ -16,7 +16,7 @@ use legacy_ios_services::{JailbreakStatus, NormalDevice, NormalMux, ServiceError
 use legacy_ios_transport::{
     DeviceLocator, NusbDeviceLocator, RecoveryDeviceInfo, parse_iboot_serial,
 };
-use tokio::time::timeout;
+use tokio::{sync::RwLock, task::JoinSet, time::timeout};
 
 use crate::application::discovery::{DeviceProbe, DeviceRecord, ProbeFuture, ProbeSnapshot};
 use crate::domain::device::{
@@ -24,11 +24,15 @@ use crate::domain::device::{
 };
 
 const READ_TIMEOUT: Duration = Duration::from_secs(3);
+// Library inspection owns a 20-second budget; allow its completion and a
+// three-second fallback before the discovery service's 30-second deadline.
+const NORMAL_READ_TIMEOUT: Duration = Duration::from_secs(24);
 
 pub struct LegacyIosProbe {
     normal: NormalMux,
     host: Box<dyn platform::HostEnvironment>,
     sessions: Mutex<HashMap<String, String>>,
+    normal_access: Arc<RwLock<()>>,
 }
 
 impl Default for LegacyIosProbe {
@@ -38,6 +42,7 @@ impl Default for LegacyIosProbe {
             normal: NormalMux::new(host.normal_backend()),
             host,
             sessions: Mutex::new(HashMap::new()),
+            normal_access: Arc::new(RwLock::new(())),
         }
     }
 }
@@ -75,13 +80,50 @@ impl LegacyIosProbe {
         };
         let mut seen = HashSet::new();
         let normal_udids: HashSet<_> = normal.iter().map(|device| device.udid().as_str()).collect();
+        let mut reads = JoinSet::new();
         for device in &normal {
             let key = format!("udid:{}", device.udid());
             seen.insert(key.clone());
             let id = self.session_id(&key);
-            let (record, issues) = probe_normal(device, id).await;
-            snapshot.records.push(record);
-            snapshot.issues.extend(issues);
+            let mut observed = empty_summary(id.clone(), DeviceMode::Normal);
+            observed.udid_masked = Some(mask_identifier(device.udid().as_str()));
+            if let Some(name) = usb
+                .iter()
+                .find(|usb| usb.serial_number() == Some(device.udid().as_str()))
+                .and_then(|usb| usb.product_name())
+            {
+                observed.marketing_name = name.to_owned();
+            }
+            let index = snapshot.records.len();
+            snapshot.records.push(DeviceRecord {
+                summary: observed.clone(),
+                facts: DeviceFacts::default(),
+            });
+            let device = device.clone();
+            let access = self.normal_access.clone();
+            reads.spawn(async move {
+                let result = read_observed_device(
+                    access,
+                    observed,
+                    NORMAL_READ_TIMEOUT,
+                    probe_normal(&device, id),
+                )
+                .await;
+                (index, result)
+            });
+        }
+        // Devices are independent. A slow device must not consume every other
+        // device's inspection budget or erase the fresh enumeration.
+        while let Some(result) = reads.join_next().await {
+            match result {
+                Ok((index, (record, issues))) => {
+                    snapshot.records[index] = record;
+                    snapshot.issues.extend(issues);
+                }
+                Err(_) => snapshot
+                    .issues
+                    .push(issue(DiscoveryIssueCode::DeviceInfoUnavailable, None)),
+            }
         }
         for device in usb {
             if device.mode() == LegacyMode::Normal
@@ -167,19 +209,36 @@ fn usb_session_key(mode: LegacyMode, serial: Option<&str>, connection: &str) -> 
     }
 }
 
+async fn read_observed_device(
+    access: Arc<RwLock<()>>,
+    observed: DeviceSummary,
+    duration: Duration,
+    read: impl std::future::Future<Output = (DeviceRecord, Vec<DiscoveryIssue>)>,
+) -> (DeviceRecord, Vec<DiscoveryIssue>) {
+    let fallback = DeviceRecord {
+        summary: observed,
+        facts: DeviceFacts::default(),
+    };
+    // Reboot/verification owns the paired channel. Enumeration still reports
+    // presence, but a skipped/failed inspection must never retain readiness.
+    let Ok(_guard) = access.try_read_owned() else {
+        return (fallback, vec![]);
+    };
+    match timeout(duration, read).await {
+        Ok(result) => result,
+        Err(_) => {
+            let diagnostic = issue(DiscoveryIssueCode::ProbeTimeout, Some(&fallback.summary.id));
+            (fallback, vec![diagnostic])
+        }
+    }
+}
+
 async fn probe_normal(device: &NormalDevice, id: String) -> (DeviceRecord, Vec<DiscoveryIssue>) {
     let mut summary = empty_summary(id, DeviceMode::Normal);
     summary.udid_masked = Some(mask_identifier(device.udid().as_str()));
     let mut facts = DeviceFacts::default();
     let mut issues = vec![];
-    let (fallback, inspection) = tokio::join!(
-        timeout(READ_TIMEOUT, partial_info(device)),
-        device.inspect(),
-    );
-    if let Ok(Ok(info)) = fallback {
-        apply_info(&mut summary, info);
-    }
-    match inspection {
+    match device.inspect().await {
         Ok(inspection) => {
             let info = inspection.info();
             apply_info(
@@ -211,6 +270,9 @@ async fn probe_normal(device: &NormalDevice, id: String) -> (DeviceRecord, Vec<D
             };
         }
         Err(error) => {
+            if let Ok(Ok(info)) = timeout(READ_TIMEOUT, partial_info(device)).await {
+                apply_info(&mut summary, info);
+            }
             if matches!(
                 &error,
                 ServiceError::Idevice(
@@ -392,6 +454,61 @@ fn empty_summary(id: String, mode: DeviceMode) -> DeviceSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn verification_ownership_keeps_usb_presence_without_polling_services() {
+        let access = Arc::new(RwLock::new(()));
+        let owner = access.clone().write_owned().await;
+        let observed = empty_summary("usb-session".into(), DeviceMode::Normal);
+        let read = std::future::poll_fn(
+            |_| -> std::task::Poll<(DeviceRecord, Vec<DiscoveryIssue>)> {
+                panic!("discovery must not open services while reboot verification owns them")
+            },
+        );
+        let (record, issues) = read_observed_device(
+            access.clone(),
+            observed.clone(),
+            Duration::from_millis(10),
+            read,
+        )
+        .await;
+        assert_eq!(record.summary, observed);
+        assert_eq!(record.facts, DeviceFacts::default());
+        assert!(issues.is_empty());
+        drop(owner);
+        let complete = DeviceRecord {
+            summary: observed.clone(),
+            facts: DeviceFacts {
+                jailbroken: Some(true),
+                pairing_trusted: Some(true),
+                ssh_available: Some(true),
+            },
+        };
+        let (record, issues) =
+            read_observed_device(access, observed, Duration::from_millis(10), async {
+                (complete.clone(), vec![])
+            })
+            .await;
+        assert_eq!(record, complete);
+        assert!(issues.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_service_timeout_preserves_the_enumerated_device_without_ready_facts() {
+        let observed = empty_summary("still-attached".into(), DeviceMode::Normal);
+        let (record, issues) = read_observed_device(
+            Arc::new(RwLock::new(())),
+            observed.clone(),
+            Duration::from_millis(5),
+            std::future::pending(),
+        )
+        .await;
+        assert_eq!(record.summary, observed);
+        assert_eq!(record.facts, DeviceFacts::default());
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues[0].code, DiscoveryIssueCode::ProbeTimeout);
+        assert_eq!(issues[0].device_id.as_deref(), Some("still-attached"));
+    }
 
     #[test]
     fn dfu_identifies_the_board_without_inventing_normal_mode_facts() {

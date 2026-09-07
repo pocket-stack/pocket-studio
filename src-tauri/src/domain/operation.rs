@@ -76,6 +76,7 @@ pub enum OperationErrorCode {
     WriteFailed,
     DeviceDisconnected,
     VerificationFailed,
+    VerificationUnavailable,
     ChecksumMismatch,
     TransferFailed,
     InstallRejected,

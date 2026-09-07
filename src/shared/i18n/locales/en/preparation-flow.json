@@ -156,7 +156,9 @@
       "notRecoverable": "An immediate retry is unavailable in this state. Follow the guidance above, then start a new complete flow.",
       "viewLogs": "View log",
       "openStore": "Open the App Store",
-      "retry": "Retry"
+      "retry": "Retry",
+      "recheck": "Check device again",
+      "recheckHint": "Check the current device state before deciding on another preparation run."
     },
     "reviewPlan": "Review preparation plan",
     "demoNotice": "Browser demo: actions here do not modify a physical device."

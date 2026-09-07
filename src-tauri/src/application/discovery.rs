@@ -60,12 +60,27 @@ impl DeviceDiscovery {
             scan_lock: tokio::sync::Mutex::new(()),
             sink,
             log,
-            timeout: Duration::from_secs(20),
+            // USB enumeration (3s) plus parallel bounded normal reads (24s).
+            timeout: Duration::from_secs(30),
         }
     }
 
     pub async fn refresh(&self) -> DiscoverySnapshot {
+        let requested_revision = self
+            .state
+            .lock()
+            .expect("device inventory poisoned")
+            .snapshot
+            .revision;
         let _guard = self.scan_lock.lock().await;
+        {
+            let state = self.state.lock().expect("device inventory poisoned");
+            if state.snapshot.revision != requested_revision {
+                // A concurrent refresh completed after this request began.
+                // Share that result rather than queueing another slow scan.
+                return state.snapshot.clone();
+            }
+        }
         let observed = tokio::time::timeout(self.timeout, self.probe.scan())
             .await
             .unwrap_or_else(|_| ProbeSnapshot {
@@ -218,6 +233,54 @@ mod tests {
         let events = sink.0.lock().unwrap();
         let DeviceEvent::Snapshot { snapshot } = events.last().unwrap();
         assert!(snapshot.devices.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_manual_refresh_shares_an_in_flight_monitor_scan() {
+        struct DelayedProbe {
+            calls: std::sync::atomic::AtomicUsize,
+            entered: tokio::sync::Notify,
+            finish: tokio::sync::Notify,
+        }
+        impl DeviceProbe for DelayedProbe {
+            fn scan(&self) -> ProbeFuture<'_> {
+                Box::pin(async {
+                    self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    self.entered.notify_one();
+                    self.finish.notified().await;
+                    connected()
+                })
+            }
+        }
+        let probe = Arc::new(DelayedProbe {
+            calls: Default::default(),
+            entered: Default::default(),
+            finish: Default::default(),
+        });
+        let sink = Arc::new(Sink::default());
+        let service = Arc::new(DeviceDiscovery::new(
+            probe.clone(),
+            sink.clone(),
+            Arc::new(OperationLog::new(sink)),
+        ));
+        let monitor = {
+            let service = service.clone();
+            tokio::spawn(async move { service.refresh().await })
+        };
+        probe.entered.notified().await;
+        let manual = service.refresh();
+        tokio::pin!(manual);
+        tokio::select! {
+            biased;
+            _ = &mut manual => panic!("refresh should wait for the in-flight scan"),
+            _ = tokio::task::yield_now() => {},
+        }
+        probe.finish.notify_one();
+        let monitor_result = monitor.await.unwrap();
+        let manual_result = manual.await;
+        assert_eq!(monitor_result.revision, manual_result.revision);
+        assert_eq!(manual_result.reports[0].status, ReadinessStatus::Ready);
+        assert_eq!(probe.calls.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 
     #[tokio::test]

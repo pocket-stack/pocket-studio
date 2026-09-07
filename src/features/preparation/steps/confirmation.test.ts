@@ -10,6 +10,7 @@ import OverviewStep from "./OverviewStep.vue";
 import RiskStep from "./RiskStep.vue";
 import DisclaimerStep from "./DisclaimerStep.vue";
 import DfuGuideStep from "./DfuGuideStep.vue";
+import ResultStep from "./ResultStep.vue";
 
 const gateway = vi.hoisted(() => ({
   flavor: "tauri",
@@ -241,4 +242,53 @@ it("catches up the DFU phase after background callbacks were throttled", async (
   await nextTick();
   expect(text(root)).toContain("preparation.dfu.phase.holdHome.title");
   expect(gateway.demo.setDeviceMode).not.toHaveBeenCalled();
+});
+
+it("offers a read-only check instead of rerunning installation after verification timeout", () => {
+  const onRecheck = vi.fn();
+  const onRetry = vi.fn();
+  const root = mount(ResultStep, {
+    outcome: "failed",
+    attempt: 1,
+    operation: {
+      id: "verify-timeout",
+      kind: "preparation",
+      status: "failed",
+      startedAt: 1,
+      steps: buildJailbreakPlan("demo", 1).steps.map((step) => ({
+        ...step,
+        status: step.id === "verifyJailbreak" ? "failed" : "done",
+        percent: step.id === "verifyJailbreak" ? 0 : 100,
+      })),
+      error: { code: "verificationUnavailable", recoverable: false },
+    },
+    onRecheck,
+    onRetry,
+  });
+  expect(text(root)).toContain(
+    "preparation.errors.verificationUnavailable.title",
+  );
+  expect(text(root)).toContain("preparation.result.recheckHint");
+  expect(text(root)).not.toContain("preparation.result.notRecoverable");
+  expect(button(root, "preparation.result.retry")).toBeUndefined();
+  click(button(root, "preparation.result.recheck"));
+  expect(onRecheck).toHaveBeenCalledOnce();
+  expect(onRetry).not.toHaveBeenCalled();
+});
+
+it("keeps a failed system write separate from a read-only verification check", () => {
+  const root = mount(ResultStep, {
+    outcome: "failed",
+    attempt: 1,
+    operation: {
+      id: "write-failure",
+      kind: "preparation",
+      status: "failed",
+      startedAt: 1,
+      steps: [{ id: "installUntether", status: "failed", percent: 0 }],
+      error: { code: "writeFailed", recoverable: false },
+    },
+  });
+  expect(button(root, "preparation.result.recheck")).toBeUndefined();
+  expect(text(root)).toContain("preparation.result.notRecoverable");
 });

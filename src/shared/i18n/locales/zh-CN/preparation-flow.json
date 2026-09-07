@@ -156,7 +156,9 @@
       "notRecoverable": "当前状态不支持直接重试。请按上方指引处理设备状态，再重新发起完整流程。",
       "viewLogs": "查看日志",
       "openStore": "前往应用商店",
-      "retry": "重试"
+      "retry": "重试",
+      "recheck": "重新检测设备",
+      "recheckHint": "请先重新检测当前接入条件，再决定后续操作。"
     },
     "reviewPlan": "查看准备方案",
     "demoNotice": "浏览器演示：此处的操作不会修改真实设备。"

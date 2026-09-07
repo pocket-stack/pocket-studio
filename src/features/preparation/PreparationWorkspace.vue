@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { usePreparation } from "./usePreparation";
+import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import { useLogMessage } from "../../shared/composables/useLogMessage";
 import { useOperationLog } from "../../shared/composables/useOperationLog";
 import { operationProgress } from "../../shared/composables/useOperations";
@@ -12,7 +13,7 @@ import DfuGuideStep from "./steps/DfuGuideStep.vue";
 import ResultStep from "./steps/ResultStep.vue";
 import OverviewStep from "./steps/OverviewStep.vue";
 import { useGateway } from "../../shared/gateway";
-const emit = defineEmits<{ openStore: []; openLogs: [] }>();
+const emit = defineEmits<{ openStore: []; openLogs: []; showConditions: [] }>();
 const { t, d } = useI18n();
 const renderLog = useLogMessage();
 const preparation = usePreparation();
@@ -92,6 +93,11 @@ const flowLogs = computed(() =>
 function openStore(): void {
   preparation.close();
   emit("openStore");
+}
+function recheck(): void {
+  preparation.close();
+  emit("showConditions");
+  void useDeviceSession().refresh();
 }
 function openLogs(): void {
   emit("openLogs");
@@ -200,6 +206,7 @@ function openLogs(): void {
         "
         :attempt="preparation.attempt.value"
         @retry="preparation.retry"
+        @recheck="recheck"
         @close="preparation.close"
         @open-store="openStore"
         @open-logs="openLogs"

@@ -182,6 +182,7 @@ export type OperationErrorCode =
   | "writeFailed"
   | "deviceDisconnected"
   | "verificationFailed"
+  | "verificationUnavailable"
   | "checksumMismatch"
   | "transferFailed"
   | "installRejected"

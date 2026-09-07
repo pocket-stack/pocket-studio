@@ -108,10 +108,10 @@
       },
       "verificationFailed": {
         "title": "Jailbreak verification failed",
-        "body": "The device rebooted, but Cydia or SSH was not found. The untether may not have installed correctly.",
+        "body": "The required file or service checks could not be completed. Review the failed step and check the current device state.",
         "recovery": [
-          "Make sure the device has fully booted and is unlocked.",
-          "Run the readiness check again; if it is still not jailbroken, run the flow again."
+          "Wait for the device to finish booting and unlock it.",
+          "Check device readiness and export the log if verification remains unavailable."
         ]
       },
       "deviceChanged": {
@@ -145,6 +145,14 @@
         "body": "An installation file could not be sent. Earlier steps may already have modified the system.",
         "recovery": [
           "Keep the device connected, export the log and check its boot state before deciding on recovery."
+        ]
+      },
+      "verificationUnavailable": {
+        "title": "Installation result not yet confirmed",
+        "body": "Installation and reboot completed, but jailbreak and SSH checks did not finish in time. A verification timeout does not establish an installation failure.",
+        "recovery": [
+          "Keep the device connected, wait for the home screen and unlock it.",
+          "Check the device again to read its current readiness."
         ]
       }
     },

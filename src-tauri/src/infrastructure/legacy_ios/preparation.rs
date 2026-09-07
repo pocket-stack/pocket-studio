@@ -29,7 +29,10 @@ use legacy_ios_workflows::{
     RamdiskBootRequest, boot_ramdisk,
 };
 use std::{path::PathBuf, sync::Arc, time::Duration};
-use tokio::time::{Instant, timeout};
+use tokio::{
+    sync::OwnedRwLockWriteGuard,
+    time::{Instant, timeout},
+};
 
 pub struct LegacyPreparationDriver {
     probe: Arc<LegacyIosProbe>,
@@ -92,6 +95,7 @@ impl PreparationDriver for LegacyPreparationDriver {
                 assets: None,
                 boot: None,
                 ssh: None,
+                verification_access: None,
             }) as Box<dyn PreparationTarget>)
         })
     }
@@ -116,6 +120,7 @@ struct Target {
     assets: Option<BootAssets>,
     boot: Option<RamdiskBootPreparation>,
     ssh: Option<RamdiskSsh>,
+    verification_access: Option<OwnedRwLockWriteGuard<()>>,
 }
 
 impl PreparationTarget for Target {
@@ -150,6 +155,12 @@ impl PreparationTarget for Target {
     }
     fn execute(&mut self, step: StepId) -> PreparationFuture<'_, ()> {
         Box::pin(async move {
+            if step == StepId::RebootDevice {
+                // Drain existing scans before starting the reboot budget. Keep
+                // ownership through final verification; Drop releases it on failure.
+                self.verification_access =
+                    Some(self.probe.normal_access.clone().write_owned().await);
+            }
             let duration = match step {
                 StepId::FetchResources => 600,
                 StepId::BuildRamdisk => 180,
@@ -170,6 +181,7 @@ impl PreparationTarget for Target {
                         StepId::MountFilesystem => OperationErrorCode::SshUnavailable,
                         StepId::InstallUntether => OperationErrorCode::WriteFailed,
                         StepId::RebootDevice => OperationErrorCode::RebootTimeout,
+                        StepId::VerifyJailbreak => OperationErrorCode::VerificationUnavailable,
                         _ => OperationErrorCode::VerificationFailed,
                     })
                 })?
@@ -343,6 +355,7 @@ impl Target {
                     if matches!(inspection.jailbreak(), JailbreakStatus::Detected { .. })
                         && inspection.ssh_available() == Some(true)
                     {
+                        self.verification_access.take();
                         break;
                     }
                 }
@@ -497,7 +510,9 @@ async fn checked(
 }
 
 async fn inspect(normal: &NormalMux, udid: &Udid) -> Result<DeviceInspection, PreparationError> {
-    timeout(Duration::from_secs(15), async {
+    // Do not cancel the library's 20-second inspection before its own timeout
+    // and session cleanup; device lookup is included in this outer budget.
+    timeout(Duration::from_secs(25), async {
         let device = normal
             .find_device(udid)
             .await
@@ -603,6 +618,51 @@ fn exploit_error(error: A4Limera1nError) -> PreparationError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    #[ignore = "requires the paired iPod touch 4; only reads and verifies the existing installation"]
+    async fn read_only_post_reboot_verification_with_background_discovery() {
+        let probe = Arc::new(LegacyIosProbe::default());
+        let normal = NormalMux::new(super::super::platform::current().normal_backend());
+        let devices = normal.list_devices().await.unwrap();
+        assert_eq!(devices.len(), 1, "connect only the test iPod");
+        let device = &devices[0];
+        let info = device.query_info().await.unwrap();
+        assert_eq!(info.product_type().as_str(), "iPod4,1");
+        let access = probe.normal_access.clone().write_owned().await;
+        let observed = probe.scan_devices().await;
+        assert_eq!(observed.records.len(), 1);
+        assert_eq!(
+            observed.records[0].summary.mode,
+            crate::domain::device::DeviceMode::Normal
+        );
+        assert_eq!(
+            observed.records[0].facts,
+            crate::domain::device::DeviceFacts::default()
+        );
+        let mut target = Target {
+            probe: probe.clone(),
+            normal,
+            session_id: observed.records[0].summary.id.clone(),
+            session_key: format!("udid:{}", device.udid()),
+            entry: EntryPoint::Dfu,
+            returned_udid: Some(device.udid().clone()),
+            ecid: info.ecid(),
+            port: ConnectionId::new("unused-read-only-test"),
+            cache: std::env::temp_dir(),
+            resources: None,
+            assets: None,
+            boot: None,
+            ssh: None,
+            verification_access: Some(access),
+        };
+        target.execute(StepId::VerifyJailbreak).await.unwrap();
+        assert!(target.verification_access.is_none());
+        let ready = probe.scan_devices().await;
+        assert_eq!(ready.records.len(), 1);
+        assert_eq!(ready.records[0].facts.jailbroken, Some(true));
+        assert_eq!(ready.records[0].facts.ssh_available, Some(true));
+    }
 
     #[test]
     fn dfu_requires_the_exact_board_rom_and_identity() {

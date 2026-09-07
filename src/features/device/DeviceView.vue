@@ -76,6 +76,7 @@ function startPreparation(): void {
     v-if="section === 'environment' && preparation.stage.value !== 'closed'"
     @open-store="emit('openStore')"
     @open-logs="emit('openLogs')"
+    @show-conditions="emit('showConditions')"
   />
   <div
     v-else-if="!device"
@@ -258,6 +259,7 @@ function startPreparation(): void {
       v-else-if="preparation.stage.value !== 'closed'"
       @open-store="emit('openStore')"
       @open-logs="emit('openLogs')"
+      @show-conditions="emit('showConditions')"
     />
     <template v-else>
       <div class="px-0 pt-0 pb-3.5">

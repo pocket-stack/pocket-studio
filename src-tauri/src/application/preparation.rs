@@ -538,6 +538,9 @@ mod tests {
                             stage: "sendIbss",
                             reason: "access",
                         },
+                        StepId::VerifyJailbreak => {
+                            PreparationError::Step(OperationErrorCode::VerificationUnavailable)
+                        }
                         _ => PreparationError::Step(OperationErrorCode::WriteFailed),
                     });
                 }
@@ -770,6 +773,36 @@ mod tests {
             .unwrap();
         assert_eq!(entry.params.as_ref().unwrap()["stage"], "sendIbss");
         assert_eq!(entry.params.as_ref().unwrap()["reason"], "access");
+    }
+
+    #[tokio::test]
+    async fn unavailable_verification_preserves_completed_installation_and_its_error_kind() {
+        let (service, sink, driver) = setup(Some(StepId::VerifyJailbreak), None);
+        service.start(consent(&service).await).await.unwrap();
+        wait(&sink, |event| {
+            matches!(event, OperationEvent::Failed { .. })
+        })
+        .await;
+        let events = sink.events.lock().unwrap();
+        assert!(events.iter().any(|event| matches!(
+            event,
+            OperationEvent::StepChanged {
+                step_id: StepId::InstallUntether,
+                status: StepStatus::Done,
+                ..
+            }
+        )));
+        assert!(events.iter().any(|event| matches!(event, OperationEvent::Failed { step_id: StepId::VerifyJailbreak, error, .. } if error.code == OperationErrorCode::VerificationUnavailable && !error.recoverable)));
+        assert_eq!(
+            driver
+                .calls
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|step| **step == StepId::InstallUntether)
+                .count(),
+            1
+        );
     }
 
     #[tokio::test]

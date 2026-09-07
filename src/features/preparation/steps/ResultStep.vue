@@ -14,6 +14,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   retry: [];
+  recheck: [];
   close: [];
   openStore: [];
   openLogs: [];
@@ -29,6 +30,12 @@ const recoverySteps = computed(() => {
 });
 const failedStepId = computed(
   () => props.operation?.steps.find((step) => step.status === "failed")?.id,
+);
+const canRecheck = computed(
+  () =>
+    error.value?.code === "verificationUnavailable" ||
+    error.value?.code === "rebootTimeout" ||
+    failedStepId.value === "verifyJailbreak",
 );
 </script>
 
@@ -50,8 +57,9 @@ const failedStepId = computed(
         class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
         :class="{
           'bg-success/15 text-success': outcome === 'success',
-          'bg-danger/15 text-danger': outcome === 'failed',
-          'bg-warning/15 text-warning': outcome === 'cancelled',
+          'bg-danger/15 text-danger': outcome === 'failed' && !canRecheck,
+          'bg-warning/15 text-warning':
+            outcome === 'cancelled' || (outcome === 'failed' && canRecheck),
         }"
       >
         <AppIcon
@@ -59,7 +67,9 @@ const failedStepId = computed(
             outcome === 'success'
               ? 'check'
               : outcome === 'failed'
-                ? 'cross'
+                ? canRecheck
+                  ? 'warning'
+                  : 'cross'
                 : 'stop'
           "
           :size="26"
@@ -116,10 +126,17 @@ const failedStepId = computed(
         </div>
         <div
           v-if="outcome === 'failed' && error && !error.recoverable"
-          class="mt-3 flex items-start gap-2 text-xs text-danger"
+          class="mt-3 flex items-start gap-2 text-xs"
+          :class="canRecheck ? 'text-warning' : 'text-danger'"
         >
           <AppIcon name="warning" :size="14" class="mt-0.5" />
-          {{ t("preparation.result.notRecoverable") }}
+          {{
+            t(
+              canRecheck
+                ? "preparation.result.recheckHint"
+                : "preparation.result.notRecoverable",
+            )
+          }}
         </div>
       </div>
     </section>
@@ -144,7 +161,17 @@ const failedStepId = computed(
           {{ t("common.close") }}
         </button>
         <button
-          v-if="outcome === 'success' && useGateway().capabilities.packages"
+          v-if="outcome === 'failed' && canRecheck"
+          class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition bg-signal text-on-signal enabled:hover:brightness-[1.06]"
+          @click="emit('recheck')"
+        >
+          <AppIcon name="refresh" :size="16" />
+          {{ t("preparation.result.recheck") }}
+        </button>
+        <button
+          v-else-if="
+            outcome === 'success' && useGateway().capabilities.packages
+          "
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('openStore')"
         >
