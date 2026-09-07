@@ -78,3 +78,22 @@ queued and transfer cancellation, noncancellable submission, publication withdra
 state changes, signature rejection, persistence failure, interruption recovery,
 downgrade prevention and read-only re-verification. They use protocol/adapter
 fixtures and do not replace user-initiated hardware acceptance.
+
+## Verify a locally published application
+
+The read-only `verify_store` example runs the production Rust catalog, media and
+artifact readers without opening any device service:
+
+```sh
+POCKET_STORE_CONFIG=/absolute/path/to/store/.local/studio-source.json \
+  cargo run --manifest-path src-tauri/Cargo.toml --example verify_store -- \
+  APP_ID /absolute/path/to/store/.local/studio-check-cache
+```
+
+With the publisher's preview server running, it verifies the signed catalog,
+artifact digest and native IPA identity, plus referenced media. Stop the preview
+server and repeat the command to verify the same complete cache offline. A live
+local publication was checked with the application `dev.pocket-stack.clear`,
+product version `0.1.0`, revision/native build `1`, and host ABI `8`. Its real
+984988-byte IPA and icon passed both online and offline checks. This is a host
+integration check; device installation acceptance remains user-initiated.

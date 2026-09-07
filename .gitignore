@@ -7,7 +7,8 @@ src-tauri/target/
 src-tauri/gen/
 
 # Local hardware diagnostics and test examples
-/src-tauri/examples/
+/src-tauri/examples/*
+!/src-tauri/examples/verify_store.rs
 
 # Editors and operating systems
 .DS_Store
