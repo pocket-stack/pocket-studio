@@ -12,8 +12,8 @@
       "needsAttention": "待确认"
     },
     "summary": {
-      "ready": "已验证越狱访问、配对连接及 SSH 服务。",
-      "needsPreparation": "设备型号与系统受支持，但尚未越狱，需要先完成准备流程。",
+      "ready": "配对、越狱、SSH 和 AppSync 安装检查已通过。",
+      "needsPreparation": "设备还有需要补齐的前置环境，请查看下方检查项。",
       "unsupported": "当前设备或系统版本暂不受支持。",
       "needsAttention": "部分接入条件尚未确认。请查看各项检测结果和连接诊断。"
     },
@@ -80,6 +80,13 @@
         "fail": "设备不在正常模式。受支持的 DFU 设备可以直接查看准备方案；其他模式请先回到正常系统。",
         "warn": "设备模式需要确认。",
         "unknown": "无法确认设备模式。"
+      },
+      "appSyncInstalled": {
+        "title": "AppSync 安装状态",
+        "pass": "已检测到 AppSync 安装记录；若 IPA 签名仍被拒绝，请检查插件加载和签名兼容性。",
+        "fail": "未安装 AppSync，需要先补齐应用安装环境。",
+        "warn": "AppSync 安装状态需要确认。",
+        "unknown": "暂时无法读取 AppSync 状态；未知不代表未安装。可通过准备流程连接 SSH 检查并补齐。"
       }
     },
     "guidance": {

@@ -14,6 +14,7 @@ const props = defineProps<{
   operation: OperationState | undefined;
   outcome: "success" | "failed" | "cancelled";
   attempt: number;
+  workflow?: "jailbreak" | "appSync";
 }>();
 const emit = defineEmits<{
   retry: [];
@@ -36,6 +37,12 @@ const failedStepId = computed(
 );
 const canRecheck = computed(
   () =>
+    [
+      "appSyncInstallFailed",
+      "appSyncDependencies",
+      "appSyncVerificationFailed",
+      "sshAuthenticationFailed",
+    ].includes(error.value?.code ?? "") ||
     error.value?.code === "verificationUnavailable" ||
     error.value?.code === "rebootTimeout" ||
     failedStepId.value === "verifyJailbreak",
@@ -85,7 +92,11 @@ const canRecheck = computed(
             t(`preparation.errors.${error.code}.title`)
           }}</template>
           <template v-else>{{
-            t(`preparation.result.${outcome}.title`)
+            t(
+              outcome === "success" && workflow === "appSync"
+                ? "preparation.appSync.successTitle"
+                : `preparation.result.${outcome}.title`,
+            )
           }}</template>
         </h3>
         <p class="mt-1 text-sm text-muted">
@@ -93,7 +104,11 @@ const canRecheck = computed(
             t(`preparation.errors.${error.code}.body`)
           }}</template>
           <template v-else>{{
-            t(`preparation.result.${outcome}.body`)
+            t(
+              outcome === "success" && workflow === "appSync"
+                ? "preparation.appSync.successBody"
+                : `preparation.result.${outcome}.body`,
+            )
           }}</template>
         </p>
         <p
@@ -107,7 +122,13 @@ const canRecheck = computed(
             })
           }}
         </p>
-        <p v-if="error?.diagnostic" class="mt-3 text-sm text-danger">
+        <p
+          v-if="
+            error?.diagnostic &&
+            ['exploitBootrom', 'bootRamdisk'].includes(failedStepId ?? '')
+          "
+          class="mt-3 text-sm text-danger"
+        >
           {{
             t("preparation.usbDiagnostic", {
               stage: t(`preparation.usbStages.${error.diagnostic.stage}`),

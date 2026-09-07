@@ -76,7 +76,8 @@ export function createTauriGateway(): StudioGateway {
     },
     preparation: {
       plan: (deviceId) => call("plan_preparation", { deviceId }),
-      start: (consent) => call("start_preparation", { consent }),
+      start: (consent, sshPassword) =>
+        call("start_preparation", { consent, sshPassword }),
     },
     store: {
       uninstall: unavailable,

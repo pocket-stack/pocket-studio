@@ -122,7 +122,7 @@
       },
       "installRejected": {
         "title": "设备拒绝安装",
-        "body": "设备上的安装程序返回错误，可能是依赖缺失或空间不足。"
+        "body": "设备的系统安装器拒绝了操作，当前没有更具体的诊断。请查看操作记录并检查设备环境。"
       },
       "verificationFailed": {
         "title": "安装验证未通过",
@@ -143,6 +143,10 @@
       "deviceChanged": {
         "title": "当前选择的设备已变化。请为目标设备重新确认计划。",
         "body": "绑定的设备不可用或已发生变化，请重连并重新确认计划。"
+      },
+      "signatureRejected": {
+        "title": "IPA 签名被设备拒绝",
+        "body": "目录和文件校验已通过，但 iOS 未接受应用代码签名。请在设备环境中准备 AppSync；若已安装，请检查插件加载及签名兼容性。"
       }
     },
     "refresh": "刷新",
@@ -249,7 +253,7 @@
         "unknownOperation": "未找到操作，或操作已经结束。",
         "storeStorageFailed": "无法保存操作状态。再次写入前请核验设备。",
         "installRejected": "设备的系统安装器拒绝了操作，请检查安装前提和可用空间。",
-        "signatureRejected": "设备拒绝了 IPA 签名，请检查签名和 AppSync；Studio 不会自动修改它们。",
+        "signatureRejected": "目录和文件校验已通过，但 iOS 未接受应用代码签名。请在设备环境中准备 AppSync；若已安装，请检查插件加载及签名兼容性。",
         "deviceStorageFull": "设备报告存储空间不足，请释放空间后重新确认计划。",
         "verificationUnavailable": "验证未完成。可以使用“核验设备状态”进行只读重试，不会重新执行安装。",
         "verificationFailed": "注册的应用与预期版本、构建号或回执不匹配，再次写入前请检查设备。",

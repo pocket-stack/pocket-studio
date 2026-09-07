@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { PreparationPlan, RiskSeverity } from "../../../shared/gateway";
 import ForcedReading from "../../../shared/ui/ForcedReading.vue";
 import StatusPill from "../../../shared/ui/StatusPill.vue";
 
-defineProps<{
+const props = defineProps<{
   plan: PreparationPlan;
 }>();
 const emit = defineEmits<{
@@ -15,6 +15,11 @@ const emit = defineEmits<{
 }>();
 const { t } = useI18n();
 
+const riskNamespace = computed(() =>
+  props.plan.workflow === "appSync"
+    ? "preparation.appSync.risks"
+    : "preparation.risks.items",
+);
 const readingReady = ref(false);
 const elapsed = ref(0);
 
@@ -40,7 +45,13 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
             {{ t("preparation.risks.banner.title") }}
           </p>
           <p class="text-muted m-0 text-[12px] leading-[1.428571]">
-            {{ t("preparation.risks.banner.body") }}
+            {{
+              t(
+                plan.workflow === "appSync"
+                  ? "preparation.appSync.intro"
+                  : "preparation.risks.banner.body",
+              )
+            }}
           </p>
         </div>
       </div>
@@ -61,17 +72,17 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
               t(`preparation.risks.severity.${risk.severity}`)
             }}</StatusPill>
             <h4 class="text-sm font-semibold">
-              {{ t(`preparation.risks.items.${risk.id}.title`) }}
+              {{ t(`${riskNamespace}.${risk.id}.title`) }}
             </h4>
           </div>
           <p class="mt-2 text-[12px] leading-[1.8]">
-            {{ t(`preparation.risks.items.${risk.id}.body`) }}
+            {{ t(`${riskNamespace}.${risk.id}.body`) }}
           </p>
           <p class="mt-2 text-muted text-[12px] leading-[1.8]">
             <span class="font-medium">{{
               t("preparation.risks.mitigation")
             }}</span>
-            {{ t(`preparation.risks.items.${risk.id}.mitigation`) }}
+            {{ t(`${riskNamespace}.${risk.id}.mitigation`) }}
           </p>
         </article>
         <p class="pt-2 text-center text-xs text-muted">

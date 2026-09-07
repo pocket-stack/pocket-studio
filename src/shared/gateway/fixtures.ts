@@ -138,7 +138,7 @@ export const installSteps: PlanStep[] = [
   },
 ];
 
-export const disclaimerVersion = "2026-09-07";
+export const disclaimerVersion = "2026-09-07-appsync-1";
 
 export function buildJailbreakPlan(
   deviceId: string,
@@ -179,6 +179,11 @@ export const preparationFailureCodes: Record<
     retryFrom?: PreparationStepId;
   }
 > = {
+  connectAppSync: { code: "sshAuthenticationFailed", recoverable: false },
+  installAppSync: { code: "appSyncInstallFailed", recoverable: false },
+  activateAppSync: { code: "appSyncInstallFailed", recoverable: false },
+  verifyAppSync: { code: "appSyncVerificationFailed", recoverable: false },
+
   enterDfu: { code: "dfuTimeout", recoverable: true, retryFrom: "enterDfu" },
   exploitBootrom: {
     code: "exploitFailed",

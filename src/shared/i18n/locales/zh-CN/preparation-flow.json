@@ -11,7 +11,8 @@
       "disclaimer": "免责条款",
       "dfu": "DFU",
       "execute": "执行",
-      "result": "结果"
+      "result": "结果",
+      "appSync": "应用安装环境"
     },
     "overview": {
       "whatHappens": "将要发生什么",
@@ -141,7 +142,7 @@
     "result": {
       "success": {
         "title": "设备准备完成",
-        "body": "设备已重启，并通过越狱与 SSH 检测。OpenSSH 已启用；请在连接不可信网络前修改 root 和 mobile 账户的默认密码。"
+        "body": "越狱、SSH 和 AppSync 安装验证已完成。OpenSSH 已启用；请妥善管理设备 root 和 mobile 账户密码。"
       },
       "failed": {
         "title": "流程失败",
@@ -149,7 +150,7 @@
       },
       "cancelled": {
         "title": "流程已取消",
-        "body": "流程已在设备修改前停止。若设备仍在 DFU，请按住电源键和 Home 键重启。"
+        "body": "流程已在可安全取消的阶段停止。此前完成的环境变更会保留，请重新检测设备状态。"
       },
       "failedAt": "失败于「{step}」（第 {attempt} 次尝试）",
       "recoveryTitle": "建议的处理方式",
@@ -161,6 +162,74 @@
       "recheckHint": "请先重新检测当前接入条件，再决定后续操作。"
     },
     "reviewPlan": "查看准备方案",
-    "demoNotice": "浏览器演示：此处的操作不会修改真实设备。"
+    "demoNotice": "浏览器演示：此处的操作不会修改真实设备。",
+    "errors": {
+      "appSyncInstallFailed": {
+        "title": "AppSync 安装未完成",
+        "body": "系统包安装或服务重载失败。部分包可能已经安装，请重新检测设备环境。",
+        "recovery": ["重新检测设备并查看准备方案。"]
+      },
+      "appSyncDependencies": {
+        "title": "系统依赖需要处理",
+        "body": "依赖预检发现冲突或不满足条件，未开始安装系统包。请在设备的软件包管理器中检查冲突。",
+        "recovery": ["重新检测设备并查看准备方案。"]
+      },
+      "appSyncVerificationFailed": {
+        "title": "AppSync 验证未完成",
+        "body": "无法确认 AppSync 安装状态。请重新检查环境，后续只补齐 AppSync，不重复越狱。",
+        "recovery": ["重新检测设备并查看准备方案。"]
+      },
+      "sshAuthenticationFailed": {
+        "title": "SSH 认证失败",
+        "body": "设备拒绝了 root SSH 密码，请重新查看准备方案并输入正确密码。",
+        "recovery": ["重新检测设备并查看准备方案。"]
+      }
+    },
+    "startErrors": {
+      "sshAuthenticationFailed": "SSH 密码不正确，请重新输入。",
+      "sshRequired": "此设备需要可用的 OpenSSH 才能单独安装 AppSync。请先在设备中安装或启用 OpenSSH。"
+    },
+    "appSync": {
+      "action": "准备 AppSync",
+      "explanation": "AppSync 是允许 iOS 安装开发用伪签名 IPA 的系统插件。越狱完成后仍需安装它；已越狱设备可单独补齐应用安装环境。",
+      "intro": "设备已经越狱。本次仅通过 USB SSH 检查并补齐 AppSync 及其依赖，不执行 DFU 或越狱步骤。",
+      "packages": "将安装或更新以下固定版本的系统插件；已有较新版本会保留。安装前检查依赖冲突，不强制覆盖。过程可能短暂重启设备桌面和安装服务。",
+      "password": "设备 root SSH 密码",
+      "passwordHint": "未修改过的默认密码通常为 alpine。密码仅用于这次 USB SSH 连接，不写入日志或磁盘。",
+      "successTitle": "应用安装环境准备完成",
+      "successBody": "已确认 AppSync 安装记录，并重载安装服务。可以返回应用商店尝试安装；若签名仍被拒绝，请检查插件加载或 IPA 签名兼容性。",
+      "disclaimerSections": [
+        {
+          "heading": "系统插件变更",
+          "body": "本次操作以 root 权限安装固定版本的 AppSync 及必要依赖，改变设备对应用签名的校验方式。"
+        },
+        {
+          "heading": "中断与恢复",
+          "body": "开始写入系统包后不可取消。若安装失败，已完成的变更可能保留；请重新检测，不要重复越狱。"
+        },
+        {
+          "heading": "连接与凭据",
+          "body": "连接限定已确认身份的 USB 设备，并固定 SSH 主机公钥。密码仅在内存中用于认证；请确保供电和连接稳定。"
+        }
+      ],
+      "preamble": "请阅读以下系统修改说明。点击“同意并开始”后才会执行安装。",
+      "risks": {
+        "interruptionHazard": {
+          "title": "安装中断可能留下不完整的系统包",
+          "body": "写入系统包期间断开连接、断电或关闭应用，可能需要在设备的包管理器中修复依赖。",
+          "mitigation": "保持供电和连接稳定，安装开始后等待结果。"
+        },
+        "securityPosture": {
+          "title": "AppSync 会放宽应用签名检查",
+          "body": "AppSync 允许安装开发用未签名或伪签名 IPA。请只安装你信任的软件；设备的 SSH 账户仍需妥善保护。",
+          "mitigation": "只安装可信来源的软件，并使用可靠的设备密码。"
+        },
+        "communityTooling": {
+          "title": "系统插件可能存在兼容问题",
+          "body": "AppSync 及依赖由社区维护，可能与设备上的其他插件冲突。安装记录验证通过也不代表插件一定已成功加载。",
+          "mitigation": "先备份，遇到冲突时查看设备包管理器中的状态。"
+        }
+      }
+    }
   }
 }

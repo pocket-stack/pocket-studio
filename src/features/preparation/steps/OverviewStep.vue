@@ -14,9 +14,11 @@ const props = defineProps<{
   plan: PreparationPlan;
   confirmed: readonly PrerequisiteId[];
   allConfirmed: boolean;
+  sshPassword?: string;
 }>();
 const emit = defineEmits<{
   toggle: [id: PrerequisiteId];
+  "update:sshPassword": [value: string];
   next: [];
   cancel: [];
 }>();
@@ -33,7 +35,14 @@ const facts = computed(() => [
     label: t("preparation.overview.facts.method"),
     value: t(`preparation.overview.method.${props.plan.method}`),
   },
-  { label: t("preparation.overview.facts.exploit"), value: props.plan.exploit },
+  ...(props.plan.exploit
+    ? [
+        {
+          label: t("preparation.overview.facts.exploit"),
+          value: props.plan.exploit,
+        },
+      ]
+    : []),
   {
     label: t(
       props.plan.entryMode === "dfu"
@@ -42,10 +51,14 @@ const facts = computed(() => [
     ),
     value: `iOS ${props.plan.targetOsVersion}`,
   },
-  {
-    label: t("preparation.overview.facts.tether"),
-    value: t(`preparation.overview.tether.${props.plan.tether}`),
-  },
+  ...(props.plan.tether
+    ? [
+        {
+          label: t("preparation.overview.facts.tether"),
+          value: t(`preparation.overview.tether.${props.plan.tether}`),
+        },
+      ]
+    : []),
   {
     label: t("preparation.overview.facts.dataLoss"),
     value: t(`preparation.overview.dataLoss.${props.plan.dataLoss}`),
@@ -80,7 +93,13 @@ const prerequisiteIcons: Record<PrerequisiteId, Component> = {
           {{ t("preparation.overview.whatHappens") }}
         </h3>
         <p v-if="plan.entryMode === 'normal'" class="mt-1 text-sm text-muted">
-          {{ t("preparation.overview.intro") }}
+          {{
+            t(
+              plan.workflow === "appSync"
+                ? "preparation.appSync.intro"
+                : "preparation.overview.intro",
+            )
+          }}
         </p>
         <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
           <div
@@ -92,6 +111,17 @@ const prerequisiteIcons: Record<PrerequisiteId, Component> = {
             <dd class="mt-1 leading-6 font-medium">{{ fact.value }}</dd>
           </div>
         </dl>
+        <p class="mt-4 text-sm leading-6 text-muted">
+          {{ t("preparation.appSync.packages") }}
+        </p>
+        <ul
+          v-if="plan.systemPackages?.length"
+          class="mt-2 space-y-1 text-xs text-muted"
+        >
+          <li v-for="pkg in plan.systemPackages" :key="pkg.name">
+            {{ pkg.name }} · {{ pkg.version }}
+          </li>
+        </ul>
         <h4 class="mt-5 text-sm font-semibold">
           {{ t("preparation.overview.stepsHeading") }}
         </h4>
@@ -122,6 +152,28 @@ const prerequisiteIcons: Record<PrerequisiteId, Component> = {
         <p class="mt-1 text-sm text-muted">
           {{ t("preparation.overview.prerequisitesHint") }}
         </p>
+        <label
+          v-if="sshPassword !== undefined"
+          class="mt-4 block rounded-lg border border-line p-3 text-sm"
+        >
+          {{ t("preparation.appSync.password") }}
+          <input
+            type="password"
+            autocomplete="off"
+            :value="sshPassword"
+            maxlength="1024"
+            class="mt-2 w-full rounded border border-line bg-canvas px-3 py-2"
+            @input="
+              emit(
+                'update:sshPassword',
+                ($event.target as HTMLInputElement).value,
+              )
+            "
+          />
+          <span class="mt-2 block text-xs leading-6 text-muted">{{
+            t("preparation.appSync.passwordHint")
+          }}</span>
+        </label>
         <ul class="mt-4 space-y-2">
           <li v-for="id in plan.prerequisites" :key="id">
             <label

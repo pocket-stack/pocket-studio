@@ -4,7 +4,7 @@ use super::operation::{PlanStep, RequiredAction, StepId};
 use super::readiness::WorkflowKind;
 
 /// Bump whenever the disclaimer text changes; stale consent is rejected.
-pub const DISCLAIMER_VERSION: &str = "2026-09-07";
+pub const DISCLAIMER_VERSION: &str = "2026-09-07-appsync-1";
 pub const CONSENT_VALIDITY_MS: u64 = 30 * 60 * 1000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -48,6 +48,7 @@ pub enum PrerequisiteId {
 #[serde(rename_all = "camelCase")]
 pub enum Method {
     Ramdisk,
+    Ssh,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,15 +90,16 @@ pub enum PreparationEntryMode {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PreparationPlan {
+    pub system_packages: Vec<SystemPackage>,
     pub id: String,
     pub device_id: String,
     pub entry_mode: PreparationEntryMode,
     pub workflow: WorkflowKind,
     pub method: Method,
-    pub exploit: Exploit,
+    pub exploit: Option<Exploit>,
     pub target_os_version: String,
     pub data_loss: DataLoss,
-    pub tether: Tether,
+    pub tether: Option<Tether>,
     pub prerequisites: Vec<PrerequisiteId>,
     pub risks: Vec<Risk>,
     pub disclaimer_version: String,
@@ -117,15 +119,16 @@ impl PreparationPlan {
             requires_action: None,
         };
         Self {
+            system_packages: vec![],
             id,
             device_id,
             entry_mode: PreparationEntryMode::Normal,
             workflow: WorkflowKind::Jailbreak,
             method: Method::Ramdisk,
-            exploit: Exploit::Limera1n,
+            exploit: Some(Exploit::Limera1n),
             target_os_version: os_version.to_owned(),
             data_loss: DataLoss::None,
-            tether: Tether::Untethered,
+            tether: Some(Tether::Untethered),
             prerequisites: vec![
                 PrerequisiteId::BatteryAbove50,
                 PrerequisiteId::WorkingButtons,
@@ -187,6 +190,30 @@ impl PreparationPlan {
 }
 
 impl PreparationPlan {
+    pub fn appsync_install(id: String, device_id: String, os_version: &str) -> Self {
+        let mut plan = Self::ramdisk_jailbreak(id, device_id, os_version);
+        plan.workflow = WorkflowKind::AppSync;
+        plan.method = Method::Ssh;
+        plan.exploit = None;
+        plan.tether = None;
+        plan.prerequisites = vec![
+            PrerequisiteId::BackupCompleted,
+            PrerequisiteId::StableCable,
+            PrerequisiteId::ComputerAwake,
+        ];
+        plan.risks.retain(|risk| {
+            matches!(
+                risk.id,
+                RiskId::SecurityPosture | RiskId::CommunityTooling | RiskId::InterruptionHazard
+            )
+        });
+        plan.minimum_reading_seconds = ReadingRequirements {
+            risks: 0,
+            disclaimer: 0,
+        };
+        plan.steps = appsync_steps();
+        plan
+    }
     pub fn with_entry_mode(mut self, mode: PreparationEntryMode) -> Self {
         self.entry_mode = mode;
         if mode == PreparationEntryMode::Dfu {
@@ -400,4 +427,32 @@ mod tests {
             Some(RequiredAction::EnterDfu)
         );
     }
+}
+
+pub fn appsync_steps() -> Vec<PlanStep> {
+    [
+        (StepId::FetchResources, true, false, 20),
+        (StepId::ConnectAppSync, true, false, 10),
+        (StepId::InstallAppSync, false, true, 40),
+        (StepId::ActivateAppSync, false, false, 10),
+        (StepId::VerifyAppSync, false, false, 10),
+    ]
+    .into_iter()
+    .map(
+        |(id, cancellable, point_of_no_return, estimated_seconds)| PlanStep {
+            id,
+            cancellable,
+            point_of_no_return,
+            estimated_seconds,
+            requires_action: None,
+        },
+    )
+    .collect()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemPackage {
+    pub name: String,
+    pub version: String,
 }

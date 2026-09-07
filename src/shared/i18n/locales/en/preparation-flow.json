@@ -11,7 +11,8 @@
       "disclaimer": "Disclaimer",
       "dfu": "DFU",
       "execute": "Execute",
-      "result": "Result"
+      "result": "Result",
+      "appSync": "AppSync"
     },
     "overview": {
       "whatHappens": "What will happen",
@@ -141,7 +142,7 @@
     "result": {
       "success": {
         "title": "Device preparation complete",
-        "body": "The device has rebooted and passed jailbreak and SSH checks. OpenSSH is enabled; change the default root and mobile passwords before connecting to an untrusted network."
+        "body": "Jailbreak, SSH and AppSync installation are verified. OpenSSH is enabled; manage the device root and mobile passwords appropriately."
       },
       "failed": {
         "title": "The flow failed",
@@ -149,7 +150,7 @@
       },
       "cancelled": {
         "title": "Flow cancelled",
-        "body": "Preparation stopped before device modification. If the device remains in DFU, hold Power and Home to reboot."
+        "body": "Preparation stopped at a safe checkpoint. Previously completed changes remain; recheck the device state."
       },
       "failedAt": "Failed at \"{step}\" (attempt {attempt})",
       "recoveryTitle": "Suggested next steps",
@@ -161,6 +162,74 @@
       "recheckHint": "Check the current device state before deciding on another preparation run."
     },
     "reviewPlan": "Review preparation plan",
-    "demoNotice": "Browser demo: actions here do not modify a physical device."
+    "demoNotice": "Browser demo: actions here do not modify a physical device.",
+    "errors": {
+      "appSyncInstallFailed": {
+        "title": "AppSync preparation incomplete",
+        "body": "Package installation or service reload failed. Some packages may be installed; recheck the environment.",
+        "recovery": ["Recheck the device and review a new preparation plan."]
+      },
+      "appSyncDependencies": {
+        "title": "System dependencies need attention",
+        "body": "The dependency check found conflicts or unmet requirements. No system packages were installed; check the device package manager.",
+        "recovery": ["Recheck the device and review a new preparation plan."]
+      },
+      "appSyncVerificationFailed": {
+        "title": "AppSync verification incomplete",
+        "body": "AppSync installation could not be confirmed. Recheck the environment and continue AppSync preparation without repeating the jailbreak.",
+        "recovery": ["Recheck the device and review a new preparation plan."]
+      },
+      "sshAuthenticationFailed": {
+        "title": "SSH authentication failed",
+        "body": "The device rejected the root password. Review a new plan and enter the correct password.",
+        "recovery": ["Recheck the device and review a new preparation plan."]
+      }
+    },
+    "startErrors": {
+      "sshAuthenticationFailed": "The SSH password was rejected. Enter the correct password.",
+      "sshRequired": "OpenSSH is required to prepare AppSync separately. Install or enable OpenSSH on the device first."
+    },
+    "appSync": {
+      "action": "Prepare AppSync",
+      "explanation": "AppSync is a system plugin that allows development IPAs with fakesignatures. Jailbreak alone does not install it. Already jailbroken devices can prepare it separately.",
+      "intro": "This device is already jailbroken. This plan prepares AppSync and its dependencies over USB SSH, without DFU or jailbreak steps.",
+      "packages": "Install or update these pinned system packages while retaining newer installed versions. Dependencies are checked before installation, without forced overrides. The device UI and installation service may briefly restart.",
+      "password": "Device root SSH password",
+      "passwordHint": "The unchanged default password is usually alpine. It is used only for this USB SSH connection and is not written to logs or disk.",
+      "successTitle": "Application installation support prepared",
+      "successBody": "AppSync installation is verified and the installation service was reloaded. You can try the app store; continued signature rejection requires checking plugin loading or IPA compatibility.",
+      "disclaimerSections": [
+        {
+          "heading": "System package changes",
+          "body": "This operation installs pinned AppSync packages and required dependencies as root, changing how the device validates app signatures."
+        },
+        {
+          "heading": "Interruption and recovery",
+          "body": "Package installation cannot be cancelled once writing starts. Completed changes may remain after failure; recheck the environment rather than repeating the jailbreak."
+        },
+        {
+          "heading": "Connection and credentials",
+          "body": "The connection is bound to the identified USB device and its SSH host key. The password is used in memory for authentication. Keep power and the connection stable."
+        }
+      ],
+      "preamble": "Read the system changes below. Installation starts only after you choose Agree and start.",
+      "risks": {
+        "interruptionHazard": {
+          "title": "Interrupted installation can leave incomplete packages",
+          "body": "Disconnecting, losing power or closing the app during package writes may require repairing dependencies in the device package manager.",
+          "mitigation": "Keep power and the connection stable, and wait for the installation result."
+        },
+        "securityPosture": {
+          "title": "AppSync relaxes app signature checks",
+          "body": "AppSync permits unsigned or fakesigned development IPAs. Install software you trust and protect the device SSH accounts.",
+          "mitigation": "Use trusted software sources and protect device passwords."
+        },
+        "communityTooling": {
+          "title": "System plugins may have compatibility issues",
+          "body": "AppSync and its dependencies are community maintained and may conflict with other plugins. Verified package records do not prove successful plugin loading.",
+          "mitigation": "Back up first and inspect the device package manager if conflicts occur."
+        }
+      }
+    }
   }
 }

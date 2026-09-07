@@ -51,6 +51,7 @@ pub struct DeviceSummary {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DeviceFacts {
     pub jailbroken: Option<bool>,
+    pub appsync_installed: Option<bool>,
     pub ssh_available: Option<bool>,
     pub pairing_trusted: Option<bool>,
 }

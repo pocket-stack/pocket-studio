@@ -143,12 +143,7 @@ function showPage(page: StudioView): void {
 function showPackage(packageId: string | null): void {
   navigationHistory.navigate({ view: "store", packageId });
 }
-function startPreparation(): void {
-  if (session.device.value && gateway.capabilities.preparation) {
-    showDevice("environment");
-    void preparation.open(session.device.value.id);
-  }
-}
+
 function showActivity(): void {
   if (current.value?.kind === "preparation") showDevice("environment");
   else if (current.value?.subject) showPackage(current.value.subject);
@@ -451,7 +446,7 @@ onMounted(async () => {
         />
         <StoreView
           v-else-if="view === 'store'"
-          @prepare="startPreparation"
+          @prepare="showDevice('environment')"
           @open-package="showPackage"
           @open-installed="showPage('installed')"
           @open-environment="showDevice('environment')"

@@ -1,6 +1,7 @@
 //! Read-only Legacy-iOS-Kit-rs adapter. Device handles and full identifiers never
 //! leave this module. A scan opens existing services but never pairs or writes.
 
+pub mod appsync;
 pub mod installed;
 pub mod packages;
 mod platform;
@@ -35,6 +36,7 @@ pub struct LegacyIosProbe {
     host: Box<dyn platform::HostEnvironment>,
     sessions: Mutex<HashMap<String, String>>,
     normal_access: Arc<RwLock<()>>,
+    appsync_sessions: Mutex<HashMap<String, Arc<legacy_ios_services::RamdiskSsh>>>,
 }
 
 impl Default for LegacyIosProbe {
@@ -45,6 +47,7 @@ impl Default for LegacyIosProbe {
             host,
             sessions: Mutex::new(HashMap::new()),
             normal_access: Arc::new(RwLock::new(())),
+            appsync_sessions: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -103,12 +106,18 @@ impl LegacyIosProbe {
             });
             let device = device.clone();
             let access = self.normal_access.clone();
+            let appsync_session = self
+                .appsync_sessions
+                .lock()
+                .expect("AppSync sessions poisoned")
+                .get(&key)
+                .cloned();
             reads.spawn(async move {
                 let result = read_observed_device(
                     access,
                     observed,
                     NORMAL_READ_TIMEOUT,
-                    probe_normal(&device, id),
+                    probe_normal_with_appsync(&device, id, appsync_session),
                 )
                 .await;
                 (index, result)
@@ -162,6 +171,10 @@ impl LegacyIosProbe {
         snapshot
             .records
             .sort_by(|left, right| left.summary.id.cmp(&right.summary.id));
+        self.appsync_sessions
+            .lock()
+            .expect("AppSync sessions poisoned")
+            .retain(|key, _| seen.contains(key));
         snapshot
     }
 
@@ -235,7 +248,11 @@ async fn read_observed_device(
     }
 }
 
-async fn probe_normal(device: &NormalDevice, id: String) -> (DeviceRecord, Vec<DiscoveryIssue>) {
+async fn probe_normal_with_appsync(
+    device: &NormalDevice,
+    id: String,
+    session: Option<Arc<legacy_ios_services::RamdiskSsh>>,
+) -> (DeviceRecord, Vec<DiscoveryIssue>) {
     let mut summary = empty_summary(id, DeviceMode::Normal);
     summary.udid_masked = Some(mask_identifier(device.udid().as_str()));
     let mut facts = DeviceFacts::default();
@@ -266,6 +283,23 @@ async fn probe_normal(device: &NormalDevice, id: String) -> (DeviceRecord, Vec<D
             }
             facts.pairing_trusted = Some(true);
             facts.ssh_available = inspection.ssh_available();
+            facts.appsync_installed = if let Some(ssh) = session {
+                appsync::read_status(&ssh).await
+            } else {
+                match timeout(
+                    Duration::from_secs(2),
+                    device.installed_system_package_status(),
+                )
+                .await
+                {
+                    Ok(Ok(bytes)) => match crate::domain::packages::appsync_status(&bytes) {
+                        crate::domain::packages::RequirementState::Satisfied => Some(true),
+                        crate::domain::packages::RequirementState::Missing => Some(false),
+                        crate::domain::packages::RequirementState::Unknown => None,
+                    },
+                    _ => None,
+                }
+            };
             facts.jailbroken = match inspection.jailbreak() {
                 JailbreakStatus::Detected { .. } => Some(true),
                 JailbreakStatus::Unknown => None,
@@ -481,6 +515,7 @@ mod tests {
         let complete = DeviceRecord {
             summary: observed.clone(),
             facts: DeviceFacts {
+                appsync_installed: Some(true),
                 jailbroken: Some(true),
                 pairing_trusted: Some(true),
                 ssh_available: Some(true),

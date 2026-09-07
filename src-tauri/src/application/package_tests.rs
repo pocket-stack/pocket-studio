@@ -138,6 +138,7 @@ impl PackageTarget for Target {
             Ok(PackageObservation {
                 device,
                 facts: DeviceFacts {
+                    appsync_installed: Some(true),
                     pairing_trusted: Some(true),
                     jailbroken: None,
                     ssh_available: None,

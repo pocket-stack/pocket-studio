@@ -23,6 +23,7 @@ rusqlite = { version = "0.37", features = ["bundled"] }
 semver = "1"
 flate2 = "1.1"
 sha2 = "0.10"
+plist = "=1.10.0"
 tempfile = "3.20"
 serde_json = "1.0"
 legacy-ios-exploits = { path = "../../../GitHub/Legacy-iOS-Kit-rs/crates/exploits" }

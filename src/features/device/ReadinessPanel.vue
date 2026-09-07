@@ -34,6 +34,7 @@ const checks = computed(
           "osVersionSupported",
           "pairingTrusted",
           "jailbroken",
+          "appSyncInstalled",
           "sshAvailable",
         ].includes(check.id),
     ) ?? [],
@@ -51,7 +52,7 @@ const canReviewPreparation = computed(() => {
     props.device.ecidMasked
   )
     return true;
-  if (props.report.status === "needsPreparation") return true;
+  if (props.report.requiredWorkflow) return true;
   const checks = props.report.checks;
   return (
     gateway.flavor === "tauri" &&
@@ -141,6 +142,16 @@ const canReviewPreparation = computed(() => {
         }}</span>
       </li>
     </ul>
+    <p
+      v-if="
+        report?.checks.some(
+          (check) => check.id === 'appSyncInstalled' && check.status !== 'pass',
+        )
+      "
+      class="mx-4 mt-3 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs leading-6 text-muted"
+    >
+      {{ t("preparation.appSync.explanation") }}
+    </p>
     <footer
       class="flex items-center justify-between gap-[15px] px-4 pt-3 pb-4 max-[800px]:flex-wrap"
     >
@@ -151,7 +162,12 @@ const canReviewPreparation = computed(() => {
           :disabled="checking || !!active.length"
           @click="emit('prepare')"
         >
-          {{ t("preparation.reviewPlan")
+          {{
+            t(
+              report?.requiredWorkflow === "appSync"
+                ? "preparation.appSync.action"
+                : "preparation.reviewPlan",
+            )
           }}<IconStudioArrowRight width="14" height="14" /></button
         ><button
           v-else-if="

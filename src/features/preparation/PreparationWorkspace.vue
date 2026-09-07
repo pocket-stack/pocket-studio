@@ -42,6 +42,15 @@ const groupedSteps = computed(() => {
       ids: ["bootRamdisk", "mountFilesystem", "installUntether"],
     },
     { key: "verify", ids: ["rebootDevice", "verifyJailbreak"] },
+    {
+      key: "appSync",
+      ids: [
+        "connectAppSync",
+        "installAppSync",
+        "activateAppSync",
+        "verifyAppSync",
+      ],
+    },
   ];
   return [
     { key: "connect", status: "done", percent: 100 },
@@ -132,6 +141,8 @@ function openLogs(): void {
       :plan="preparation.plan.value"
       :confirmed="preparation.confirmedPrerequisites.value"
       :all-confirmed="preparation.allPrerequisitesConfirmed.value"
+      :ssh-password="preparation.sshPassword.value"
+      @update:ssh-password="preparation.setSshPassword"
       @toggle="preparation.togglePrerequisite"
       @next="preparation.proceedToRisks"
       @cancel="preparation.close"
@@ -206,6 +217,7 @@ function openLogs(): void {
               : 'cancelled'
         "
         :attempt="preparation.attempt.value"
+        :workflow="preparation.plan.value?.workflow"
         @retry="preparation.retry"
         @recheck="recheck"
         @close="preparation.close"

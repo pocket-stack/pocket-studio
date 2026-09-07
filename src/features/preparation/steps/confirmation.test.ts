@@ -3,9 +3,11 @@ import { createRenderer, nextTick, type Component } from "vue";
 import {
   buildJailbreakPlan,
   demoDevice,
+  demoCatalog,
 } from "../../../shared/gateway/fixtures";
 import type { ReadinessReport } from "../../../shared/gateway";
 import ReadinessPanel from "../../device/ReadinessPanel.vue";
+import PackageDetail from "../../store/PackageDetail.vue";
 import OverviewStep from "./OverviewStep.vue";
 import RiskStep from "./RiskStep.vue";
 import DisclaimerStep from "./DisclaimerStep.vue";
@@ -14,13 +16,19 @@ import ResultStep from "./ResultStep.vue";
 
 const gateway = vi.hoisted(() => ({
   flavor: "tauri",
-  capabilities: { demo: false, preparation: true },
+  capabilities: { demo: false, preparation: true, packages: true },
   demo: { setDeviceMode: vi.fn() },
   operations: { onEvent: () => () => {} },
 }));
 vi.mock("../../../shared/gateway", () => ({ useGateway: () => gateway }));
 vi.mock("vue-i18n", () => ({
-  useI18n: () => ({ t: (key: string) => key, tm: () => [], d: () => "" }),
+  useI18n: () => ({
+    t: (key: string) => key,
+    tm: () => [],
+    d: () => "",
+    locale: { value: "zh-CN" },
+    te: (key: string) => key.includes("signatureRejected"),
+  }),
 }));
 
 // Exercise actual component render output and lifecycle in a memory renderer.
@@ -299,4 +307,80 @@ it("keeps a failed system write separate from a read-only verification check", (
   });
   expect(button(root, "preparation.result.recheck")).toBeUndefined();
   expect(text(root)).toContain("preparation.result.notRecoverable");
+});
+
+it.each([
+  ["risks", RiskStep, "preparation.risks.continue", "onNext"],
+  [
+    "disclaimer",
+    DisclaimerStep,
+    "preparation.disclaimer.acceptAndStart",
+    "onAccept",
+  ],
+] as const)(
+  "enables standalone AppSync %s without a countdown and still requires a click",
+  async (_name, component, label, event) => {
+    const confirm = vi.fn();
+    const plan = {
+      ...buildJailbreakPlan("demo", 1),
+      workflow: "appSync",
+      minimumReadingSeconds: { risks: 0, disclaimer: 0 },
+    };
+    const root = mount(component, { plan, startError: null, [event]: confirm });
+    await nextTick();
+    expect(button(root, label).props.disabled).toBe(false);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(text(root)).not.toContain("reading.remaining");
+    click(button(root, label));
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(0);
+  },
+);
+
+it("offers AppSync preparation on an already jailbroken device with unknown AppSync status", () => {
+  const root = mount(ReadinessPanel, {
+    device: demoDevice,
+    checking: false,
+    report: {
+      deviceId: demoDevice.id,
+      status: "needsAttention",
+      requiredWorkflow: "appSync",
+      checkedAt: Date.now(),
+      checks: [
+        { id: "jailbroken", status: "pass" },
+        { id: "appSyncInstalled", status: "unknown" },
+      ],
+    },
+  });
+  expect(button(root, "preparation.appSync.action")).toBeDefined();
+  expect(button(root, "preparation.reviewPlan")).toBeUndefined();
+});
+
+it("shows the device signature diagnosis and links to preparation from a failed store install", () => {
+  const prepare = vi.fn();
+  const root = mount(PackageDetail, {
+    onPrepare: prepare,
+    item: {
+      entry: demoCatalog[0],
+      verdict: "compatible",
+      installed: null,
+      missingDependencies: [],
+      operation: {
+        id: "failed-install",
+        kind: "install",
+        status: "failed",
+        startedAt: 1,
+        steps: [],
+        error: {
+          code: "installRejected",
+          recoverable: false,
+          diagnostic: { stage: "install", reason: "signatureRejected" },
+        },
+      },
+    },
+  });
+  expect(text(root)).toContain("store.errors.signatureRejected.title");
+  expect(text(root)).toContain("store.actions.errors.signatureRejected");
+  expect(text(root)).not.toContain("store.errors.installRejected.body");
+  click(button(root, "preparation.appSync.action"));
+  expect(prepare).toHaveBeenCalledOnce();
 });

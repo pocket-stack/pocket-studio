@@ -94,6 +94,7 @@ const sleep = (ms: number) =>
 export function createSimulatedGateway(): StudioGateway {
   let device: DeviceSummary | null = null;
   let jailbroken = false;
+  let appsyncInstalled = false;
   let planSequence = 0;
   let operationSequence = 0;
   let logSequence = 0;
@@ -170,6 +171,7 @@ export function createSimulatedGateway(): StudioGateway {
       },
       { id: "pairingTrusted", status: "pass" },
       { id: "jailbroken", status: jailbroken ? "pass" : "fail" },
+      { id: "appSyncInstalled", status: appsyncInstalled ? "pass" : "fail" },
       { id: "sshAvailable", status: jailbroken ? "pass" : "unknown" },
       {
         id: "batteryLevel",
@@ -180,9 +182,13 @@ export function createSimulatedGateway(): StudioGateway {
     ];
     return {
       deviceId: current.id,
-      status: jailbroken ? "ready" : "needsPreparation",
+      status: jailbroken && appsyncInstalled ? "ready" : "needsPreparation",
       checks,
-      requiredWorkflow: jailbroken ? undefined : "jailbreak",
+      requiredWorkflow: !jailbroken
+        ? "jailbreak"
+        : appsyncInstalled
+          ? undefined
+          : "appSync",
       checkedAt: Date.now(),
     };
   }
@@ -532,6 +538,52 @@ export function createSimulatedGateway(): StudioGateway {
           planSequence,
           current.mode === "dfu" ? "dfu" : "normal",
         );
+        const appSyncSteps = [
+          {
+            id: "connectAppSync" as const,
+            cancellable: true,
+            pointOfNoReturn: false,
+            estimatedSeconds: 10,
+          },
+          {
+            id: "installAppSync" as const,
+            cancellable: false,
+            pointOfNoReturn: true,
+            estimatedSeconds: 20,
+          },
+          {
+            id: "activateAppSync" as const,
+            cancellable: false,
+            pointOfNoReturn: false,
+            estimatedSeconds: 5,
+          },
+          {
+            id: "verifyAppSync" as const,
+            cancellable: false,
+            pointOfNoReturn: false,
+            estimatedSeconds: 5,
+          },
+        ];
+        if (jailbroken) {
+          plan.workflow = "appSync";
+          plan.method = "ssh";
+          plan.exploit = null;
+          plan.tether = null;
+          plan.prerequisites = [
+            "backupCompleted",
+            "stableCable",
+            "computerAwake",
+          ];
+          plan.steps = [
+            {
+              id: "fetchResources",
+              cancellable: true,
+              pointOfNoReturn: false,
+              estimatedSeconds: 5,
+            },
+            ...appSyncSteps,
+          ];
+        } else plan.steps = [...plan.steps, ...appSyncSteps];
         plans.set(plan.id, plan);
         log(
           "debug",
@@ -578,6 +630,7 @@ export function createSimulatedGateway(): StudioGateway {
           operation,
           () => {
             jailbroken = true;
+            appsyncInstalled = true;
           },
         );
         return operation.handle;

@@ -36,6 +36,22 @@
       "verifyJailbreak": {
         "title": "Verify the jailbreak",
         "detail": "Wait for the device to reappear and confirm Cydia and SSH are available."
+      },
+      "connectAppSync": {
+        "title": "Connect device SSH",
+        "detail": "Pin the device identity and SSH host key before root authentication."
+      },
+      "installAppSync": {
+        "title": "Install AppSync and dependencies",
+        "detail": "Verify transferred packages and dependencies, then install. This step cannot be cancelled."
+      },
+      "activateAppSync": {
+        "title": "Reload installation service",
+        "detail": "Restart the device installation service to load its plugins."
+      },
+      "verifyAppSync": {
+        "title": "Verify AppSync installation",
+        "detail": "Read back system package status to confirm installation."
       }
     },
     "errors": {

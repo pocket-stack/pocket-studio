@@ -62,6 +62,7 @@ export type ReadinessCheckId =
   | "osVersionSupported"
   | "pairingTrusted"
   | "jailbroken"
+  | "appSyncInstalled"
   | "sshAvailable"
   | "batteryLevel"
   | "physicalButtons"
@@ -78,7 +79,7 @@ export interface ReadinessCheck {
 
 export type ReadinessStatus =
   "ready" | "needsPreparation" | "needsAttention" | "unsupported";
-export type WorkflowKind = "jailbreak";
+export type WorkflowKind = "jailbreak" | "appSync";
 
 export interface ReadinessReport {
   deviceId: string;
@@ -120,7 +121,11 @@ export type PreparationStepId =
   | "mountFilesystem"
   | "installUntether"
   | "rebootDevice"
-  | "verifyJailbreak";
+  | "verifyJailbreak"
+  | "connectAppSync"
+  | "installAppSync"
+  | "activateAppSync"
+  | "verifyAppSync";
 
 export type InstallStepId =
   | "resolve"
@@ -144,15 +149,16 @@ export interface PlanStep {
 }
 
 export interface PreparationPlan {
+  systemPackages?: { name: string; version: string }[];
   id: string;
   deviceId: string;
   entryMode: "normal" | "dfu";
   workflow: WorkflowKind;
-  method: "ramdisk";
-  exploit: "limera1n";
+  method: "ramdisk" | "ssh";
+  exploit: "limera1n" | null;
   targetOsVersion: string;
   dataLoss: "none" | "full";
-  tether: "untethered" | "semiTethered" | "tethered";
+  tether: "untethered" | "semiTethered" | "tethered" | null;
   prerequisites: PrerequisiteId[];
   risks: Risk[];
   disclaimerVersion: string;
@@ -191,6 +197,10 @@ export type OperationErrorCode =
   | "verificationUnavailable"
   | "checksumMismatch"
   | "transferFailed"
+  | "appSyncInstallFailed"
+  | "appSyncDependencies"
+  | "appSyncVerificationFailed"
+  | "sshAuthenticationFailed"
   | "installRejected"
   | "cancelled";
 
@@ -439,7 +449,10 @@ export interface StudioGateway {
   };
   preparation: {
     plan(deviceId: string): Promise<PreparationPlan>;
-    start(consent: ConsentRecord): Promise<OperationHandle>;
+    start(
+      consent: ConsentRecord,
+      sshPassword: string,
+    ): Promise<OperationHandle>;
   };
   store: {
     catalog(deviceId?: string, refresh?: boolean): Promise<CatalogSnapshot>;

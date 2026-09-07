@@ -97,3 +97,7 @@ local publication was checked with the application `dev.pocket-stack.clear`,
 product version `0.1.0`, revision/native build `1`, and host ABI `8`. Its real
 984988-byte IPA and icon passed both online and offline checks. This is a host
 integration check; device installation acceptance remains user-initiated.
+
+## AppSync preparation
+
+Device preparation now includes AppSync and its required system packages. An already jailbroken device gets a separate USB SSH plan, with no DFU or jailbreak steps. The user reviews package changes and supplies the device root password before explicitly starting. Missing AppSync blocks installation; an unreadable status remains unknown. Device signature rejection links to the environment page and explains AppSync instead of guessing that disk space is low. See [native preparation](native-preparation.md) for pinned package sources, credential handling, cancellation and remaining hardware validation.

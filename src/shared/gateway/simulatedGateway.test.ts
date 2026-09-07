@@ -87,7 +87,10 @@ describe("device simulation", () => {
   it("does not start or record successful consent when a reading gate is incomplete", async () => {
     const plan = await gateway.preparation.plan(await connect());
     await expect(
-      gateway.preparation.start({ ...consentFor(plan), riskReadingSeconds: 0 }),
+      gateway.preparation.start(
+        { ...consentFor(plan), riskReadingSeconds: 0 },
+        "alpine",
+      ),
     ).rejects.toMatchObject({ code: "readingTooShort" });
     expect(events).toHaveLength(0);
     expect(
@@ -98,7 +101,7 @@ describe("device simulation", () => {
   });
   it("waits for a DFU event, then finishes with complete consent audit fields", async () => {
     const plan = await gateway.preparation.plan(await connect());
-    const handle = await gateway.preparation.start(consentFor(plan));
+    const handle = await gateway.preparation.start(consentFor(plan), "alpine");
     await vi.advanceTimersByTimeAsync(1000);
     expect(events).toContainEqual(
       expect.objectContaining({ type: "actionRequired", action: "enterDfu" }),
@@ -122,7 +125,7 @@ describe("device simulation", () => {
   });
   it("cancels a DFU wait without executing later steps", async () => {
     const plan = await gateway.preparation.plan(await connect());
-    const handle = await gateway.preparation.start(consentFor(plan));
+    const handle = await gateway.preparation.start(consentFor(plan), "alpine");
     await gateway.operations.cancel(handle.operationId);
     await vi.advanceTimersByTimeAsync(1000);
     expect(events.some((event) => event.type === "cancelled")).toBe(true);
@@ -143,7 +146,7 @@ describe("device simulation", () => {
     expect(plan.entryMode).toBe("dfu");
     expect(plan.steps.some((step) => step.id === "enterDfu")).toBe(false);
     expect(plan.prerequisites).not.toContain("workingButtons");
-    await gateway.preparation.start(consentFor(plan));
+    await gateway.preparation.start(consentFor(plan), "alpine");
     await vi.advanceTimersByTimeAsync(40_000);
     expect(events.some((event) => event.type === "actionRequired")).toBe(false);
     expect(events.some((event) => event.type === "finished")).toBe(true);

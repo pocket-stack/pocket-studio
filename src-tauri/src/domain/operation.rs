@@ -21,6 +21,10 @@ pub enum StepId {
     InstallUntether,
     RebootDevice,
     VerifyJailbreak,
+    ConnectAppSync,
+    InstallAppSync,
+    ActivateAppSync,
+    VerifyAppSync,
     // install
     Resolve,
     Download,
@@ -82,6 +86,10 @@ pub enum OperationErrorCode {
     ChecksumMismatch,
     TransferFailed,
     InstallRejected,
+    AppSyncInstallFailed,
+    AppSyncDependencies,
+    AppSyncVerificationFailed,
+    SshAuthenticationFailed,
     Cancelled,
 }
 

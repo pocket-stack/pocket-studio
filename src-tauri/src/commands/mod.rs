@@ -91,11 +91,12 @@ pub async fn plan_preparation(
 pub async fn start_preparation(
     state: State<'_, AppState>,
     consent: ConsentRecord,
+    ssh_password: String,
 ) -> CommandResult<OperationHandle> {
     state
         .studio
         .preparation
-        .start(consent)
+        .start_with_password(consent, ssh_password)
         .await
         .map_err(|error| StudioError::from(error).into())
 }

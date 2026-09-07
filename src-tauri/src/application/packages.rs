@@ -259,6 +259,10 @@ impl PackageService {
                     now_millis(),
                 )
                 .ok_or(PackageError::InvalidAction)?;
+            if selected.target.requires.appsync && observation.appsync == RequirementState::Missing
+            {
+                return Err(PackageError::NeedsAppSync);
+            }
             if selected.verdict != StoreVerdict::Compatible {
                 return Err(if selected.verdict == StoreVerdict::Withdrawn {
                     PackageError::Withdrawn
@@ -266,10 +270,7 @@ impl PackageService {
                     PackageError::Incompatible
                 });
             }
-            if selected.target.requires.appsync && observation.appsync == RequirementState::Missing
-            {
-                return Err(PackageError::NeedsAppSync);
-            }
+
             Some(selected)
         };
         let bundle = if let Some(selected) = selection {

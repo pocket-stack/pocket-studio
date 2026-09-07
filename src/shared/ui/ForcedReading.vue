@@ -29,6 +29,10 @@ function tick(): void {
 }
 
 onMounted(() => {
+  if (props.minimumSeconds <= 0) {
+    emit("ready", 0);
+    return;
+  }
   startedAt = performance.now();
   timer = window.setInterval(tick, 100);
   // Recompute from elapsed time if a background webview throttled callbacks.
@@ -58,7 +62,10 @@ defineExpose({ elapsed });
     >
       <slot />
     </div>
-    <div class="flex items-center gap-3 text-xs text-muted">
+    <div
+      v-if="minimumSeconds > 0"
+      class="flex items-center gap-3 text-xs text-muted"
+    >
       <div class="w-40">
         <ProgressBar
           :percent="(elapsed / minimumSeconds) * 100"

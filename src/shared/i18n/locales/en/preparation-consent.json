@@ -79,6 +79,10 @@
         {
           "heading": "Records and logs",
           "body": "The time of this confirmation, your reading time and the terms version are written to the activity log for traceability. The log never contains full device identifiers or personal data."
+        },
+        {
+          "heading": "Application installation support",
+          "body": "After jailbreak, AppSync and required dependencies are installed as root and the installation service is reloaded. The device UI may briefly restart; keep the connection stable."
         }
       ],
       "end": "— end of terms —",
@@ -99,6 +103,12 @@
       "operationBusy": "Another operation is running. Wait for it to finish.",
       "eventSubscriptionFailed": "Operation events could not be connected. Preparation has not started. Reopen the app and try again.",
       "preparationFailed": "Preparation failed. Check the operation log."
+    },
+    "overview": {
+      "method": {
+        "ssh": "USB SSH"
+      },
+      "intro": "Resources are downloaded and verified before you enter DFU. limera1n then boots an SSH ramdisk to install the Aquila 6 untether, Cydia and OpenSSH. This modifies the system without intentionally erasing data; recovery after failure may still erase all data. After jailbreak and SSH verification, prepare AppSync application installation support."
     }
   }
 }

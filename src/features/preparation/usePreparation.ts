@@ -44,6 +44,7 @@ const disclaimerReadingSeconds = ref(0);
 const disclaimerAcceptedAt = ref<number | null>(null);
 const operationId = ref<string | null>(null);
 const startError = ref<string | null>(null);
+const sshPassword = ref("alpine");
 const attempt = ref(0);
 
 const { get } = useOperations();
@@ -95,6 +96,7 @@ async function open(deviceId: string): Promise<void> {
   }
   minimized.value = false;
   resetConsent();
+  sshPassword.value = "alpine";
   operationId.value = null;
   startError.value = null;
   planError.value = null;
@@ -114,6 +116,7 @@ function close(): void {
     return;
   }
   stage.value = "closed";
+  sshPassword.value = "";
 }
 
 function togglePrerequisite(id: PrerequisiteId): void {
@@ -124,7 +127,12 @@ function togglePrerequisite(id: PrerequisiteId): void {
 }
 
 function proceedToRisks(): void {
-  if (!plan.value || stage.value !== "overview") return;
+  if (
+    !plan.value ||
+    stage.value !== "overview" ||
+    (useGateway().flavor === "tauri" && !sshPassword.value)
+  )
+    return;
   if (confirmedPrerequisites.value.length !== plan.value.prerequisites.length)
     return;
   acknowledgedRisks.value = [];
@@ -192,7 +200,10 @@ async function launch(): Promise<void> {
   startError.value = null;
   try {
     await useOperations().ready();
-    const handle = await useGateway().preparation.start(consent);
+    const handle = await useGateway().preparation.start(
+      consent,
+      sshPassword.value,
+    );
     attempt.value += 1;
     trackOperation(handle);
     operationId.value = handle.operationId;
@@ -200,6 +211,8 @@ async function launch(): Promise<void> {
     startError.value = error instanceof GatewayError ? error.code : "unknown";
     stage.value = "disclaimer";
     notify("error", "notifications.preparationStartFailed");
+  } finally {
+    sshPassword.value = "";
   }
 }
 
@@ -275,6 +288,10 @@ async function cancel(): Promise<void> {
 
 export function usePreparation() {
   return {
+    sshPassword: readonly(sshPassword),
+    setSshPassword: (value: string) => {
+      sshPassword.value = value;
+    },
     stage: readonly(stage),
     visible: computed(() => stage.value !== "closed" && !minimized.value),
     consentVisible: computed(() =>
@@ -295,7 +312,9 @@ export function usePreparation() {
     allPrerequisitesConfirmed: computed(
       () =>
         plan.value !== null &&
-        confirmedPrerequisites.value.length === plan.value.prerequisites.length,
+        confirmedPrerequisites.value.length ===
+          plan.value.prerequisites.length &&
+        (useGateway().flavor !== "tauri" || sshPassword.value.length > 0),
     ),
     open,
     close,

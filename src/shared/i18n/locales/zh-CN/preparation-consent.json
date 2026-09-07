@@ -79,6 +79,10 @@
         {
           "heading": "记录与日志",
           "body": "本次确认的时间、阅读时长与条款版本会写入操作日志，用于追溯。日志不会包含设备的完整标识符或个人数据。"
+        },
+        {
+          "heading": "应用安装环境",
+          "body": "越狱完成后，还会以 root 权限安装 AppSync 及必要依赖，并重载安装服务。可能短暂重启桌面，请保持连接。"
         }
       ],
       "end": "—— 条款结束 ——",
@@ -99,6 +103,12 @@
       "operationBusy": "已有操作正在进行，请等待其结束。",
       "eventSubscriptionFailed": "无法接收操作进度，流程尚未开始。请重新打开应用后再试。",
       "preparationFailed": "准备失败，请查看操作日志。"
+    },
+    "overview": {
+      "method": {
+        "ssh": "USB SSH"
+      },
+      "intro": "将先下载并校验资源，再引导你进入 DFU，通过 limera1n 启动 SSH ramdisk，安装 Aquila 6 untether、Cydia 与 OpenSSH。此操作会修改系统，不以擦除数据为目标；失败后恢复系统仍可能丢失全部数据。 越狱和 SSH 验证后，将继续准备 AppSync 应用安装环境。"
     }
   }
 }

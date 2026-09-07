@@ -208,7 +208,7 @@ mod tests {
                     "id": "session-a", "platform": "ios", "modelIdentifier": "iPod4,1",
                     "marketingName": "iPod touch 4", "osVersion": "6.1.6", "mode": "normal", "transport": "usb"
                 })).unwrap(),
-                facts: DeviceFacts { jailbroken: Some(true), pairing_trusted: Some(true), ssh_available: Some(true) },
+                facts: DeviceFacts { appsync_installed: Some(true), jailbroken: Some(true), pairing_trusted: Some(true), ssh_available: Some(true) },
             }], issues: vec![],
         }
     }

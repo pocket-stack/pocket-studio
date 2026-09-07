@@ -12,8 +12,8 @@
       "needsAttention": "Needs attention"
     },
     "summary": {
-      "ready": "Jailbreak access, paired access, and SSH have been verified.",
-      "needsPreparation": "The model and OS version are supported, but the device is not jailbroken yet. Preparation is required first.",
+      "ready": "Pairing, jailbreak, SSH and AppSync installation checks passed.",
+      "needsPreparation": "Some prerequisites need preparation. Review the checks below.",
       "unsupported": "This device or OS version is not supported yet.",
       "needsAttention": "Some readiness conditions are still unknown. Review the checks and connection diagnostics."
     },
@@ -80,6 +80,13 @@
         "fail": "The device is not in normal mode. Supported DFU devices can open a preparation plan directly; return other modes to normal iOS first.",
         "warn": "The device mode needs confirmation.",
         "unknown": "The device mode is unknown."
+      },
+      "appSyncInstalled": {
+        "title": "AppSync installation",
+        "pass": "AppSync is installed. If an IPA signature is still rejected, check plugin loading and signing compatibility.",
+        "fail": "AppSync is missing. Prepare application installation support first.",
+        "warn": "AppSync installation needs attention.",
+        "unknown": "AppSync could not be inspected. Unknown does not mean missing; the preparation flow can inspect and provision it over SSH."
       }
     },
     "guidance": {

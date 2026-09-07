@@ -5,7 +5,10 @@ import { useI18n } from "vue-i18n";
 import type { PreparationPlan } from "../../../shared/gateway";
 import ForcedReading from "../../../shared/ui/ForcedReading.vue";
 
-defineProps<{ plan: PreparationPlan; startError: string | null }>();
+const props = defineProps<{
+  plan: PreparationPlan;
+  startError: string | null;
+}>();
 const emit = defineEmits<{ accept: [readingSeconds: number]; back: [] }>();
 const { t, tm } = useI18n();
 
@@ -13,7 +16,11 @@ const readingReady = ref(false);
 const elapsed = ref(0);
 const sections = computed(
   () =>
-    tm("preparation.disclaimer.sections") as Array<{
+    tm(
+      props.plan.workflow === "appSync"
+        ? "preparation.appSync.disclaimerSections"
+        : "preparation.disclaimer.sections",
+    ) as Array<{
       heading: string;
       body: string;
     }>,
@@ -48,7 +55,15 @@ function onReady(seconds: number): void {
       @ready="onReady"
     >
       <div class="space-y-4 text-sm">
-        <p class="font-medium">{{ t("preparation.disclaimer.preamble") }}</p>
+        <p class="font-medium">
+          {{
+            t(
+              plan.workflow === "appSync"
+                ? "preparation.appSync.preamble"
+                : "preparation.disclaimer.preamble",
+            )
+          }}
+        </p>
         <section v-for="(section, index) in sections" :key="index">
           <h4 class="font-semibold">{{ index + 1 }}. {{ section.heading }}</h4>
           <p class="mt-1 text-muted">{{ section.body }}</p>

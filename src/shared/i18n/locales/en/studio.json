@@ -218,7 +218,8 @@
       "resources": "Prepare resources",
       "write": "Write to device",
       "verify": "Verify and restart",
-      "exploit": "Prepare DFU boot"
+      "exploit": "Prepare DFU boot",
+      "appSync": "AppSync"
     },
     "flowStatus": {
       "done": "Done",

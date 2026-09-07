@@ -122,7 +122,7 @@
       },
       "installRejected": {
         "title": "The device rejected the install",
-        "body": "The installer on the device returned an error, possibly missing dependencies or not enough space."
+        "body": "The system installer rejected the operation without a more specific diagnosis. Review the operation record and device environment."
       },
       "verificationFailed": {
         "title": "Install verification failed",
@@ -143,6 +143,10 @@
       "deviceChanged": {
         "title": "The selected device changed. Review a new plan for the intended device.",
         "body": "The bound device is unavailable or has changed. Reconnect it and review a new plan."
+      },
+      "signatureRejected": {
+        "title": "The device rejected the IPA signature",
+        "body": "Catalog and file integrity checks passed, but iOS did not accept the app signature. Prepare AppSync in the device environment; if installed, check plugin loading and signing compatibility."
       }
     },
     "refresh": "Refresh",
@@ -249,7 +253,7 @@
         "unknownOperation": "The operation could not be found or has finished.",
         "storeStorageFailed": "Operation state could not be persisted. Check the device before starting another write.",
         "installRejected": "The device’s system installer rejected this operation. Check installation requirements and available space.",
-        "signatureRejected": "The device rejected the IPA signature. Check signing and AppSync; Studio does not change them automatically.",
+        "signatureRejected": "Catalog and file integrity checks passed, but iOS did not accept the app signature. Prepare AppSync in the device environment; if installed, check plugin loading and signing compatibility.",
         "deviceStorageFull": "The device reported insufficient storage. Free space on the device and review a new plan.",
         "verificationUnavailable": "Verification is incomplete. Use “Check device state” to retry read-only observation; no installation will be replayed.",
         "verificationFailed": "The registered application does not match the expected version, build or receipt. Check the device before starting another write.",

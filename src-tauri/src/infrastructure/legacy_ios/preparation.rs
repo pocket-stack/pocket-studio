@@ -57,10 +57,16 @@ impl PreparationDriver for LegacyPreparationDriver {
         Box::pin(async move {
             let key = key.ok_or(PreparationError::DeviceNotFound)?;
             let normal = NormalMux::new(super::platform::current().normal_backend());
-            let (entry, ecid, port) = if let Some(udid) = key.strip_prefix("udid:") {
+            let (entry, ecid, port, appsync_only) = if let Some(udid) = key.strip_prefix("udid:") {
                 let udid = Udid::new(udid);
                 let inspection = inspect(&normal, &udid).await?;
-                validate_inspection(&inspection, None)?;
+                let appsync_only =
+                    matches!(inspection.jailbreak(), JailbreakStatus::Detected { .. });
+                if appsync_only {
+                    validate_appsync_device(&inspection)?;
+                } else {
+                    validate_inspection(&inspection, None)?;
+                }
                 let usb = timeout(Duration::from_secs(5), NusbDeviceLocator.list())
                     .await
                     .map_err(|_| PreparationError::DeviceNotFound)?
@@ -73,15 +79,33 @@ impl PreparationDriver for LegacyPreparationDriver {
                     })
                     .map(|usb| usb.connection_id().clone())
                     .ok_or(PreparationError::DeviceNotFound)?;
-                (EntryPoint::Normal(udid), inspection.info().ecid(), port)
+                (
+                    EntryPoint::Normal(udid),
+                    inspection.info().ecid(),
+                    port,
+                    appsync_only,
+                )
             } else if let Some(ecid) = key.strip_prefix("dfu:") {
                 let ecid = ecid.parse().map_err(|_| PreparationError::Unsupported)?;
                 let (port, _) = find_dfu(ecid).await?;
-                (EntryPoint::Dfu, ecid, port)
+                (EntryPoint::Dfu, ecid, port, false)
             } else {
                 return Err(PreparationError::Unsupported);
             };
+            let ssh_key = if appsync_only {
+                if let EntryPoint::Normal(udid) = &entry {
+                    Some(super::appsync::host_key(udid).await?)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
             Ok(Box::new(Target {
+                appsync_only,
+                appsync_setup: super::appsync::AppSyncSetup::default(),
+                ssh_password: SshPassword::new("alpine"),
+                ssh_key,
                 probe: self.probe.clone(),
                 session_id,
                 session_key: key,
@@ -107,6 +131,10 @@ enum EntryPoint {
 }
 
 struct Target {
+    appsync_only: bool,
+    appsync_setup: super::appsync::AppSyncSetup,
+    ssh_password: SshPassword,
+    ssh_key: Option<String>,
     probe: Arc<LegacyIosProbe>,
     session_id: String,
     normal: NormalMux,
@@ -124,6 +152,26 @@ struct Target {
 }
 
 impl PreparationTarget for Target {
+    fn system_packages(&self) -> Vec<crate::domain::preparation::SystemPackage> {
+        super::appsync::specs()
+            .into_iter()
+            .map(|spec| crate::domain::preparation::SystemPackage {
+                name: spec.label,
+                version: spec.version,
+            })
+            .collect()
+    }
+    fn workflow(&self) -> crate::domain::readiness::WorkflowKind {
+        if self.appsync_only {
+            crate::domain::readiness::WorkflowKind::AppSync
+        } else {
+            crate::domain::readiness::WorkflowKind::Jailbreak
+        }
+    }
+    fn set_password(&mut self, password: String) {
+        self.ssh_password = SshPassword::new(password);
+    }
+
     fn entry_mode(&self) -> PreparationEntryMode {
         match self.entry {
             EntryPoint::Normal(_) => PreparationEntryMode::Normal,
@@ -134,7 +182,15 @@ impl PreparationTarget for Target {
         Box::pin(async {
             match &self.entry {
                 EntryPoint::Normal(udid) => {
-                    validate_inspection(&inspect(&self.normal, udid).await?, Some(self.ecid))?
+                    let inspection = inspect(&self.normal, udid).await?;
+                    if inspection.info().ecid() != self.ecid {
+                        return Err(failure(OperationErrorCode::DeviceChanged));
+                    }
+                    if self.appsync_only {
+                        validate_appsync_device(&inspection)?;
+                    } else {
+                        validate_inspection(&inspection, Some(self.ecid))?;
+                    }
                 }
                 EntryPoint::Dfu => {
                     find_dfu(self.ecid).await?;
@@ -155,7 +211,9 @@ impl PreparationTarget for Target {
     }
     fn execute(&mut self, step: StepId) -> PreparationFuture<'_, ()> {
         Box::pin(async move {
-            if step == StepId::RebootDevice {
+            if (step == StepId::RebootDevice || step == StepId::ConnectAppSync)
+                && self.verification_access.is_none()
+            {
                 // Drain existing scans before starting the reboot budget. Keep
                 // ownership through final verification; Drop releases it on failure.
                 self.verification_access =
@@ -165,7 +223,7 @@ impl PreparationTarget for Target {
                 StepId::FetchResources => 600,
                 StepId::BuildRamdisk => 180,
                 StepId::EnterDfu => 180,
-                StepId::InstallUntether => 300,
+                StepId::InstallUntether | StepId::InstallAppSync => 300,
                 StepId::VerifyJailbreak => 120,
                 _ => 120,
             };
@@ -182,6 +240,11 @@ impl PreparationTarget for Target {
                         StepId::InstallUntether => OperationErrorCode::WriteFailed,
                         StepId::RebootDevice => OperationErrorCode::RebootTimeout,
                         StepId::VerifyJailbreak => OperationErrorCode::VerificationUnavailable,
+                        StepId::ConnectAppSync => OperationErrorCode::SshUnavailable,
+                        StepId::InstallAppSync | StepId::ActivateAppSync => {
+                            OperationErrorCode::AppSyncInstallFailed
+                        }
+                        StepId::VerifyAppSync => OperationErrorCode::AppSyncVerificationFailed,
                         _ => OperationErrorCode::VerificationFailed,
                     })
                 })?
@@ -193,7 +256,10 @@ impl Target {
     async fn execute_step(&mut self, step: StepId) -> Result<(), PreparationError> {
         match step {
             StepId::FetchResources => {
-                self.resources = Some(Resources::fetch(&self.cache).await?);
+                self.appsync_setup.fetch(&self.cache).await?;
+                if !self.appsync_only {
+                    self.resources = Some(Resources::fetch(&self.cache).await?);
+                }
             }
             StepId::BuildRamdisk => {
                 let resources = self
@@ -361,6 +427,50 @@ impl Target {
                 }
                 tokio::time::sleep(Duration::from_secs(3)).await;
             },
+            StepId::ConnectAppSync => {
+                let udid = if self.appsync_only {
+                    match &self.entry {
+                        EntryPoint::Normal(udid) => udid.clone(),
+                        _ => return Err(PreparationError::Unsupported),
+                    }
+                } else {
+                    self.returned_udid
+                        .clone()
+                        .ok_or(failure(OperationErrorCode::DeviceDisconnected))?
+                };
+                let inspection = inspect(&self.normal, &udid).await?;
+                if inspection.info().ecid() != self.ecid {
+                    return Err(failure(OperationErrorCode::DeviceChanged));
+                }
+                validate_appsync_device(&inspection)?;
+                let device = self
+                    .normal
+                    .find_device(&udid)
+                    .await
+                    .map_err(|_| failure(OperationErrorCode::DeviceDisconnected))?;
+                self.appsync_setup
+                    .connect(&device, &self.ssh_password, self.ssh_key.as_deref())
+                    .await?;
+            }
+            StepId::InstallAppSync => self.appsync_setup.install().await?,
+            StepId::ActivateAppSync => self.appsync_setup.activate().await?,
+            StepId::VerifyAppSync => {
+                let session = self.appsync_setup.verify().await?;
+                let udid = self
+                    .returned_udid
+                    .as_ref()
+                    .or(match &self.entry {
+                        EntryPoint::Normal(udid) => Some(udid),
+                        _ => None,
+                    })
+                    .ok_or(failure(OperationErrorCode::DeviceDisconnected))?;
+                self.probe
+                    .appsync_sessions
+                    .lock()
+                    .expect("AppSync sessions poisoned")
+                    .insert(format!("udid:{udid}"), session);
+                self.verification_access.take();
+            }
             _ => return Err(PreparationError::Unsupported),
         }
         Ok(())
@@ -615,6 +725,23 @@ fn exploit_error(error: A4Limera1nError) -> PreparationError {
     }
 }
 
+fn validate_appsync_device(inspection: &DeviceInspection) -> Result<(), PreparationError> {
+    let info = inspection.info();
+    if info.board_config().as_str() != "n81"
+        || info.product_version() != "6.1.6"
+        || info.build_version() != "10B500"
+    {
+        return Err(PreparationError::Unsupported);
+    }
+    if !matches!(inspection.jailbreak(), JailbreakStatus::Detected { .. }) {
+        return Err(PreparationError::DeviceNotReady);
+    }
+    if inspection.ssh_available() != Some(true) {
+        return Err(PreparationError::SshRequired);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -641,6 +768,10 @@ mod tests {
             crate::domain::device::DeviceFacts::default()
         );
         let mut target = Target {
+            appsync_only: false,
+            appsync_setup: super::super::appsync::AppSyncSetup::default(),
+            ssh_password: SshPassword::new("alpine"),
+            ssh_key: None,
             probe: probe.clone(),
             normal,
             session_id: observed.records[0].summary.id.clone(),

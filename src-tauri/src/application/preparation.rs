@@ -21,6 +21,13 @@ pub type PreparationFuture<'a, T> =
 /// Captures a physical identity privately; all subsequent mode changes must
 /// match it. Creating a target and validating it are read-only.
 pub trait PreparationTarget: Send + Sync {
+    fn workflow(&self) -> crate::domain::readiness::WorkflowKind {
+        crate::domain::readiness::WorkflowKind::Jailbreak
+    }
+    fn set_password(&mut self, _password: String) {}
+    fn system_packages(&self) -> Vec<SystemPackage> {
+        vec![]
+    }
     fn entry_mode(&self) -> PreparationEntryMode {
         PreparationEntryMode::Normal
     }
@@ -46,6 +53,10 @@ pub enum PreparationError {
     },
     #[error("device is no longer connected")]
     DeviceNotFound,
+    #[error("SSH authentication failed; check the device root password")]
+    SshAuthenticationFailed,
+    #[error("OpenSSH is required to prepare AppSync on an already jailbroken device")]
+    SshRequired,
     #[error("this device or firmware is not supported for preparation")]
     Unsupported,
     #[error("the device is already jailbroken")]
@@ -70,6 +81,8 @@ impl PreparationError {
     pub fn code(self) -> &'static str {
         match self {
             Self::DeviceNotFound => "deviceNotFound",
+            Self::SshAuthenticationFailed => "sshAuthenticationFailed",
+            Self::SshRequired => "sshRequired",
             Self::Unsupported => "preparationUnsupported",
             Self::AlreadyJailbroken => "alreadyJailbroken",
             Self::DeviceNotReady => "deviceNotReady",
@@ -170,8 +183,16 @@ impl PreparationService {
             },
         );
         // Host work completes before asking the user to put the device in DFU.
-        plan.steps = native_steps();
+        plan = if target.workflow() == crate::domain::readiness::WorkflowKind::AppSync {
+            PreparationPlan::appsync_install(plan.id, plan.device_id, &plan.target_os_version)
+        } else {
+            plan
+        };
+        if plan.workflow == crate::domain::readiness::WorkflowKind::Jailbreak {
+            plan.steps = native_steps();
+        }
         plan = plan.with_entry_mode(entry_mode);
+        plan.system_packages = target.system_packages();
         let mut state = self.state.lock().expect("preparation state poisoned");
         if state.active.is_some() {
             return Err(PreparationError::Busy);
@@ -194,10 +215,21 @@ impl PreparationService {
         Ok(plan)
     }
 
+    #[cfg(test)]
     pub async fn start(
         self: &Arc<Self>,
         consent: ConsentRecord,
     ) -> Result<OperationHandle, PreparationError> {
+        self.start_with_password(consent, "alpine".into()).await
+    }
+    pub async fn start_with_password(
+        self: &Arc<Self>,
+        consent: ConsentRecord,
+        password: String,
+    ) -> Result<OperationHandle, PreparationError> {
+        if password.is_empty() || password.len() > 1024 {
+            return Err(PreparationError::InvalidConsent);
+        }
         let permit = self
             .gate
             .clone()
@@ -214,10 +246,11 @@ impl PreparationService {
                 .ok_or(PreparationError::PlanExpired)?;
             validate_timed_consent(&pending.plan, &consent, pending.issued_at, now_millis())
                 .map_err(|_| PreparationError::InvalidConsent)?;
-            let pending = state
+            let mut pending = state
                 .plans
                 .remove(&consent.plan_id)
                 .expect("validated plan");
+            pending.target.set_password(password);
             let handle = OperationHandle {
                 operation_id: uuid::Uuid::new_v4().to_string(),
                 kind: OperationKind::Preparation,
@@ -240,7 +273,7 @@ impl PreparationService {
             LogLevel::Info,
             LogSource::Preparation,
             "log.preparation.nativeConsent",
-            "User authorized the device-bound jailbreak plan",
+            "User authorized the device-bound environment preparation plan",
             Some(super::params([
                 ("plan", consent.plan_id),
                 ("version", consent.disclaimer_version),
@@ -314,7 +347,7 @@ impl PreparationService {
                     LogLevel::Info,
                     LogSource::Preparation,
                     "log.preparation.nativeFinished",
-                    "Jailbreak and SSH verified after reboot",
+                    "Device preparation and AppSync package installation verified",
                     None,
                     Some(id),
                 );
@@ -329,7 +362,7 @@ impl PreparationService {
                     LogLevel::Info,
                     LogSource::Preparation,
                     "log.preparation.nativeCancelled",
-                    "Preparation cancelled before device modification",
+                    "Preparation cancelled at a safe checkpoint; completed steps remain",
                     None,
                     Some(id),
                 );
@@ -347,6 +380,9 @@ impl PreparationService {
                     PreparationError::Exploit { .. } => OperationErrorCode::ExploitFailed,
                     PreparationError::Ramdisk { .. } => OperationErrorCode::RamdiskBootFailed,
                     PreparationError::Step(code) => code,
+                    PreparationError::SshAuthenticationFailed => {
+                        OperationErrorCode::SshAuthenticationFailed
+                    }
                     PreparationError::AlreadyJailbroken => OperationErrorCode::AlreadyJailbroken,
                     PreparationError::DeviceNotFound => OperationErrorCode::DeviceDisconnected,
                     _ => OperationErrorCode::DeviceChanged,
@@ -468,6 +504,10 @@ pub fn native_steps() -> Vec<PlanStep> {
         (StepId::InstallUntether, false, true, 90),
         (StepId::RebootDevice, false, false, 90),
         (StepId::VerifyJailbreak, false, false, 60),
+        (StepId::ConnectAppSync, true, false, 10),
+        (StepId::InstallAppSync, false, true, 40),
+        (StepId::ActivateAppSync, false, false, 10),
+        (StepId::VerifyAppSync, false, false, 10),
     ]
     .into_iter()
     .map(
@@ -490,11 +530,14 @@ mod tests {
     #[derive(Default)]
     struct Sink {
         events: Mutex<Vec<OperationEvent>>,
+        logs: Mutex<Vec<LogEntry>>,
         changed: tokio::sync::Notify,
     }
     impl EventSink for Sink {
         fn device(&self, _: DeviceEvent) {}
-        fn log(&self, _: LogEntry) {}
+        fn log(&self, entry: LogEntry) {
+            self.logs.lock().unwrap().push(entry);
+        }
         fn operation(&self, event: OperationEvent) {
             self.events.lock().unwrap().push(event);
             self.changed.notify_one();
@@ -502,6 +545,7 @@ mod tests {
     }
     struct Driver {
         entry_mode: PreparationEntryMode,
+        appsync_only: bool,
         calls: Arc<Mutex<Vec<StepId>>>,
         fail: Option<StepId>,
         block: Option<StepId>,
@@ -509,6 +553,7 @@ mod tests {
     }
     struct Target {
         entry_mode: PreparationEntryMode,
+        appsync_only: bool,
         calls: Arc<Mutex<Vec<StepId>>>,
         fail: Option<StepId>,
         block: Option<StepId>,
@@ -519,6 +564,7 @@ mod tests {
             Box::pin(async {
                 Ok(Box::new(Target {
                     entry_mode: self.entry_mode,
+                    appsync_only: self.appsync_only,
                     calls: self.calls.clone(),
                     fail: self.fail,
                     block: self.block,
@@ -528,6 +574,13 @@ mod tests {
         }
     }
     impl PreparationTarget for Target {
+        fn workflow(&self) -> crate::domain::readiness::WorkflowKind {
+            if self.appsync_only {
+                crate::domain::readiness::WorkflowKind::AppSync
+            } else {
+                crate::domain::readiness::WorkflowKind::Jailbreak
+            }
+        }
         fn entry_mode(&self) -> PreparationEntryMode {
             self.entry_mode
         }
@@ -571,9 +624,18 @@ mod tests {
         block: Option<StepId>,
         entry_mode: PreparationEntryMode,
     ) -> (Arc<PreparationService>, Arc<Sink>, Arc<Driver>) {
+        setup_workflow(fail, block, entry_mode, false)
+    }
+    fn setup_workflow(
+        fail: Option<StepId>,
+        block: Option<StepId>,
+        entry_mode: PreparationEntryMode,
+        appsync_only: bool,
+    ) -> (Arc<PreparationService>, Arc<Sink>, Arc<Driver>) {
         let sink = Arc::new(Sink::default());
         let driver = Arc::new(Driver {
             entry_mode,
+            appsync_only,
             calls: Arc::default(),
             fail,
             block,
@@ -670,6 +732,75 @@ mod tests {
         assert!(driver.calls.lock().unwrap().is_empty());
     }
     #[tokio::test]
+    async fn already_jailbroken_plan_never_repeats_jailbreak_and_rejects_empty_password() {
+        let (service, sink, driver) =
+            setup_workflow(None, None, PreparationEntryMode::Normal, true);
+        let consent = consent(&service).await;
+        let plan = service.state.lock().unwrap().plans[&consent.plan_id]
+            .plan
+            .clone();
+        assert_eq!(plan.method, crate::domain::preparation::Method::Ssh);
+        assert_eq!(plan.exploit, None);
+        assert_eq!(plan.tether, None);
+        assert!(!plan.prerequisites.contains(&PrerequisiteId::WorkingButtons));
+        assert!(plan.steps.iter().all(|s| s.requires_action.is_none()));
+        assert_eq!(
+            service
+                .start_with_password(consent.clone(), String::new())
+                .await,
+            Err(PreparationError::InvalidConsent)
+        );
+        assert!(driver.calls.lock().unwrap().is_empty());
+        service
+            .start_with_password(consent, "test-device-password".into())
+            .await
+            .unwrap();
+        wait(&sink, |event| {
+            matches!(event, OperationEvent::Finished { .. })
+        })
+        .await;
+        assert_eq!(
+            *driver.calls.lock().unwrap(),
+            vec![
+                StepId::FetchResources,
+                StepId::ConnectAppSync,
+                StepId::InstallAppSync,
+                StepId::ActivateAppSync,
+                StepId::VerifyAppSync
+            ]
+        );
+        assert!(!format!("{:?}", sink.events.lock().unwrap()).contains("test-device-password"));
+        assert!(!format!("{:?}", sink.logs.lock().unwrap()).contains("test-device-password"));
+    }
+
+    #[tokio::test]
+    async fn appsync_writes_are_exclusive_and_cannot_be_cancelled() {
+        let (service, sink, _) = setup_workflow(
+            None,
+            Some(StepId::InstallAppSync),
+            PreparationEntryMode::Normal,
+            true,
+        );
+        let handle = service.start(consent(&service).await).await.unwrap();
+        wait(&sink, |event| {
+            matches!(
+                event,
+                OperationEvent::StepChanged {
+                    step_id: StepId::InstallAppSync,
+                    status: StepStatus::Running,
+                    ..
+                }
+            )
+        })
+        .await;
+        assert_eq!(
+            service.cancel(&handle.operation_id),
+            Err(PreparationError::NotCancellable)
+        );
+        assert!(service.busy());
+    }
+
+    #[tokio::test]
     async fn successful_execution_consumes_consent_once_and_verifies_last() {
         let (service, sink, driver) = setup(None, None);
         let consent = consent(&service).await;
@@ -680,7 +811,7 @@ mod tests {
         .await;
         assert_eq!(
             driver.calls.lock().unwrap().last(),
-            Some(&StepId::VerifyJailbreak)
+            Some(&StepId::VerifyAppSync)
         );
         assert_eq!(
             service.start(consent).await,

@@ -36,6 +36,22 @@
       "verifyJailbreak": {
         "title": "验证越狱结果",
         "detail": "等待设备重新出现，确认 Cydia 与 SSH 服务可用。"
+      },
+      "connectAppSync": {
+        "title": "连接设备 SSH",
+        "detail": "固定设备身份和 SSH 主机公钥，再认证设备 root 账户。"
+      },
+      "installAppSync": {
+        "title": "安装 AppSync 和依赖",
+        "detail": "验证传输文件并预检依赖，再安装系统包。此阶段不可取消。"
+      },
+      "activateAppSync": {
+        "title": "重载安装服务",
+        "detail": "重新启动设备安装服务以加载插件。"
+      },
+      "verifyAppSync": {
+        "title": "验证 AppSync 安装",
+        "detail": "回读系统包状态，确认 AppSync 已安装。"
       }
     },
     "errors": {

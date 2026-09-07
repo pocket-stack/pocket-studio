@@ -1,4 +1,4 @@
-use super::{LegacyIosProbe, installed::read_registered, probe_normal};
+use super::{LegacyIosProbe, installed::read_registered, probe_normal_with_appsync};
 use crate::{
     application::{
         packages::{
@@ -76,9 +76,16 @@ impl Target {
         device: &NormalDevice,
         ids: &[String],
     ) -> Result<PackageObservation, PackageError> {
+        let appsync_session = self
+            .probe
+            .appsync_sessions
+            .lock()
+            .expect("AppSync sessions poisoned")
+            .get(&self.key)
+            .cloned();
         let (record, _) = timeout(
             Duration::from_secs(25),
-            probe_normal(device, self.device_id.clone()),
+            probe_normal_with_appsync(device, self.device_id.clone(), appsync_session),
         )
         .await
         .map_err(|_| PackageError::DeviceChanged)?;
@@ -88,9 +95,10 @@ impl Target {
         let applications = read_registered(device, ids)
             .await
             .map_err(|_| PackageError::DeviceChanged)?;
-        let appsync = match device.installed_system_package_status().await {
-            Ok(bytes) => appsync_status(&bytes),
-            Err(_) => RequirementState::Unknown,
+        let appsync = match record.facts.appsync_installed {
+            Some(true) => RequirementState::Satisfied,
+            Some(false) => RequirementState::Missing,
+            None => RequirementState::Unknown,
         };
         Ok(PackageObservation {
             device: record.summary,

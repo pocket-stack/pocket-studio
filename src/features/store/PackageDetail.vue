@@ -21,7 +21,7 @@ const emit = defineEmits<{
   close: [];
   dependency: [id: string];
 }>();
-const { t, d, locale } = useI18n();
+const { t, d, locale, te } = useI18n();
 const gateway = useGateway();
 const { active } = useOperations();
 const name = computed(() =>
@@ -75,6 +75,23 @@ const sourceUrl = computed(() => {
   } catch {
     return null;
   }
+});
+const errorReason = computed(
+  () =>
+    props.item.operation?.error?.diagnostic?.reason ??
+    props.item.operation?.error?.code,
+);
+const errorTitle = computed(() => {
+  const specific = `store.errors.${errorReason.value}.title`;
+  return te(specific)
+    ? t(specific)
+    : t(`store.errors.${props.item.operation?.error?.code}.title`);
+});
+const errorBody = computed(() => {
+  const specific = `store.actions.errors.${errorReason.value}`;
+  return te(specific)
+    ? t(specific)
+    : t(`store.errors.${props.item.operation?.error?.code}.body`);
 });
 const facts = computed(() => [
   { label: t("store.detail.developer"), value: props.item.entry.developer },
@@ -214,13 +231,18 @@ const facts = computed(() => [
           "
         />
         <div v-if="item.operation.error" class="mt-3">
-          <b class="text-danger">{{
-            t(`store.errors.${item.operation.error.code}.title`)
-          }}</b>
+          <b class="text-danger">{{ errorTitle }}</b>
           <p class="mt-1 leading-6 text-muted">
-            {{ t(`store.errors.${item.operation.error.code}.body`) }}
+            {{ errorBody }}
           </p>
         </div>
+        <button
+          v-if="errorReason === 'signatureRejected'"
+          class="mt-3 text-signal hover:underline"
+          @click="emit('prepare')"
+        >
+          {{ t("preparation.appSync.action") }}
+        </button>
         <details class="mt-3">
           <summary class="cursor-pointer text-signal">
             {{ t("studio.viewDetails") }}

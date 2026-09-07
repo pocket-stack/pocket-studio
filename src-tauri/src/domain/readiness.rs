@@ -11,6 +11,7 @@ pub enum ReadinessCheckId {
     OsVersionSupported,
     PairingTrusted,
     Jailbroken,
+    AppSyncInstalled,
     SshAvailable,
     BatteryLevel,
     PhysicalButtons,
@@ -48,6 +49,7 @@ pub enum ReadinessStatus {
 #[serde(rename_all = "camelCase")]
 pub enum WorkflowKind {
     Jailbreak,
+    AppSync,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -111,6 +113,11 @@ pub fn evaluate(device: &DeviceSummary, facts: DeviceFacts) -> ReadinessReport {
             None,
         ),
         check(ReadinessCheckId::Jailbroken, facts.jailbroken, None),
+        check(
+            ReadinessCheckId::AppSyncInstalled,
+            facts.appsync_installed,
+            None,
+        ),
         check(ReadinessCheckId::SshAvailable, facts.ssh_available, None),
         ReadinessCheck {
             id: ReadinessCheckId::BatteryLevel,
@@ -138,7 +145,14 @@ pub fn evaluate(device: &DeviceSummary, facts: DeviceFacts) -> ReadinessReport {
                 Some(WorkflowKind::Jailbreak),
             )
         } else if facts.jailbroken == Some(true) && facts.ssh_available == Some(true) {
-            (ReadinessStatus::Ready, None)
+            match facts.appsync_installed {
+                Some(true) => (ReadinessStatus::Ready, None),
+                Some(false) => (
+                    ReadinessStatus::NeedsPreparation,
+                    Some(WorkflowKind::AppSync),
+                ),
+                None => (ReadinessStatus::NeedsAttention, Some(WorkflowKind::AppSync)),
+            }
         } else {
             (ReadinessStatus::NeedsAttention, None)
         };
@@ -196,6 +210,7 @@ mod tests {
         let report = evaluate(
             &ipod4("6.1.6"),
             DeviceFacts {
+                appsync_installed: Some(true),
                 pairing_trusted: Some(true),
                 jailbroken: Some(false),
                 ssh_available: None,
@@ -208,6 +223,7 @@ mod tests {
     #[test]
     fn jailbroken_device_is_ready() {
         let facts = DeviceFacts {
+            appsync_installed: Some(true),
             jailbroken: Some(true),
             ssh_available: Some(true),
             pairing_trusted: Some(true),
@@ -215,6 +231,39 @@ mod tests {
         let report = evaluate(&ipod4("6.1.6"), facts);
         assert_eq!(report.status, ReadinessStatus::Ready);
         assert!(report.required_workflow.is_none());
+    }
+
+    #[test]
+    fn missing_and_unknown_appsync_offer_only_appsync_preparation() {
+        for (appsync_installed, status) in [
+            (Some(false), ReadinessStatus::NeedsPreparation),
+            (None, ReadinessStatus::NeedsAttention),
+        ] {
+            let report = evaluate(
+                &ipod4("6.1.6"),
+                DeviceFacts {
+                    appsync_installed,
+                    pairing_trusted: Some(true),
+                    jailbroken: Some(true),
+                    ssh_available: Some(true),
+                },
+            );
+            assert_eq!(report.status, status);
+            assert_eq!(report.required_workflow, Some(WorkflowKind::AppSync));
+            assert_eq!(
+                report
+                    .checks
+                    .iter()
+                    .find(|c| c.id == ReadinessCheckId::AppSyncInstalled)
+                    .unwrap()
+                    .status,
+                if appsync_installed.is_none() {
+                    CheckStatus::Unknown
+                } else {
+                    CheckStatus::Fail
+                }
+            );
+        }
     }
 
     #[test]
@@ -234,6 +283,7 @@ mod tests {
     #[test]
     fn unknown_jailbreak_does_not_request_a_destructive_workflow() {
         let facts = DeviceFacts {
+            appsync_installed: Some(true),
             pairing_trusted: Some(true),
             ssh_available: Some(true),
             jailbroken: None,
@@ -256,11 +306,13 @@ mod tests {
     fn ready_requires_both_paired_access_and_ssh() {
         for facts in [
             DeviceFacts {
+                appsync_installed: Some(true),
                 jailbroken: Some(true),
                 ssh_available: Some(true),
                 pairing_trusted: None,
             },
             DeviceFacts {
+                appsync_installed: Some(true),
                 jailbroken: Some(true),
                 ssh_available: Some(false),
                 pairing_trusted: Some(true),

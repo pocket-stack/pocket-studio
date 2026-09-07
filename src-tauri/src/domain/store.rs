@@ -469,6 +469,9 @@ pub fn evaluate_target(
     if device.mode != DeviceMode::Normal || facts.pairing_trusted != Some(true) {
         return StoreVerdict::RequiresPreparation;
     }
+    if target.requires.appsync && facts.appsync_installed == Some(false) {
+        return StoreVerdict::RequiresPreparation;
+    }
     if target.requires.jailbreak && facts.jailbroken == Some(false) {
         return StoreVerdict::RequiresPreparation;
     }
@@ -742,6 +745,7 @@ mod tests {
     }
     fn ready() -> DeviceFacts {
         DeviceFacts {
+            appsync_installed: Some(true),
             pairing_trusted: Some(true),
             jailbroken: Some(true),
             ssh_available: Some(true),
@@ -786,6 +790,7 @@ mod tests {
         );
         device.build_number = Some("10B500".into());
         let stock = DeviceFacts {
+            appsync_installed: Some(true),
             jailbroken: Some(false),
             ..ready()
         };

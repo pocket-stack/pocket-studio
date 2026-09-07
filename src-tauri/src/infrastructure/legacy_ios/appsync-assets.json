@@ -1,0 +1,26 @@
+[
+  {
+    "package": "com.saurik.substrate.safemode",
+    "version": "0.9.6001",
+    "url": "https://apt.saurik.com/debs/com.saurik.substrate.safemode_0.9.6001_iphoneos-arm.deb",
+    "size": 13226,
+    "sha256": "86515cb9f6832247dbeae8427b996099dc8759bb1ef1d719c293123f2f531ee1",
+    "label": "Substrate Safe Mode"
+  },
+  {
+    "package": "mobilesubstrate",
+    "version": "0.9.6301",
+    "url": "https://apt.saurik.com/debs/mobilesubstrate_0.9.6301_iphoneos-arm.deb",
+    "size": 122342,
+    "sha256": "8dc91a066f088632409fecf65613831b8d6802e3b799f2dc87563c3ea2ed06ca",
+    "label": "Cydia Substrate"
+  },
+  {
+    "package": "ai.akemi.appsyncunified",
+    "version": "116.0",
+    "url": "https://github.com/akemin-dayo/AppSync/releases/download/116.0/ai.akemi.appsyncunified_116.0_iphoneos-arm.akemi-git-235aca6cddfbdc9fa87fcb5b2aec2df37ed6d65a.deb",
+    "size": 51658,
+    "sha256": "0036f28fcbdb165d4f58968a237ca9fe7b6ed33fea25b9a5eb1fc141f6bf5a09",
+    "label": "AppSync Unified"
+  }
+]
