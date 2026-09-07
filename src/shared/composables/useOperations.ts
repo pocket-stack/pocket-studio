@@ -15,6 +15,7 @@ import {
 export interface StepState extends PlanStep {
   status: StepStatus;
   percent: number;
+  indeterminate?: boolean;
 }
 
 export type OperationStatus = "running" | "finished" | "failed" | "cancelled";
@@ -23,6 +24,7 @@ export interface OperationState {
   id: string;
   kind: OperationKind;
   subject?: string;
+  packagePlan?: import("../gateway").PackagePlan;
   steps: StepState[];
   status: OperationStatus;
   currentStepId?: StepId;
@@ -59,13 +61,20 @@ function apply(event: OperationEvent): void {
       if (event.status === "running") {
         operation.currentStepId = step.id;
         step.percent = 0;
+        step.indeterminate =
+          useGateway().flavor === "tauri" &&
+          operation.kind !== "preparation" &&
+          !["download", "transfer"].includes(step.id);
       }
       if (event.status === "done") step.percent = 100;
       break;
     }
     case "progress": {
       const step = operation.steps.find((item) => item.id === event.stepId);
-      if (step) step.percent = event.percent;
+      if (step) {
+        step.percent = event.percent;
+        step.indeterminate = false;
+      }
       break;
     }
     case "actionRequired":
@@ -162,4 +171,50 @@ export function useOperations() {
     track: trackOperation,
     cancel: cancelOperation,
   };
+}
+
+/** Restore native package jobs after webview reload without replaying commands. */
+export function hydratePackageJobs(
+  jobs: import("../gateway").PackageJob[],
+): void {
+  for (const job of jobs) {
+    const existing = operations.get(job.handle.operationId);
+    const state = existing ?? trackOperation(job.handle);
+    const active = ["queued", "running", "verifying"].includes(job.phase);
+    state.packagePlan = job.plan;
+    if (state.status !== "running" && active) continue;
+    const previousStep = state.currentStepId;
+    state.status = active
+      ? "running"
+      : job.phase === "verified"
+        ? "finished"
+        : job.phase === "cancelled"
+          ? "cancelled"
+          : "failed";
+    state.currentStepId =
+      job.phase === "queued" || !active ? undefined : job.step;
+    state.error = job.error ?? undefined;
+    for (const step of state.steps) {
+      if (job.completedSteps.includes(step.id)) {
+        step.status = "done";
+        step.percent = 100;
+      } else if (step.id === job.step && job.phase !== "queued") {
+        step.status = active
+          ? "running"
+          : job.phase === "cancelled"
+            ? "cancelled"
+            : job.phase === "verified"
+              ? "done"
+              : "failed";
+        step.percent =
+          previousStep === job.step
+            ? Math.max(step.percent, job.percent)
+            : job.percent;
+      } else step.status = active ? "pending" : "skipped";
+      step.indeterminate =
+        step.status === "running" &&
+        !["download", "transfer"].includes(step.id) &&
+        step.percent === 0;
+    }
+  }
 }

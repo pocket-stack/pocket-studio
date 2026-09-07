@@ -16,6 +16,7 @@ import DemoPanel from "./app/DemoPanel.vue";
 import NotificationStack from "./app/NotificationStack.vue";
 import DeviceView from "./features/device/DeviceView.vue";
 import LogsView from "./features/logs/LogsView.vue";
+import PackagePlanDialog from "./features/store/PackagePlanDialog.vue";
 import PreparationWizard from "./features/preparation/PreparationWizard.vue";
 import { usePreparation } from "./features/preparation/usePreparation";
 import SettingsView from "./features/settings/SettingsView.vue";
@@ -47,7 +48,11 @@ const store = useStore();
 const log = useOperationLog();
 const gateway = useGateway();
 const { active } = useOperations();
-const current = computed(() => active.value[0]);
+const current = computed(
+  () =>
+    active.value.find((operation) => operation.currentStepId) ??
+    active.value[0],
+);
 const preparing = computed(
   () =>
     ["starting", "awaitingDfu", "running"].includes(preparation.stage.value) ||
@@ -66,13 +71,23 @@ const lcdTitle = computed(() => {
   const entry =
     operation &&
     store.catalog.value.find((item) => item.id === operation.subject);
+  if (operation?.packagePlan)
+    return t("store.actions.activity", {
+      action: t(`store.actions.kind.${operation.packagePlan.action}`),
+      name:
+        operation.packagePlan.names[locale.value] ??
+        operation.packagePlan.names.en,
+      device: operation.packagePlan.deviceName,
+    });
   if (operation)
     return operation.kind === "preparation"
       ? t("studio.preparing")
       : t("studio.installing", {
-          name: entry
-            ? packageText(entry, "name", locale.value, t)
-            : (operation.subject ?? t("store.title")),
+          name: operation.packagePlan
+            ? `${operation.packagePlan.names[locale.value] ?? operation.packagePlan.names.en} · ${operation.packagePlan.deviceName}`
+            : entry
+              ? packageText(entry, "name", locale.value, t)
+              : (operation.subject ?? t("store.title")),
         });
   return session.device.value
     ? session.device.value.marketingName
@@ -388,7 +403,7 @@ onMounted(async () => {
         >
           {{ t("studio.installedApps")
           }}<span class="ml-auto text-[10px]">{{
-            gateway.capabilities.packages ? store.installed.value.length : "—"
+            gateway.capabilities.installed ? store.installed.value.length : "—"
           }}</span>
         </button>
         <button
@@ -537,6 +552,7 @@ onMounted(async () => {
     @close="demoOpen = false"
     ><DemoPanel
   /></StudioDialog>
+  <PackagePlanDialog />
   <PreparationWizard />
   <NotificationStack />
 </template>

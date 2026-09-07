@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum OperationKind {
     Preparation,
     Install,
+    Uninstall,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -27,6 +28,7 @@ pub enum StepId {
     Transfer,
     Install,
     VerifyInstall,
+    Uninstall,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,7 +104,7 @@ pub struct OperationDiagnostic {
     pub reason: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OperationHandle {
     pub operation_id: String,

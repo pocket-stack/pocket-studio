@@ -63,7 +63,11 @@ const { t } = useI18n();
             >
               <IconStudioShield width="14" height="14" />
             </span>
-            <span v-if="step.status === 'running'">{{ step.percent }}%</span>
+            <span v-if="step.status === 'running'">{{
+              step.indeterminate
+                ? t("store.actions.working")
+                : `${step.percent}%`
+            }}</span>
             <span v-else-if="step.status === 'pending'"
               >~{{ step.estimatedSeconds }}s</span
             >
@@ -73,7 +77,7 @@ const { t } = useI18n();
           {{ t(`${labelPrefix}.${step.id}.detail`) }}
         </p>
         <ProgressBar
-          v-if="step.status === 'running'"
+          v-if="step.status === 'running' && !step.indeterminate"
           class="mt-2"
           :percent="step.percent"
           active

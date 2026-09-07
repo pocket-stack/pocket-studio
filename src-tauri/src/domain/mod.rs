@@ -6,6 +6,7 @@ pub mod device;
 pub mod installed;
 pub mod log;
 pub mod operation;
+pub mod packages;
 pub mod preparation;
 pub mod readiness;
 pub mod store;

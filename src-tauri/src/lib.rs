@@ -45,7 +45,6 @@ pub fn run() -> anyhow::Result<()> {
                     .app_handle()
                     .state::<AppState>()
                     .studio
-                    .preparation
                     .warn_before_close()
             {
                 api.prevent_close();
@@ -60,12 +59,14 @@ pub fn run() -> anyhow::Result<()> {
                 sink.clone(),
                 log.clone(),
             ));
+            let gate = Arc::new(tokio::sync::Semaphore::new(1));
             let preparation = Arc::new(PreparationService::new(
                 Arc::new(LegacyPreparationDriver::new(
                     probe.clone(),
                     app.path().app_cache_dir()?.join("preparation"),
                 )),
-                sink,
+                gate.clone(),
+                sink.clone(),
                 log.clone(),
             ));
             let cache = Arc::new(StoreCache::open(app.path().app_cache_dir()?.join("store"))?);
@@ -74,16 +75,29 @@ pub fn run() -> anyhow::Result<()> {
                 SourceConfig::from_environment()?,
             )?);
             let installed = Arc::new(application::installed::InstalledService::new(
-                Arc::new(infrastructure::legacy_ios::installed::LegacyInstalledReader::new(probe)),
-                cache,
+                Arc::new(
+                    infrastructure::legacy_ios::installed::LegacyInstalledReader::new(
+                        probe.clone(),
+                    ),
+                ),
+                cache.clone(),
                 catalog.clone(),
             ));
+            let packages = Arc::new(application::packages::PackageService::new(
+                Arc::new(infrastructure::legacy_ios::packages::LegacyPackageDriver::new(probe)),
+                catalog.clone(),
+                cache,
+                sink,
+                log.clone(),
+                gate,
+            )?);
             let store = Arc::new(StoreService::new(catalog, discovery.clone()));
             let studio = Studio::new(
                 discovery.clone(),
                 preparation,
                 store,
                 installed,
+                packages,
                 log.clone(),
             );
             app.manage(AppState {
@@ -108,7 +122,10 @@ pub fn run() -> anyhow::Result<()> {
             commands::list_catalog,
             commands::store_media,
             commands::list_installed,
-            commands::install_package,
+            commands::plan_package,
+            commands::start_package,
+            commands::list_package_operations,
+            commands::verify_package_operation,
             commands::cancel_operation,
             commands::list_logs,
             commands::export_logs,
@@ -117,11 +134,7 @@ pub fn run() -> anyhow::Result<()> {
         .context("failed to build Tauri application")?
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { api, .. } = event
-                && app
-                    .state::<AppState>()
-                    .studio
-                    .preparation
-                    .warn_before_close()
+                && app.state::<AppState>().studio.warn_before_close()
             {
                 api.prevent_exit();
             }

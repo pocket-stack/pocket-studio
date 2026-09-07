@@ -36,5 +36,45 @@ SQLite observations are scoped to the repository and an opaque device key. Faile
 reads return stale or unavailable state; they never replace a prior observation
 with an empty list. A successful empty response does replace it. The UI shows the
 observation time, download size and unknown revisions without inventing install
-dates or installed storage usage. Device writes remain capability-gated until
-the package planner and native queue are connected.
+dates or installed storage usage. Device writes require the explicit operation
+plan and consent described below.
+
+## Native application operations
+
+`plan_package` resolves a device-bound install, update, reinstall or uninstall
+plan. `start_package` consumes that plan once; uninstall requires explicit data
+removal consent. Updates require a recognized store receipt, and native product
+versions and build numbers prevent downgrades. Unknown revisions use explicit
+reinstall through the system Upgrade command. System applications are rejected.
+
+Rust owns a FIFO application queue. It shares a write semaphore with device
+preparation and currently serializes device writes across the desktop process.
+Plans retain their selected artifact and physical identity. Execution refreshes
+the catalog and device state before downloading and before device I/O; publishing
+a different release never substitutes an artifact in an accepted plan. Withdrawal,
+expiry, changed installed state, checksum mismatch and missing prerequisites stop
+the operation. Unknown AppSync or jailbreak observations permit a normal User
+installation; the plan explains that uncertainty. AppSync package recognition
+uses its current/legacy IDs and the `Provides: appsync` capability documented by
+[AppSync's package metadata](https://github.com/akemin-dayo/AppSync/blob/master/control).
+
+SQLite stores the accepted plan, device binding, queue order, staging path,
+submission state and result. Submission intent is durably recorded before the
+library commits a system request. Cancellation shares that transition's lock.
+After submission it is refused; transport uncertainty leads to observation rather
+than replay. Registration, product/build versions and the build receipt are read
+back before success is reported. A missing observation is “verification incomplete”.
+`verify_package_operation` runs only read-only inspection on the original device.
+
+Startup marks persisted active records interrupted. It never resumes device
+writes. `list_package_operations` restores webview state, including the original
+device, application names, version and action. Window close and application exit
+are blocked while queued or active operations remain. Staging cleanup failure is
+separate from the device installation result. Unknown system progress is shown
+as working, without inventing a percentage.
+
+Native operation tests cover consent, FIFO exclusion, preparation exclusion,
+queued and transfer cancellation, noncancellable submission, publication withdrawal,
+state changes, signature rejection, persistence failure, interruption recovery,
+downgrade prevention and read-only re-verification. They use protocol/adapter
+fixtures and do not replace user-initiated hardware acceptance.

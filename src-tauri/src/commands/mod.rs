@@ -12,6 +12,7 @@ use crate::domain::device::{DeviceEvent, DiscoverySnapshot};
 use crate::domain::installed::InstalledSnapshot;
 use crate::domain::log::LogEntry;
 use crate::domain::operation::{OperationEvent, OperationHandle};
+use crate::domain::packages::{PackageConsent, PackageJob, PackagePlan, PackageRequest};
 use crate::domain::preparation::{ConsentRecord, PreparationPlan};
 use crate::domain::readiness::ReadinessReport;
 
@@ -139,15 +140,44 @@ pub async fn list_installed(
 }
 
 #[tauri::command]
-pub async fn install_package(
+pub async fn plan_package(
     state: State<'_, AppState>,
-    device_id: String,
-    package_id: String,
-) -> CommandResult<OperationHandle> {
-    let _ = (device_id, package_id);
-    state.studio.unavailable_operation().map_err(Into::into)
+    request: PackageRequest,
+) -> CommandResult<PackagePlan> {
+    state
+        .studio
+        .packages
+        .plan(request)
+        .await
+        .map_err(|error| StudioError::from(error).into())
 }
-
+#[tauri::command]
+pub async fn start_package(
+    state: State<'_, AppState>,
+    consent: PackageConsent,
+) -> CommandResult<OperationHandle> {
+    state
+        .studio
+        .packages
+        .start(consent)
+        .map_err(|error| StudioError::from(error).into())
+}
+#[tauri::command]
+pub async fn list_package_operations(state: State<'_, AppState>) -> CommandResult<Vec<PackageJob>> {
+    Ok(state.studio.packages.jobs())
+}
+#[tauri::command]
+pub async fn verify_package_operation(
+    state: State<'_, AppState>,
+    operation_id: String,
+    device_id: String,
+) -> CommandResult<OperationHandle> {
+    state
+        .studio
+        .packages
+        .verify(&operation_id, &device_id)
+        .map_err(|error| StudioError::from(error).into())
+}
 #[tauri::command]
 pub async fn cancel_operation(
     state: State<'_, AppState>,
@@ -155,9 +185,8 @@ pub async fn cancel_operation(
 ) -> CommandResult<()> {
     state
         .studio
-        .preparation
-        .cancel(&operation_id)
-        .map_err(|error| StudioError::from(error).into())
+        .cancel_operation(&operation_id)
+        .map_err(Into::into)
 }
 
 #[tauri::command]

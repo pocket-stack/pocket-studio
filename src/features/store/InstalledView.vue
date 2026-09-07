@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PackageOperations from "./PackageOperations.vue";
 import { useGateway } from "../../shared/gateway";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
@@ -97,8 +98,9 @@ const tasks = computed(() =>
         })
       }}
     </p>
+    <PackageOperations v-if="gateway.flavor === 'tauri'" />
     <section
-      v-if="tasks.length"
+      v-if="gateway.flavor === 'browser' && tasks.length"
       class="mb-[26px] rounded-lg border border-line bg-surface px-5 py-4"
     >
       <header class="flex items-center justify-between text-[12px]">
@@ -311,7 +313,8 @@ const tasks = computed(() =>
                   <button
                     v-if="
                       gateway.capabilities.packages &&
-                      item.installed?.version !== item.entry.version
+                      (gateway.flavor === 'tauri' ||
+                        item.installed?.version !== item.entry.version)
                     "
                     class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
                     :disabled="
@@ -320,7 +323,16 @@ const tasks = computed(() =>
                     "
                     @click="store.install(item.entry.id)"
                   >
-                    {{ t("store.detail.update") }}
+                    {{
+                      t(
+                        gateway.flavor === "tauri" &&
+                          (!item.installed.revision ||
+                            item.installed.artifactId ===
+                              item.entry.details?.artifactId)
+                          ? "store.detail.reinstall"
+                          : "store.detail.update",
+                      )
+                    }}
                   </button>
                   <button
                     v-if="
@@ -331,7 +343,14 @@ const tasks = computed(() =>
                     :disabled="
                       !!active.length || !!store.queuedIds.value.length
                     "
-                    @click="removingId = item.entry.id"
+                    @click="
+                      gateway.flavor === 'tauri'
+                        ? store.uninstall(
+                            item.entry.id,
+                            item.installed.native?.bundleId ?? null,
+                          )
+                        : (removingId = item.entry.id)
+                    "
                   >
                     {{ t("studio.uninstall") }}
                   </button>

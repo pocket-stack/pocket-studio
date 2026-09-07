@@ -101,6 +101,10 @@
       "verifyInstall": {
         "title": "验证安装结果",
         "detail": "确认软件已注册并可启动。"
+      },
+      "uninstall": {
+        "title": "卸载应用",
+        "detail": "系统删除应用及其数据容器。"
       }
     },
     "errors": {
@@ -131,6 +135,14 @@
       "cancelled": {
         "title": "已取消",
         "body": "安装已在安全点取消。"
+      },
+      "verificationUnavailable": {
+        "title": "验证未完成",
+        "body": "验证未完成。可以使用“核验设备状态”进行只读重试，不会重新执行安装。"
+      },
+      "deviceChanged": {
+        "title": "当前选择的设备已变化。请为目标设备重新确认计划。",
+        "body": "绑定的设备不可用或已发生变化，请重连并重新确认计划。"
       }
     },
     "refresh": "刷新",
@@ -182,6 +194,72 @@
       "unknownVersion": "版本未知",
       "build": "构建号 {value}",
       "notice": "包括通过其他途径安装、但原生身份匹配的应用。下载大小不代表设备上的实际占用。"
+    },
+    "actions": {
+      "review": "确认应用操作",
+      "planning": "正在检查设备并选择兼容产物…",
+      "device": "设备",
+      "nativeId": "应用原生身份",
+      "current": "已安装",
+      "selected": "所选版本",
+      "installs": "通过设备的正常安装服务安装 User 应用。",
+      "preservesData": "通过系统更新服务替换应用，保留应用的数据容器。",
+      "removesData": "卸载会从这台设备中删除应用及其数据容器。",
+      "unknownRequirements": "部分安装前提暂时无法确认。可以尝试正常的 User 安装；如果系统拒绝签名，请检查设备上的 AppSync 和应用签名。",
+      "catalogValid": "目录有效期至 {time}。完整且通过校验的缓存支持离线安装。",
+      "deleteConsent": "我已了解：卸载会删除此应用的数据。",
+      "deviceChanged": "当前选择的设备已变化。请为目标设备重新确认计划。",
+      "starting": "正在加入队列…",
+      "confirm": "确认操作",
+      "operations": "应用操作记录",
+      "cleanupPending": "本次操作的暂存文件尚未删除。系统提交结果不确定时会保留该文件。",
+      "verify": "核验设备状态",
+      "jobsUnavailable": "暂时无法读取应用操作记录。",
+      "verificationUnavailable": "无法启动状态核验。请连接原来的设备后重试。",
+      "kind": {
+        "install": "安装",
+        "update": "更新",
+        "reinstall": "重装",
+        "uninstall": "卸载"
+      },
+      "phase": {
+        "queued": "排队中",
+        "running": "执行中",
+        "verifying": "核验中",
+        "verified": "已核验",
+        "unverified": "验证未完成",
+        "failed": "失败",
+        "cancelled": "已取消",
+        "interrupted": "已中断，待核验"
+      },
+      "errors": {
+        "storeUnconfigured": "可信应用目录暂不可用，请配置或刷新商店来源。",
+        "catalogExpired": "目录已过期，请刷新后再安装或更新。",
+        "packageWithdrawn": "应用或所选版本已下架，请查看当前目录。",
+        "incompatiblePackage": "产物与设备或安装前提不兼容。",
+        "deviceChanged": "绑定的设备不可用或已发生变化，请重连并重新确认计划。",
+        "installedStateChanged": "设备上的版本在计划生成后发生了变化，请刷新应用并重新确认。",
+        "packageDowngrade": "设备上的原生版本或构建号更新。本次操作会造成降级，已停止。",
+        "invalidPackageAction": "操作与当前安装状态不符；无法识别商店修订的应用需要显式重装。",
+        "appsyncMissing": "设备的软件包记录显示尚未安装 AppSync，请手动补齐后刷新。",
+        "operationBusy": "此应用或设备已有操作执行中，请等待完成。",
+        "planExpired": "计划已过期或已使用，请重新确认。",
+        "invalidConsent": "请确认操作；卸载还需要确认数据删除。",
+        "notCancellable": "请求已提交给系统，无法安全取消。",
+        "unknownOperation": "未找到操作，或操作已经结束。",
+        "storeStorageFailed": "无法保存操作状态。再次写入前请核验设备。",
+        "installRejected": "设备的系统安装器拒绝了操作，请检查安装前提和可用空间。",
+        "signatureRejected": "设备拒绝了 IPA 签名，请检查签名和 AppSync；Studio 不会自动修改它们。",
+        "deviceStorageFull": "设备报告存储空间不足，请释放空间后重新确认计划。",
+        "verificationUnavailable": "验证未完成。可以使用“核验设备状态”进行只读重试，不会重新执行安装。",
+        "verificationFailed": "注册的应用与预期版本、构建号或回执不匹配，再次写入前请检查设备。",
+        "checksumMismatch": "IPA 与签名目录中的摘要或原生元数据不匹配，已停止安装。",
+        "downloadFailed": "无法下载应用，请刷新目录或提供完整且通过校验的缓存。",
+        "cancelled": "操作已在提交系统请求前取消。",
+        "unknown": "无法完成应用操作，请刷新状态后重试。"
+      },
+      "working": "处理中…",
+      "activity": "{action} {name} · {device}"
     }
   }
 }

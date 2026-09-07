@@ -59,6 +59,11 @@
     "demo": {
       "jailbrokenSet": "Demo: jailbroken state set to {value}",
       "failureArmed": "Demo: failure armed for step {step}"
+    },
+    "store": {
+      "authorized": "Application operation authorized for the selected device",
+      "completed": "Application operation completed; see its result in Installed apps",
+      "closeBlocked": "Wait for application operations or cancel them before closing"
     }
   }
 }

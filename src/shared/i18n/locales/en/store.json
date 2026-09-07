@@ -101,6 +101,10 @@
       "verifyInstall": {
         "title": "Verify install",
         "detail": "Confirm the package is registered and can launch."
+      },
+      "uninstall": {
+        "title": "Uninstall application",
+        "detail": "The system removes the app and its data container."
       }
     },
     "errors": {
@@ -131,6 +135,14 @@
       "cancelled": {
         "title": "Cancelled",
         "body": "The install was cancelled at a safe point."
+      },
+      "verificationUnavailable": {
+        "title": "Verification incomplete",
+        "body": "Verification is incomplete. Use “Check device state” to retry read-only observation; no installation will be replayed."
+      },
+      "deviceChanged": {
+        "title": "The selected device changed. Review a new plan for the intended device.",
+        "body": "The bound device is unavailable or has changed. Reconnect it and review a new plan."
       }
     },
     "refresh": "Refresh",
@@ -182,6 +194,72 @@
       "unknownVersion": "Unknown version",
       "build": "Build {value}",
       "notice": "Includes applications installed outside the store when their native identity matches. Download size is not the installed storage footprint."
+    },
+    "actions": {
+      "review": "Review application operation",
+      "planning": "Checking the device and selecting a compatible artifact…",
+      "device": "Device",
+      "nativeId": "Application identity",
+      "current": "Installed",
+      "selected": "Selected release",
+      "installs": "This installs a User application through the device’s normal installation service.",
+      "preservesData": "The application will be replaced through the system update service. Its data container is retained.",
+      "removesData": "Uninstalling removes the application and its data container from this device.",
+      "unknownRequirements": "Some installation prerequisites could not be confirmed. You can try a normal User installation. If the device rejects its signature, check AppSync and signing on the device.",
+      "catalogValid": "Catalog valid until {time}. A verified, complete cache permits offline installation.",
+      "deleteConsent": "I understand that uninstalling deletes this application’s data.",
+      "deviceChanged": "The selected device changed. Review a new plan for the intended device.",
+      "starting": "Adding to queue…",
+      "confirm": "Confirm operation",
+      "operations": "Application operations",
+      "cleanupPending": "The operation’s staging file could not be removed. It is retained when device submission is uncertain.",
+      "verify": "Check device state",
+      "jobsUnavailable": "Application operation records could not be read.",
+      "verificationUnavailable": "Device verification could not be started. Connect the original device and try again.",
+      "kind": {
+        "install": "Install",
+        "update": "Update",
+        "reinstall": "Reinstall",
+        "uninstall": "Uninstall"
+      },
+      "phase": {
+        "queued": "Queued",
+        "running": "Running",
+        "verifying": "Verifying",
+        "verified": "Verified",
+        "unverified": "Verification incomplete",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "interrupted": "Interrupted; check device state"
+      },
+      "errors": {
+        "storeUnconfigured": "A trusted application catalog is unavailable. Configure or refresh the store source.",
+        "catalogExpired": "Refresh the expired catalog before installing or updating.",
+        "packageWithdrawn": "The application or selected release has been withdrawn. Review the current catalog.",
+        "incompatiblePackage": "This artifact is incompatible with the device or its installation requirements.",
+        "deviceChanged": "The bound device is unavailable or has changed. Reconnect it and review a new plan.",
+        "installedStateChanged": "The installed version changed after planning. Refresh device apps and review a new plan.",
+        "packageDowngrade": "The installed native version or build is newer. This operation would downgrade it and was stopped.",
+        "invalidPackageAction": "This action does not match the installed state. Unknown store builds require explicit reinstall.",
+        "appsyncMissing": "AppSync is missing from the device’s installed package records. Install it manually and refresh.",
+        "operationBusy": "Another operation already owns this application or device. Wait for it to finish.",
+        "planExpired": "The plan expired or was already used. Review a new plan.",
+        "invalidConsent": "Confirm the operation and, for uninstall, acknowledge data removal.",
+        "notCancellable": "The system request has been submitted and cannot be cancelled safely.",
+        "unknownOperation": "The operation could not be found or has finished.",
+        "storeStorageFailed": "Operation state could not be persisted. Check the device before starting another write.",
+        "installRejected": "The device’s system installer rejected this operation. Check installation requirements and available space.",
+        "signatureRejected": "The device rejected the IPA signature. Check signing and AppSync; Studio does not change them automatically.",
+        "deviceStorageFull": "The device reported insufficient storage. Free space on the device and review a new plan.",
+        "verificationUnavailable": "Verification is incomplete. Use “Check device state” to retry read-only observation; no installation will be replayed.",
+        "verificationFailed": "The registered application does not match the expected version, build or receipt. Check the device before starting another write.",
+        "checksumMismatch": "The IPA does not match its signed digest or native metadata. Installation was stopped.",
+        "downloadFailed": "The package could not be downloaded. Refresh the catalog or provide a complete verified cache.",
+        "cancelled": "The operation was cancelled before system submission.",
+        "unknown": "The application operation could not be completed. Refresh its state and try again."
+      },
+      "working": "Working…",
+      "activity": "{action} {name} · {device}"
     }
   }
 }

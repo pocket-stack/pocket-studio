@@ -66,7 +66,7 @@ export function createTauriGateway(): StudioGateway {
       demo: false,
       preparation: true,
       catalog: true,
-      packages: false,
+      packages: true,
       installed: true,
     },
     devices: {
@@ -85,8 +85,12 @@ export function createTauriGateway(): StudioGateway {
       media: async (sha256) =>
         convertFileSrc(await call<string>("store_media", { sha256 })),
       installed: (deviceId) => call("list_installed", { deviceId }),
-      install: (deviceId, packageId) =>
-        call("install_package", { deviceId, packageId }),
+      install: unavailable,
+      plan: (request) => call("plan_package", { request }),
+      start: (consent) => call("start_package", { consent }),
+      jobs: () => call("list_package_operations"),
+      verify: (operationId, deviceId) =>
+        call("verify_package_operation", { operationId, deviceId }),
     },
     operations: {
       cancel: (operationId) => call("cancel_operation", { operationId }),

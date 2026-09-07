@@ -584,6 +584,27 @@ export function createSimulatedGateway(): StudioGateway {
       },
     },
     store: {
+      async plan() {
+        throw new GatewayError(
+          "operationUnavailable",
+          "Native package planning is unavailable in the browser demo",
+        );
+      },
+      async start() {
+        throw new GatewayError(
+          "operationUnavailable",
+          "Native package planning is unavailable in the browser demo",
+        );
+      },
+      async jobs() {
+        return [];
+      },
+      async verify() {
+        throw new GatewayError(
+          "operationUnavailable",
+          "Native verification is unavailable in the browser demo",
+        );
+      },
       async uninstall(deviceId, packageId) {
         requireDevice(deviceId);
         assertIdle();

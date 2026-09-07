@@ -54,3 +54,67 @@ it("waits for native event subscription and surfaces failures so a write cannot 
   expect(onEvent).toHaveBeenCalledTimes(2);
   vi.doUnmock("../gateway");
 });
+
+it("hydrates submitted jobs as read-only follow-up state and preserves their bound device", async () => {
+  vi.resetModules();
+  const { hydratePackageJobs, useOperations } = await import("./useOperations");
+  const plan: import("../gateway").PackagePlan = {
+    id: "plan",
+    deviceId: "original-device",
+    deviceName: "Original device",
+    appId: "app",
+    names: { en: "Notes" },
+    action: "uninstall",
+    bundleId: "native.notes",
+    previous: null,
+    releaseId: null,
+    artifact: null,
+    target: null,
+    version: null,
+    revision: null,
+    publicationId: "publication",
+    sequence: 1,
+    catalogExpiresAt: 100,
+    expiresAt: 100,
+    appsync: "unknown",
+    jailbreak: "unknown",
+    steps: [
+      {
+        id: "uninstall",
+        cancellable: false,
+        pointOfNoReturn: true,
+        estimatedSeconds: 5,
+      },
+    ],
+  };
+  const job: import("../gateway").PackageJob = {
+    queueOrder: 1,
+    handle: {
+      operationId: "saved",
+      kind: "uninstall",
+      steps: plan.steps,
+      subject: "app",
+    },
+    plan,
+    phase: "unverified",
+    step: "uninstall",
+    completedSteps: [],
+    percent: 0,
+    submitted: true,
+    cleanupComplete: null,
+    stagingPath: null,
+    error: { code: "verificationUnavailable", recoverable: true },
+    updatedAt: 123,
+  };
+  hydratePackageJobs([job]);
+  const state = useOperations().get("saved")!;
+  expect(state.status).toBe("failed");
+  expect(state.packagePlan?.deviceId).toBe("original-device");
+  hydratePackageJobs([{ ...job, phase: "running", error: null }]);
+  expect(state.status).toBe("failed");
+  hydratePackageJobs([
+    { ...job, phase: "verified", completedSteps: ["uninstall"], error: null },
+  ]);
+  expect(state.status).toBe("finished");
+  expect(state.steps[0]?.status).toBe("done");
+});

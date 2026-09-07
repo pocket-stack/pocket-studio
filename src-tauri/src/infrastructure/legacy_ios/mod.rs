@@ -2,6 +2,7 @@
 //! leave this module. A scan opens existing services but never pairs or writes.
 
 pub mod installed;
+pub mod packages;
 mod platform;
 pub mod preparation;
 pub mod preparation_resources;

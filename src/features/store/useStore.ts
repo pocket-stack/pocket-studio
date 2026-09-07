@@ -5,6 +5,7 @@ import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import { notify } from "../../shared/composables/useNotifications";
 import {
   trackOperation,
+  hydratePackageJobs,
   useOperations,
   type OperationState,
 } from "../../shared/composables/useOperations";
@@ -15,6 +16,9 @@ import {
   type CatalogSnapshot,
   type InstalledPackage,
   type InstalledSnapshot,
+  type PackagePlan,
+  type PackageAction,
+  type PackageJob,
   type PackageCategory,
 } from "../../shared/gateway";
 import {
@@ -40,6 +44,101 @@ const compatibleOnly = ref(false);
 const query = ref("");
 /** package id -> most recent install operation id */
 const installOperations = ref(new Map<string, string>());
+const packageJobs = ref<PackageJob[]>([]);
+const planOpen = ref(false);
+const planning = ref(false);
+const submitting = ref(false);
+const operationPlan = ref<PackagePlan | null>(null);
+const planIssue = ref<string | null>(null);
+let planRequest = 0;
+let jobsRequest = 0;
+let nativeSubscribed = false;
+let jobsQueued = false;
+
+async function refreshJobs(): Promise<void> {
+  if (useGateway().flavor !== "tauri") return;
+  const request = ++jobsRequest;
+  try {
+    const jobs = await useGateway().store.jobs();
+    if (request !== jobsRequest) return;
+    packageJobs.value = jobs;
+    hydratePackageJobs(jobs);
+  } catch {
+    notify("warning", "store.actions.jobsUnavailable");
+  }
+}
+function scheduleJobs(): void {
+  if (jobsQueued) return;
+  jobsQueued = true;
+  queueMicrotask(() => {
+    jobsQueued = false;
+    void refreshJobs();
+  });
+}
+async function requestAction(
+  appId: string,
+  action: PackageAction,
+  bundleId: string | null = null,
+): Promise<void> {
+  const current = device.value;
+  if (!current || submitting.value) return;
+  const request = ++planRequest;
+  planOpen.value = true;
+  planning.value = true;
+  planIssue.value = null;
+  operationPlan.value = null;
+  try {
+    const plan = await useGateway().store.plan({
+      deviceId: current.id,
+      appId,
+      action,
+      bundleId,
+    });
+    if (request === planRequest) operationPlan.value = plan;
+  } catch (error) {
+    if (request === planRequest)
+      planIssue.value = error instanceof GatewayError ? error.code : "unknown";
+  } finally {
+    if (request === planRequest) planning.value = false;
+  }
+}
+async function confirmPlan(deleteData: boolean): Promise<void> {
+  const plan = operationPlan.value;
+  if (!plan || submitting.value || plan.deviceId !== device.value?.id) return;
+  submitting.value = true;
+  planIssue.value = null;
+  try {
+    await useOperations().ready();
+    const handle = await useGateway().store.start({
+      planId: plan.id,
+      deleteData,
+    });
+    const operation = trackOperation(handle);
+    operation.packagePlan = plan;
+    planOpen.value = false;
+    operationPlan.value = null;
+    await refreshJobs();
+  } catch (error) {
+    planIssue.value = error instanceof GatewayError ? error.code : "unknown";
+  } finally {
+    submitting.value = false;
+  }
+}
+async function verifyJob(job: {
+  handle: { operationId: string };
+}): Promise<void> {
+  if (!device.value) return;
+  try {
+    await useGateway().store.verify(job.handle.operationId, device.value.id);
+    // Reverification owns the same journal record; hydrate it as active.
+    const existing = get(job.handle.operationId);
+    if (existing) existing.status = "running";
+    await refreshJobs();
+  } catch {
+    notify("warning", "store.actions.verificationUnavailable");
+  }
+}
+
 let initialized = false;
 let watchingSession = false;
 
@@ -110,8 +209,17 @@ async function refreshCatalog(refresh = true): Promise<void> {
 async function initialize(): Promise<void> {
   if (initialized) return;
   initialized = true;
+  if (useGateway().flavor === "tauri" && !nativeSubscribed) {
+    await useGateway().operations.onEvent((event) => {
+      if (event.type !== "progress") scheduleJobs();
+      if (["finished", "failed", "cancelled"].includes(event.type))
+        void refreshInstalled();
+    });
+    nativeSubscribed = true;
+  }
   await refreshCatalog();
   await refreshInstalled();
+  await refreshJobs();
   if (!watchingSession) {
     watchingSession = true;
     watch(
@@ -146,17 +254,41 @@ export interface PackageView {
 }
 
 function view(entry: CatalogEntry): PackageView {
-  const operationId = installOperations.value.get(entry.id);
+  const nativeJob = packageJobs.value.find(
+    (job) =>
+      job.plan.appId === entry.id && job.plan.deviceId === device.value?.id,
+  );
+  const operationId =
+    useGateway().flavor === "tauri"
+      ? nativeJob?.handle.operationId
+      : installOperations.value.get(entry.id);
   const installedIds = new Set(installed.value.map((item) => item.packageId));
   return {
     entry,
-    queuePosition: queuedIds.value.includes(entry.id)
-      ? queuedIds.value.indexOf(entry.id) + 1
-      : startingId.value === entry.id
-        ? 1
-        : undefined,
+    queuePosition:
+      useGateway().flavor === "tauri"
+        ? nativeJob?.phase === "queued"
+          ? packageJobs.value
+              .filter((job) => job.phase === "queued")
+              .sort((a, b) => a.queueOrder - b.queueOrder)
+              .findIndex(
+                (job) =>
+                  job.handle.operationId === nativeJob.handle.operationId,
+              ) + 1
+          : undefined
+        : queuedIds.value.includes(entry.id)
+          ? queuedIds.value.indexOf(entry.id) + 1
+          : startingId.value === entry.id
+            ? 1
+            : undefined,
     verdict: evaluateCompatibility(entry, device.value, readiness.value),
-    installed: installed.value.find((item) => item.packageId === entry.id),
+    installed: installed.value.find(
+      (item) =>
+        item.packageId === entry.id &&
+        (useGateway().flavor !== "tauri" ||
+          !item.native ||
+          item.native.bundleId === entry.details?.nativeIdentity.bundle_id),
+    ),
     operation: operationId ? get(operationId) : undefined,
     missingDependencies: entry.dependencies.filter(
       (dependency) => !installedIds.has(dependency),
@@ -165,6 +297,21 @@ function view(entry: CatalogEntry): PackageView {
 }
 
 async function install(packageId: string): Promise<void> {
+  if (useGateway().flavor === "tauri") {
+    const entry = catalog.value.find((entry) => entry.id === packageId);
+    const previous = installed.value.find(
+      (record) =>
+        record.packageId === packageId &&
+        (!record.native ||
+          record.native.bundleId === entry?.details?.nativeIdentity.bundle_id),
+    );
+    const action: PackageAction = !previous
+      ? "install"
+      : !previous.revision || previous.artifactId === entry?.details?.artifactId
+        ? "reinstall"
+        : "update";
+    return requestAction(packageId, action);
+  }
   if (
     !device.value ||
     startingId.value === packageId ||
@@ -222,6 +369,16 @@ function watchOperation(operationId: string): void {
 }
 
 async function cancelInstall(packageId: string): Promise<void> {
+  if (useGateway().flavor === "tauri") {
+    const job = packageJobs.value.find(
+      (job) =>
+        job.plan.appId === packageId &&
+        job.plan.deviceId === device.value?.id &&
+        ["queued", "running", "verifying"].includes(job.phase),
+    );
+    if (job) await cancelJob(job);
+    return;
+  }
   if (queuedIds.value.includes(packageId)) {
     queuedIds.value = queuedIds.value.filter((id) => id !== packageId);
     return;
@@ -238,6 +395,17 @@ async function cancelInstall(packageId: string): Promise<void> {
         ? "notifications.cancelNotAllowed"
         : "notifications.cancelFailed",
     );
+  }
+}
+
+async function cancelJob(job: {
+  handle: { operationId: string };
+}): Promise<void> {
+  try {
+    await cancel(job.handle.operationId);
+    await refreshJobs();
+  } catch {
+    notify("warning", "notifications.cancelNotAllowed");
   }
 }
 
@@ -280,6 +448,25 @@ export function useStore() {
   });
 
   return {
+    packageJobs: readonly(packageJobs),
+    planOpen: readonly(planOpen),
+    planning: readonly(planning),
+    submitting: readonly(submitting),
+    operationPlan: readonly(operationPlan),
+    planIssue: readonly(planIssue),
+    requestAction,
+    confirmPlan,
+    closePlan: () => {
+      if (!submitting.value) {
+        planOpen.value = false;
+        operationPlan.value = null;
+        planRequest++;
+        planning.value = false;
+      }
+    },
+    verifyJob,
+    cancelJob,
+    refreshJobs,
     catalog: readonly(catalog),
     snapshot: readonly(snapshot),
     installed: readonly(installed),
@@ -304,8 +491,10 @@ export function useStore() {
     initialize,
     install,
     cancelInstall,
-    uninstall: async (packageId: string) => {
+    uninstall: async (packageId: string, bundleId: string | null = null) => {
       if (!device.value) return;
+      if (useGateway().flavor === "tauri")
+        return requestAction(packageId, "uninstall", bundleId);
       try {
         await useGateway().store.uninstall(device.value.id, packageId);
         await refreshInstalled();

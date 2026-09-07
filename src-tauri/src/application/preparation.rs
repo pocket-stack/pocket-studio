@@ -104,6 +104,7 @@ struct State {
 
 pub struct PreparationService {
     driver: Arc<dyn PreparationDriver>,
+    gate: Arc<tokio::sync::Semaphore>,
     state: Mutex<State>,
     sink: Arc<dyn EventSink>,
     log: Arc<OperationLog>,
@@ -112,11 +113,13 @@ pub struct PreparationService {
 impl PreparationService {
     pub fn new(
         driver: Arc<dyn PreparationDriver>,
+        gate: Arc<tokio::sync::Semaphore>,
         sink: Arc<dyn EventSink>,
         log: Arc<OperationLog>,
     ) -> Self {
         Self {
             driver,
+            gate,
             state: Mutex::new(State::default()),
             sink,
             log,
@@ -195,6 +198,11 @@ impl PreparationService {
         self: &Arc<Self>,
         consent: ConsentRecord,
     ) -> Result<OperationHandle, PreparationError> {
+        let permit = self
+            .gate
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| PreparationError::Busy)?;
         let (pending, handle, cancel) = {
             let mut state = self.state.lock().expect("preparation state poisoned");
             if state.active.is_some() {
@@ -260,6 +268,7 @@ impl PreparationService {
         let service = self.clone();
         let worker_handle = handle.clone();
         tokio::spawn(async move {
+            let _permit = permit;
             service.run(pending.target, worker_handle, cancel).await;
         });
         Ok(handle)
@@ -572,6 +581,7 @@ mod tests {
         });
         let service = Arc::new(PreparationService::new(
             driver.clone(),
+            Arc::new(tokio::sync::Semaphore::new(1)),
             sink.clone(),
             Arc::new(OperationLog::new(sink.clone())),
         ));
@@ -829,5 +839,15 @@ mod tests {
             matches!(event, OperationEvent::Finished { .. })
         })
         .await;
+    }
+    #[tokio::test]
+    async fn preparation_cannot_start_while_an_application_operation_owns_the_gate() {
+        let (service, _, _) = setup(None, None);
+        let consent = consent(&service).await;
+        let _permit = service.gate.clone().acquire_owned().await.unwrap();
+        assert_eq!(
+            service.start(consent).await.unwrap_err(),
+            PreparationError::Busy
+        );
     }
 }

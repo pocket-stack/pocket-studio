@@ -123,7 +123,13 @@ export type PreparationStepId =
   | "verifyJailbreak";
 
 export type InstallStepId =
-  "resolve" | "download" | "verify" | "transfer" | "install" | "verifyInstall";
+  | "resolve"
+  | "download"
+  | "verify"
+  | "transfer"
+  | "install"
+  | "uninstall"
+  | "verifyInstall";
 
 export type StepId = PreparationStepId | InstallStepId;
 
@@ -165,7 +171,7 @@ export interface ConsentRecord {
   disclaimerAcceptedAt: number;
 }
 
-export type OperationKind = "preparation" | "install";
+export type OperationKind = "preparation" | "install" | "uninstall";
 export type StepStatus =
   "pending" | "running" | "done" | "failed" | "skipped" | "cancelled";
 
@@ -319,6 +325,63 @@ export interface InstalledSnapshot {
   issue: string | null;
 }
 
+export type PackageAction = "install" | "update" | "reinstall" | "uninstall";
+export type RequirementState = "satisfied" | "missing" | "unknown";
+export interface PackageRequest {
+  deviceId: string;
+  appId: string;
+  action: PackageAction;
+  bundleId: string | null;
+}
+export interface PackageConsent {
+  planId: string;
+  deleteData: boolean;
+}
+export interface PackagePlan {
+  id: string;
+  deviceId: string;
+  deviceName: string;
+  appId: string;
+  names: Record<string, string>;
+  action: PackageAction;
+  bundleId: string;
+  previous: NonNullable<InstalledPackage["native"]> | null;
+  releaseId: string | null;
+  artifact: StoreArtifact | null;
+  target: StoreArtifact["targets"][number] | null;
+  version: string | null;
+  revision: number | null;
+  publicationId: string;
+  sequence: number;
+  catalogExpiresAt: number;
+  expiresAt: number;
+  appsync: RequirementState;
+  jailbreak: RequirementState;
+  steps: PlanStep[];
+}
+export interface PackageJob {
+  queueOrder: number;
+  handle: OperationHandle;
+  plan: PackagePlan;
+  phase:
+    | "queued"
+    | "running"
+    | "verifying"
+    | "verified"
+    | "unverified"
+    | "failed"
+    | "cancelled"
+    | "interrupted";
+  step: StepId;
+  completedSteps: StepId[];
+  percent: number;
+  submitted: boolean;
+  cleanupComplete: boolean | null;
+  stagingPath: string | null;
+  error: OperationError | null;
+  updatedAt: number;
+}
+
 export type LogLevel = "error" | "warn" | "info" | "debug";
 export type LogSource = "device" | "preparation" | "store" | "system";
 
@@ -382,6 +445,10 @@ export interface StudioGateway {
     catalog(deviceId?: string, refresh?: boolean): Promise<CatalogSnapshot>;
     media(sha256: string): Promise<string>;
     installed(deviceId: string): Promise<InstalledSnapshot>;
+    plan(request: PackageRequest): Promise<PackagePlan>;
+    start(consent: PackageConsent): Promise<OperationHandle>;
+    jobs(): Promise<PackageJob[]>;
+    verify(operationId: string, deviceId: string): Promise<OperationHandle>;
     uninstall(deviceId: string, packageId: string): Promise<void>;
     install(deviceId: string, packageId: string): Promise<OperationHandle>;
   };

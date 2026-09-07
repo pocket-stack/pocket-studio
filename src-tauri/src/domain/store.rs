@@ -469,7 +469,7 @@ pub fn evaluate_target(
     if device.mode != DeviceMode::Normal || facts.pairing_trusted != Some(true) {
         return StoreVerdict::RequiresPreparation;
     }
-    if target.requires.jailbreak && facts.jailbroken != Some(true) {
+    if target.requires.jailbreak && facts.jailbroken == Some(false) {
         return StoreVerdict::RequiresPreparation;
     }
     StoreVerdict::Compatible

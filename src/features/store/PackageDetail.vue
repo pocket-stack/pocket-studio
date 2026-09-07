@@ -55,7 +55,13 @@ const canInstall = computed(
 );
 const installLabel = computed(() =>
   props.item.installed
-    ? props.item.installed.version === props.item.entry.version
+    ? (
+        gateway.flavor === "tauri"
+          ? !props.item.installed.revision ||
+            props.item.installed.artifactId ===
+              props.item.entry.details?.artifactId
+          : props.item.installed.version === props.item.entry.version
+      )
       ? t("store.detail.reinstall")
       : t("store.detail.update")
     : t("store.detail.install"),

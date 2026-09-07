@@ -63,37 +63,7 @@ impl InstalledReader for LegacyInstalledReader {
                 .await
                 .map_err(|_| InstalledError::DeviceUnavailable)?
                 .map_err(|_| InstalledError::DeviceUnavailable)?;
-            let ids = bundle_ids
-                .iter()
-                .map(AppIdentifier::parse)
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|_| InstalledError::ReadFailed)?;
-            let apps = device
-                .lookup_apps(AppFilter::All, &ids)
-                .await
-                .map_err(|_| InstalledError::ReadFailed)?;
-            let deadline = Instant::now() + Duration::from_secs(10);
-            let mut applications = Vec::with_capacity(apps.len());
-            for app in apps {
-                let remaining = deadline
-                    .saturating_duration_since(Instant::now())
-                    .min(Duration::from_secs(2));
-                let receipt_build_id = if remaining.is_zero() {
-                    None
-                } else {
-                    match timeout(remaining, device.app_build_receipt(&app)).await {
-                        Ok(Ok(bytes)) => receipt_build(&bytes, app.bundle_id()),
-                        _ => None,
-                    }
-                };
-                applications.push(NativeApplication {
-                    bundle_id: app.bundle_id().into(),
-                    product_version: app.product_version().map(str::to_owned),
-                    build_number: app.build_version().map(str::to_owned),
-                    application_type: app.application_type().map(str::to_owned),
-                    receipt_build_id,
-                });
-            }
+            let applications = read_registered(&device, bundle_ids).await?;
             if self.probe.application_session_key(device_id)? != key {
                 return Err(InstalledError::DeviceUnavailable);
             }
@@ -103,6 +73,43 @@ impl InstalledReader for LegacyInstalledReader {
             })
         })
     }
+}
+pub(super) async fn read_registered(
+    device: &legacy_ios_services::NormalDevice,
+    bundle_ids: &[String],
+) -> Result<Vec<NativeApplication>, InstalledError> {
+    let ids = bundle_ids
+        .iter()
+        .map(AppIdentifier::parse)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| InstalledError::ReadFailed)?;
+    let apps = device
+        .lookup_apps(AppFilter::All, &ids)
+        .await
+        .map_err(|_| InstalledError::ReadFailed)?;
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut applications = Vec::with_capacity(apps.len());
+    for app in apps {
+        let remaining = deadline
+            .saturating_duration_since(Instant::now())
+            .min(Duration::from_secs(2));
+        let receipt_build_id = if remaining.is_zero() {
+            None
+        } else {
+            match timeout(remaining, device.app_build_receipt(&app)).await {
+                Ok(Ok(bytes)) => receipt_build(&bytes, app.bundle_id()),
+                _ => None,
+            }
+        };
+        applications.push(NativeApplication {
+            bundle_id: app.bundle_id().into(),
+            product_version: app.product_version().map(str::to_owned),
+            build_number: app.build_version().map(str::to_owned),
+            application_type: app.application_type().map(str::to_owned),
+            receipt_build_id,
+        });
+    }
+    Ok(applications)
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]

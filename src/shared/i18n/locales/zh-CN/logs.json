@@ -59,6 +59,11 @@
     "demo": {
       "jailbrokenSet": "演示：越狱状态设置为 {value}",
       "failureArmed": "演示：已为步骤 {step} 注入失败"
+    },
+    "store": {
+      "authorized": "已授权对所选设备执行应用操作",
+      "completed": "应用操作已结束，请在已安装页面查看结果",
+      "closeBlocked": "请等待应用操作完成，或安全取消后再关闭"
     }
   }
 }

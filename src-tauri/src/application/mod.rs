@@ -3,6 +3,7 @@
 
 pub mod discovery;
 pub mod installed;
+pub mod packages;
 pub mod preparation;
 pub mod store;
 
@@ -85,6 +86,8 @@ impl OperationLog {
 #[derive(Debug, thiserror::Error)]
 pub enum StudioError {
     #[error(transparent)]
+    Package(#[from] packages::PackageError),
+    #[error(transparent)]
     Installed(#[from] installed::InstalledError),
     #[error(transparent)]
     Store(#[from] store::StoreError),
@@ -101,6 +104,7 @@ impl StudioError {
         match self {
             Self::Store(error) => error.code(),
             Self::Installed(error) => error.code(),
+            Self::Package(error) => error.code(),
             Self::Preparation(error) => error.code(),
             Self::DeviceNotFound => "deviceNotFound",
             Self::OperationUnavailable => "operationUnavailable",
@@ -115,6 +119,7 @@ pub struct Studio {
     pub preparation: Arc<preparation::PreparationService>,
     pub store: Arc<store::StoreService>,
     pub installed: Arc<installed::InstalledService>,
+    pub packages: Arc<packages::PackageService>,
     log: Arc<OperationLog>,
 }
 
@@ -124,6 +129,7 @@ impl Studio {
         preparation: Arc<preparation::PreparationService>,
         store: Arc<store::StoreService>,
         installed: Arc<installed::InstalledService>,
+        packages: Arc<packages::PackageService>,
         log: Arc<OperationLog>,
     ) -> Self {
         Self {
@@ -131,6 +137,7 @@ impl Studio {
             preparation,
             store,
             installed,
+            packages,
             log,
         }
     }
@@ -181,6 +188,16 @@ impl Studio {
         Ok(report)
     }
 
+    pub fn warn_before_close(&self) -> bool {
+        self.preparation.warn_before_close() || self.packages.warn_before_close()
+    }
+    pub fn cancel_operation(&self, id: &str) -> Result<(), StudioError> {
+        match self.preparation.cancel(id) {
+            Ok(()) => Ok(()),
+            Err(preparation::PreparationError::UnknownOperation) => Ok(self.packages.cancel(id)?),
+            Err(error) => Err(error.into()),
+        }
+    }
     pub fn unavailable_operation<T>(&self) -> Result<T, StudioError> {
         Err(StudioError::OperationUnavailable)
     }
