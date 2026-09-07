@@ -1,0 +1,19 @@
+{
+  "catalog_utf8": "{\"schema_version\":1,\"repository_id\":\"22222222-2222-4222-8222-222222222222\",\"channel\":\"stable\",\"publication_id\":\"11111111-1111-4111-8111-111111111111\",\"sequence\":1,\"parent\":null,\"created_at\":1800000000000,\"expires_at\":1802592000000,\"apps\":[{\"id\":\"dev.example.notes\",\"slug\":\"notes\",\"listing\":\"listed\",\"publisher\":{\"id\":\"example\",\"name\":\"Example\",\"verified\":false},\"category\":\"app\",\"source\":{\"repository\":\"https://example.com/source\",\"path\":\"apps/notes\"},\"locales\":{\"en\":{\"name\":\"Notes\",\"summary\":\"Take notes\",\"description\":\"Offline notes\"},\"zh-CN\":{\"name\":\"笔记\",\"summary\":\"记录笔记\",\"description\":\"离线笔记\"}},\"media\":[]}],\"releases\":[{\"id\":\"33333333-3333-4333-8333-333333333333\",\"app_id\":\"dev.example.notes\",\"version\":\"1.0.0\",\"revision\":1,\"notes\":{\"en\":\"Initial release\"},\"published_at\":1800000000000,\"status\":\"published\",\"artifacts\":[{\"id\":\"44444444-4444-4444-8444-444444444444\",\"format\":\"ipa\",\"blob\":{\"sha256\":\"f8b212ac42441dbafdd5994cb8119ee78f307db92ad95798614f7f4d4be5912f\",\"size_bytes\":8,\"content_type\":\"application/octet-stream\"},\"build_id\":\"fixture-build-1\",\"native_identity\":{\"bundle_id\":\"dev.example.notes.ios\",\"version\":\"1.0.0\",\"build_number\":\"1\"},\"provenance\":{\"source_commit\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"runtime_commit\":null,\"manifest_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"targets\":[{\"target_id\":\"ios-legacy\",\"platform\":\"ios\",\"arch\":\"armv7\",\"models\":[\"iPod4,1\"],\"os\":{\"min\":\"6.1.6\",\"max\":\"6.1.6\",\"builds\":[\"10B500\"]},\"host_abi\":1,\"runtime_delivery\":\"bundled\",\"installer_id\":\"ios-user-ipa\",\"requires\":{\"jailbreak\":true,\"appsync\":true}}]}]}]}\n",
+  "pointer": {
+    "schema_version": 1,
+    "repository_id": "22222222-2222-4222-8222-222222222222",
+    "channel": "stable",
+    "publication_id": "11111111-1111-4111-8111-111111111111",
+    "sequence": 1,
+    "catalog_sha256": "e05bcc7f63568c900f6241c626d4716bad8728eb75bccecb6b5b7162984342f4",
+    "key_id": "fixture",
+    "signature": "tWkT4KDffywlTVm+sBUXKlw9S9yj40FjMqjrAjsJLXHExaYlklLo8UQJTPwpYoBD9aR/CpvLc5/pTFEdoiP9Bg=="
+  },
+  "trust": {
+    "repository_id": "22222222-2222-4222-8222-222222222222",
+    "keys": {
+      "fixture": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w="
+    }
+  }
+}

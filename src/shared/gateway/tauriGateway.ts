@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import {
@@ -62,7 +62,12 @@ async function unavailable(): Promise<never> {
 export function createTauriGateway(): StudioGateway {
   return {
     flavor: "tauri",
-    capabilities: { demo: false, preparation: true, packages: false },
+    capabilities: {
+      demo: false,
+      preparation: true,
+      catalog: true,
+      packages: false,
+    },
     devices: {
       list: () => call("list_devices"),
       checkReadiness: (deviceId) => call("check_readiness", { deviceId }),
@@ -74,7 +79,10 @@ export function createTauriGateway(): StudioGateway {
     },
     store: {
       uninstall: unavailable,
-      catalog: () => call("list_catalog"),
+      catalog: (deviceId, refresh = true) =>
+        call("list_catalog", { deviceId, refresh }),
+      media: async (sha256) =>
+        convertFileSrc(await call<string>("store_media", { sha256 })),
       installed: (deviceId) => call("list_installed", { deviceId }),
       install: (deviceId, packageId) =>
         call("install_package", { deviceId, packageId }),

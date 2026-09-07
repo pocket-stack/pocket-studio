@@ -25,19 +25,26 @@
       "compatible": "可安装",
       "requiresPreparation": "需先越狱",
       "noDevice": "未连接设备",
-      "incompatible": "不兼容"
+      "incompatible": "不兼容",
+      "unavailable": "暂不可用",
+      "withdrawn": "已撤回"
     },
     "policy": {
       "deb": "Debian 软件包（Cydia）",
-      "ipa": "IPA 应用（需签名）",
-      "bootstrap": "系统引导包"
+      "ipa": "IPA 用户应用",
+      "bootstrap": "系统引导包",
+      "unsupported": "暂不支持的安装格式"
     },
     "verdict": {
       "compatible": "与当前设备兼容，可以安装。",
-      "requiresPreparation": "需要已越狱的设备。请先在「设备」页完成准备流程。",
+      "requiresPreparation": "设备尚未满足安装条件。",
       "unsupportedModel": "不支持当前设备型号。",
       "unsupportedOs": "不支持当前系统版本。",
-      "noDevice": "连接设备后即可安装。"
+      "noDevice": "连接设备后即可安装。",
+      "unknownDevice": "设备信息不完整，请检查连接后刷新。",
+      "unsupportedInstaller": "Studio 暂不支持此安装目标。",
+      "withdrawn": "该应用或版本已撤回。",
+      "catalogExpired": "请刷新已过期的目录后再安装。"
     },
     "detail": {
       "install": "安装",
@@ -65,7 +72,10 @@
       "size": "大小",
       "policy": "安装方式",
       "published": "发布日期",
-      "checksum": "SHA-256"
+      "checksum": "SHA-256",
+      "catalogVerified": "目录已验证",
+      "revision": "修订 {revision}",
+      "sourceCode": "源代码"
     },
     "steps": {
       "resolve": {
@@ -122,6 +132,42 @@
         "title": "已取消",
         "body": "安装已在安全点取消。"
       }
+    },
+    "refresh": "刷新",
+    "fromCatalog": "发现应用",
+    "compatibleOnly": "仅显示可安装的应用",
+    "emptyCatalog": "发布后的应用会显示在这里。",
+    "mediaLoading": "正在加载图片",
+    "mediaUnavailable": "图片暂不可用",
+    "screenshot": "{name}，截图 {index}",
+    "collection": {
+      "apps": "应用",
+      "tools": "工具与运行时"
+    },
+    "source": {
+      "demo": "浏览器预览",
+      "demoNotice": "目录和设备操作均为交互演示。",
+      "unconfigured": "尚未配置软件源",
+      "verified": "目录签名已验证",
+      "expired": "目录已过期，请刷新后再安装或更新应用。",
+      "cachedContent": "正在显示最近一次验证通过的目录。",
+      "checkedAt": "上次检查：{date}"
+    },
+    "sourceErrors": {
+      "storeUnconfigured": "配置可信的软件源后，即可浏览已发布的应用。",
+      "invalidStoreSource": "软件源配置无效。",
+      "storeOffline": "暂时无法连接软件源。",
+      "invalidStoreResponse": "软件源返回的数据无效。",
+      "storeStorageFailed": "无法读取或写入商店缓存。",
+      "unsupportedCatalogSchema": "该目录需要更新版本的 Studio。",
+      "invalidCatalog": "软件目录数据无效。",
+      "untrustedCatalog": "软件源或签名密钥不受信任。",
+      "invalidCatalogSignature": "目录签名验证失败。",
+      "catalogRollback": "已拒绝较旧或发生冲突的目录。",
+      "checksumMismatch": "下载内容与预期摘要不一致。"
+    },
+    "platform": {
+      "ios": "iOS"
     }
   }
 }

@@ -25,19 +25,26 @@
       "compatible": "Installable",
       "requiresPreparation": "Needs jailbreak",
       "noDevice": "No device",
-      "incompatible": "Incompatible"
+      "incompatible": "Incompatible",
+      "unavailable": "Unavailable",
+      "withdrawn": "Withdrawn"
     },
     "policy": {
       "deb": "Debian package (Cydia)",
-      "ipa": "IPA app (signed)",
-      "bootstrap": "System bootstrap"
+      "ipa": "IPA user application",
+      "bootstrap": "System bootstrap",
+      "unsupported": "Unsupported installation format"
     },
     "verdict": {
       "compatible": "Compatible with the connected device.",
-      "requiresPreparation": "Needs a jailbroken device. Finish the preparation flow on the Device page first.",
+      "requiresPreparation": "The device does not meet the installation requirements yet.",
       "unsupportedModel": "The connected device model is not supported.",
       "unsupportedOs": "The connected OS version is not supported.",
-      "noDevice": "Connect a device to install."
+      "noDevice": "Connect a device to install.",
+      "unknownDevice": "Device information is incomplete. Check the connection and refresh.",
+      "unsupportedInstaller": "Studio does not support this installation target yet.",
+      "withdrawn": "This application or release has been withdrawn.",
+      "catalogExpired": "Refresh the expired catalog before installing."
     },
     "detail": {
       "install": "Install",
@@ -65,7 +72,10 @@
       "size": "Size",
       "policy": "Install method",
       "published": "Published",
-      "checksum": "SHA-256"
+      "checksum": "SHA-256",
+      "catalogVerified": "Verified catalog",
+      "revision": "Revision {revision}",
+      "sourceCode": "Source code"
     },
     "steps": {
       "resolve": {
@@ -122,6 +132,42 @@
         "title": "Cancelled",
         "body": "The install was cancelled at a safe point."
       }
+    },
+    "refresh": "Refresh",
+    "fromCatalog": "From the catalog",
+    "compatibleOnly": "Show installable apps only",
+    "emptyCatalog": "Published applications will appear here.",
+    "mediaLoading": "Loading image",
+    "mediaUnavailable": "Image unavailable",
+    "screenshot": "{name}, screenshot {index}",
+    "collection": {
+      "apps": "Applications",
+      "tools": "Tools and runtimes"
+    },
+    "source": {
+      "demo": "Browser preview",
+      "demoNotice": "Simulated catalog and device operations.",
+      "unconfigured": "No store source configured",
+      "verified": "Catalog signature verified",
+      "expired": "This catalog has expired. Refresh it before installing or updating applications.",
+      "cachedContent": "Showing the last verified catalog.",
+      "checkedAt": "Last checked {date}"
+    },
+    "sourceErrors": {
+      "storeUnconfigured": "Configure a trusted store source to browse published applications.",
+      "invalidStoreSource": "The store source configuration is invalid.",
+      "storeOffline": "The store could not be reached.",
+      "invalidStoreResponse": "The store returned an invalid response.",
+      "storeStorageFailed": "The store cache could not be read or written.",
+      "unsupportedCatalogSchema": "This catalog requires a newer version of Studio.",
+      "invalidCatalog": "The catalog is not valid.",
+      "untrustedCatalog": "The catalog source or signing key is not trusted.",
+      "invalidCatalogSignature": "Catalog signature verification failed.",
+      "catalogRollback": "An older or conflicting catalog was rejected.",
+      "checksumMismatch": "Downloaded content did not match its expected digest."
+    },
+    "platform": {
+      "ios": "iOS"
     }
   }
 }

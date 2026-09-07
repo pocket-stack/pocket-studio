@@ -11,11 +11,13 @@ use tracing_subscriber::prelude::*;
 
 use application::discovery::DeviceDiscovery;
 use application::preparation::PreparationService;
+use application::store::StoreService;
 use application::{OperationLog, Studio};
 use commands::{AppState, TauriSink};
 use domain::log::{LogLevel, LogSource};
 use infrastructure::legacy_ios::LegacyIosProbe;
 use infrastructure::legacy_ios::preparation::LegacyPreparationDriver;
+use infrastructure::store::{SourceConfig, StaticCatalogRepository, StoreCache};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> anyhow::Result<()> {
@@ -66,7 +68,13 @@ pub fn run() -> anyhow::Result<()> {
                 sink,
                 log.clone(),
             ));
-            let studio = Studio::new(discovery.clone(), preparation, log.clone());
+            let cache = Arc::new(StoreCache::open(app.path().app_cache_dir()?.join("store"))?);
+            let catalog = Arc::new(StaticCatalogRepository::new(
+                cache,
+                SourceConfig::from_environment()?,
+            )?);
+            let store = Arc::new(StoreService::new(catalog, discovery.clone()));
+            let studio = Studio::new(discovery.clone(), preparation, store, log.clone());
             app.manage(AppState {
                 studio: Arc::new(studio),
             });
@@ -87,6 +95,7 @@ pub fn run() -> anyhow::Result<()> {
             commands::plan_preparation,
             commands::start_preparation,
             commands::list_catalog,
+            commands::store_media,
             commands::list_installed,
             commands::install_package,
             commands::cancel_operation,

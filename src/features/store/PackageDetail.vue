@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useGateway } from "../../shared/gateway";
 import {
   operationProgress,
   useOperations,
@@ -8,7 +9,9 @@ import {
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
 import StepList from "../../shared/ui/StepList.vue";
 import PackageArtwork from "./PackageArtwork.vue";
+import StoreMedia from "./StoreMedia.vue";
 import { formatBytes } from "./compatibility";
+import { packageText, packageMedia } from "./packageContent";
 import type { PackageView } from "./useStore";
 const props = defineProps<{ item: PackageView }>();
 const emit = defineEmits<{
@@ -18,8 +21,23 @@ const emit = defineEmits<{
   close: [];
   dependency: [id: string];
 }>();
-const { t, d } = useI18n();
+const { t, d, locale } = useI18n();
+const gateway = useGateway();
 const { active } = useOperations();
+const name = computed(() =>
+  packageText(props.item.entry, "name", locale.value, t),
+);
+const description = computed(() =>
+  packageText(props.item.entry, "description", locale.value, t),
+);
+const screenshots = computed(() =>
+  packageMedia(props.item.entry, "screenshot", locale.value),
+);
+const history = computed(() =>
+  [...(props.item.entry.details?.history ?? [])].sort(
+    (a, b) => b.published_at - a.published_at || b.revision - a.revision,
+  ),
+);
 const installing = computed(() => props.item.operation?.status === "running");
 const currentStep = computed(() =>
   props.item.operation?.steps.find(
@@ -28,6 +46,7 @@ const currentStep = computed(() =>
 );
 const canInstall = computed(
   () =>
+    gateway.capabilities.packages &&
     props.item.verdict === "compatible" &&
     !installing.value &&
     !props.item.queuePosition &&
@@ -39,8 +58,18 @@ const installLabel = computed(() =>
     ? props.item.installed.version === props.item.entry.version
       ? t("store.detail.reinstall")
       : t("store.detail.update")
-    : t("studio.installToDevice", { name: t("studio.deviceName") }),
+    : t("store.detail.install"),
 );
+const sourceUrl = computed(() => {
+  const source = props.item.entry.details?.app.source.repository;
+  if (!source) return null;
+  try {
+    const url = new URL(source);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+});
 const facts = computed(() => [
   { label: t("store.detail.developer"), value: props.item.entry.developer },
   {
@@ -48,12 +77,8 @@ const facts = computed(() => [
     value: formatBytes(props.item.entry.sizeBytes),
   },
   {
-    label: t("studio.category"),
-    value: t(`store.category.${props.item.entry.category}`),
-  },
-  {
     label: t("store.detail.compatibility"),
-    value: `iOS ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
+    value: `${props.item.entry.compatibility.platform === "ios" ? t("store.platform.ios") : props.item.entry.compatibility.platform} ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
   },
   {
     label: t("store.detail.models"),
@@ -67,75 +92,89 @@ const facts = computed(() => [
         : "common.notRequired",
     ),
   },
-  { label: t("studio.sources"), value: t("studio.demoCatalog") },
 ]);
 </script>
+
 <template>
   <article class="flex min-h-full gap-7">
     <div class="min-w-0 flex-1">
-      <header
-        class="mb-[22px] flex items-center gap-7 max-[600px]:flex-wrap max-[600px]:gap-5"
-      >
+      <header class="mb-6 flex items-center gap-6 max-[850px]:gap-4">
         <PackageArtwork
-          class="max-[1150px]:size-[115px]!"
+          :entry="item.entry"
           :package-id="item.entry.id"
-          :size="160"
+          :size="144"
+          class="max-[1150px]:size-[112px]!"
         />
-        <div>
-          <h1 class="text-[26px] font-semibold">
-            {{ t(`catalog.${item.entry.id}.name`) }}
+        <div class="min-w-0">
+          <h1 class="break-words text-[26px] font-semibold tracking-tight">
+            {{ name }}
           </h1>
-          <p class="mt-2 text-[12px] text-muted">
+          <p class="mt-2 text-xs leading-6 text-muted">
             {{ item.entry.developer }} ·
             {{ t(`store.category.${item.entry.category}`) }} ·
-            {{ t("store.detail.version") }} {{ item.entry.version }} ·
-            {{ formatBytes(item.entry.sizeBytes) }} ·
-            {{ d(item.entry.publishedAt, "date") }}
+            {{ item.entry.version
+            }}<span v-if="item.entry.details">
+              ·
+              {{
+                t("store.detail.revision", {
+                  revision: item.entry.details.revision,
+                })
+              }}</span
+            >
           </p>
-          <div class="mt-[18px] flex flex-wrap items-center gap-2.5">
+          <div class="mt-4 flex flex-wrap items-center gap-2.5">
             <button
-              class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
+              class="inline-flex items-center justify-center gap-2 rounded-md bg-signal px-4 py-1.5 text-sm text-on-signal enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
               :disabled="!canInstall"
               @click="emit('install')"
             >
-              {{
-                installing ? t("store.state.installing") : installLabel
-              }}</button
-            ><button
+              {{ installing ? t("store.state.installing") : installLabel }}
+            </button>
+            <button
               v-if="item.verdict === 'requiresPreparation'"
-              class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+              class="rounded-md border border-line bg-raised px-3 py-1.5 text-xs hover:border-muted"
               @click="emit('prepare')"
             >
-              {{ t("store.detail.prepareDevice") }}</button
-            ><span
-              class="text-[12px]"
-              :class="
-                item.verdict === 'compatible' ? 'text-success' : 'text-warning'
-              "
-              >{{ t(`store.verdict.${item.verdict}`) }}</span
-            >
-          </div>
-          <div
-            v-if="item.missingDependencies.length"
-            class="mt-2.5 flex flex-wrap gap-2 text-[12px]"
-          >
-            <span>{{ t("store.detail.installDependenciesFirst") }}</span
-            ><button
-              v-for="id in item.missingDependencies"
-              :key="id"
-              class="inline-flex items-center gap-[5px] text-[11px] text-signal hover:underline hover:underline-offset-[3px]"
-              @click="emit('dependency', id)"
-            >
-              {{ t(`catalog.${id}.name`)
-              }}<IconStudioChevronRight width="11" height="11" />
+              {{ t("store.detail.prepareDevice") }}
             </button>
+            <span class="text-[11px] text-muted">{{
+              item.entry.details
+                ? t("store.detail.catalogVerified")
+                : t(
+                    item.entry.signed
+                      ? "store.detail.signed"
+                      : "store.detail.unsigned",
+                  )
+            }}</span>
           </div>
+          <p
+            class="mt-3 text-xs leading-6"
+            :class="
+              item.verdict === 'compatible' ? 'text-success' : 'text-warning'
+            "
+          >
+            {{ t(`store.verdict.${item.verdict}`) }}
+          </p>
         </div>
       </header>
+      <div
+        v-if="item.missingDependencies.length"
+        class="mb-4 flex flex-wrap gap-2 text-xs"
+      >
+        <span>{{ t("store.detail.installDependenciesFirst") }}</span
+        ><button
+          v-for="id in item.missingDependencies"
+          :key="id"
+          class="text-signal hover:underline"
+          @click="emit('dependency', id)"
+        >
+          {{ t(`catalog.${id}.name`) }}
+        </button>
+      </div>
       <p v-if="item.queuePosition" class="mb-4 text-xs text-muted">
-        {{ t("studio.queued", { position: item.queuePosition }) }}
-        <button
-          class="ml-3 inline-flex items-center gap-[5px] text-[11px] text-signal hover:underline hover:underline-offset-[3px]"
+        {{ t("studio.queued", { position: item.queuePosition })
+        }}<button
+          class="ml-3 text-signal hover:underline"
           @click="emit('cancel')"
         >
           {{ t("common.cancel") }}
@@ -143,7 +182,8 @@ const facts = computed(() => [
       </p>
       <section
         v-if="item.operation"
-        class="mb-[22px] rounded-md border border-line bg-surface p-4 text-[12px]"
+        class="mb-6 rounded-md border border-line bg-surface p-4 text-xs"
+        aria-live="polite"
       >
         <div class="flex justify-between gap-4">
           <h2>
@@ -167,119 +207,112 @@ const facts = computed(() => [
                 : 'signal'
           "
         />
-        <div v-if="item.operation.error" class="mt-3 text-xs">
+        <div v-if="item.operation.error" class="mt-3">
           <b class="text-danger">{{
             t(`store.errors.${item.operation.error.code}.title`)
           }}</b>
-          <p class="mt-1 text-muted">
+          <p class="mt-1 leading-6 text-muted">
             {{ t(`store.errors.${item.operation.error.code}.body`) }}
           </p>
         </div>
         <details class="mt-3">
-          <summary
-            class="inline-flex items-center gap-[5px] text-[11px] text-signal hover:underline hover:underline-offset-[3px]"
-          >
+          <summary class="cursor-pointer text-signal">
             {{ t("studio.viewDetails") }}
           </summary>
           <StepList :steps="item.operation.steps" label-prefix="store.steps" />
         </details>
         <button
           v-if="installing"
-          class="mt-3 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
+          class="mt-3 rounded-md border border-line bg-raised px-3 py-1.5 disabled:opacity-45"
           :disabled="!currentStep?.cancellable"
           @click="emit('cancel')"
         >
           {{ t("common.cancel") }}
         </button>
       </section>
-      <div
-        class="mb-[26px] flex gap-3 overflow-x-auto"
+      <section
+        v-if="screenshots.length"
+        class="mb-7"
         :aria-label="t('studio.appPreviews')"
       >
-        <div
-          v-for="index in 4"
-          :key="index"
-          class="flex h-[270px] w-[150px] shrink-0 flex-col items-center gap-[18px] rounded-lg bg-track p-3.5 max-[600px]:h-[245px] max-[600px]:w-[135px]"
-        >
-          <span class="w-full" aria-hidden="true">
-            <span
-              class="block h-[3px] w-[15px] bg-muted"
-              style="
-                mask: url(/vectors/illustrations/preview-dots.svg) center /
-                  contain no-repeat;
-              "
-            />
-          </span>
-          <PackageArtwork :package-id="item.entry.id" :size="40" />
-          <span
-            class="h-[70px] w-full bg-muted/12"
-            aria-hidden="true"
-            style="
-              mask: url(/vectors/illustrations/preview-lines.svg) center / 100%
-                100% no-repeat;
-            "
+        <div class="flex gap-3 overflow-x-auto pb-2">
+          <StoreMedia
+            v-for="(media, index) in screenshots"
+            :key="media.blob.sha256"
+            :blob="media.blob"
+            :alt="t('store.screenshot', { name, index: index + 1 })"
+            class="h-[290px] w-[194px] shrink-0 rounded-lg border border-line"
           />
-          <small class="mt-auto text-[10px] text-muted">{{
-            t("studio.previewNumber", { index })
-          }}</small>
         </div>
-      </div>
-      <div
-        class="grid grid-cols-[1fr_300px] gap-7 max-[1150px]:grid-cols-[1fr_230px] max-[850px]:grid-cols-1"
-      >
-        <section>
-          <h2 class="mb-[9px] text-[14px] font-semibold">
-            {{ t("studio.description") }}
-          </h2>
-          <p class="text-[13px] leading-[1.8] font-normal">
-            {{ t(`catalog.${item.entry.id}.description`) }}
-          </p>
-        </section>
-        <section>
-          <h2 class="mb-[9px] text-[14px] font-semibold">
-            {{ t("studio.versionHistory") }}
-          </h2>
-          <b class="text-[13px] leading-[1.8] font-normal"
-            >{{ item.entry.version }} ·
-            {{ d(item.entry.publishedAt, "date") }}</b
+      </section>
+      <section class="border-t border-line py-5">
+        <h2 class="mb-3 text-sm font-semibold">
+          {{ t("studio.description") }}
+        </h2>
+        <p class="whitespace-pre-line text-sm leading-7">{{ description }}</p>
+      </section>
+      <section class="border-t border-line py-5">
+        <h2 class="mb-4 text-sm font-semibold">
+          {{ t("studio.versionHistory") }}
+        </h2>
+        <template v-if="history.length"
+          ><article
+            v-for="release in history"
+            :key="release.id"
+            class="mb-5 last:mb-0"
           >
-          <p class="text-[13px] leading-[1.8] font-normal">
-            {{ t("studio.releaseNote") }}
-          </p>
-        </section>
-      </div>
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+              <b class="font-medium"
+                >{{ release.version }} ·
+                {{
+                  t("store.detail.revision", { revision: release.revision })
+                }}</b
+              ><span class="text-muted">{{
+                d(release.published_at, "date")
+              }}</span
+              ><span
+                v-if="release.status === 'yanked'"
+                class="rounded bg-warning/10 px-1.5 py-0.5 text-warning"
+                >{{ t("store.state.withdrawn") }}</span
+              >
+            </div>
+            <p class="mt-2 whitespace-pre-line text-xs leading-6 text-muted">
+              {{ release.notes[locale] ?? release.notes.en }}
+            </p>
+          </article></template
+        >
+        <p v-else class="text-xs text-muted">
+          {{ item.entry.version }} · {{ d(item.entry.publishedAt, "date") }}
+        </p>
+      </section>
     </div>
     <aside
-      class="w-[220px] shrink-0 border-l border-line pl-6 text-[12px] max-[1150px]:w-[190px] max-[850px]:w-[170px] max-[600px]:hidden"
+      class="w-[205px] shrink-0 border-l border-line pl-6 text-xs max-[1150px]:w-[180px] max-[850px]:w-40"
     >
-      <h2 class="mb-3 text-[14px] font-semibold">
-        {{ t("studio.information") }}
-      </h2>
+      <h2 class="mb-4 text-sm font-semibold">{{ t("studio.information") }}</h2>
       <dl>
-        <div
-          v-for="fact in facts"
-          :key="fact.label"
-          class="mt-2.5 flex flex-wrap gap-1 leading-[1.7]"
-        >
-          <dt class="text-muted">{{ fact.label }}</dt>
-          <dd>{{ fact.value }}</dd>
+        <div v-for="fact in facts" :key="fact.label" class="mb-4">
+          <dt class="mb-1 text-muted">{{ fact.label }}</dt>
+          <dd class="break-words leading-5">{{ fact.value }}</dd>
         </div>
       </dl>
-      <h3 class="mt-[22px] mb-2.5 text-muted">
-        {{ t("store.detail.policy") }}
-      </h3>
-      <p class="text-[12px] leading-[1.8]">
+      <h3 class="mb-1 mt-5 text-muted">{{ t("store.detail.policy") }}</h3>
+      <p class="leading-5">
         {{ t(`store.policy.${item.entry.installPolicy}`) }}
       </p>
-      <h3 class="mt-[22px] mb-2.5 text-muted">
-        {{ t("store.detail.checksum") }}
-      </h3>
-      <code class="text-[12px] leading-[1.8]">{{
+      <h3 class="mb-2 mt-5 text-muted">{{ t("store.detail.checksum") }}</h3>
+      <code class="block break-all text-[10px] leading-5">{{
         item.entry.checksumSha256
       }}</code>
-      <p class="mt-5 text-muted text-[12px] leading-[1.8]">
-        {{ t("studio.previewNotice") }}
-      </p>
+      <a
+        v-if="sourceUrl"
+        :href="sourceUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mt-5 inline-flex items-center gap-1 text-signal hover:underline"
+        >{{ t("store.detail.sourceCode")
+        }}<IconStudioExternal width="12" height="12"
+      /></a>
     </aside>
   </article>
 </template>

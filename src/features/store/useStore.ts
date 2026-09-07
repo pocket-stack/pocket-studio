@@ -12,6 +12,7 @@ import {
   GatewayError,
   useGateway,
   type CatalogEntry,
+  type CatalogSnapshot,
   type InstalledPackage,
   type PackageCategory,
 } from "../../shared/gateway";
@@ -19,13 +20,20 @@ import {
   evaluateCompatibility,
   type CompatibilityVerdict,
 } from "./compatibility";
+import { packageText } from "./packageContent";
 
 const catalog = ref<CatalogEntry[]>([]);
+const snapshot = ref<CatalogSnapshot | null>(null);
 const installed = ref<InstalledPackage[]>([]);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
+const installedIssue = ref<string | null>(null);
+let catalogRequest = 0;
+let installedRequest = 0;
+let installedDeviceId: string | null = null;
 const selectedId = ref<string | null>(null);
 const categoryFilter = ref<PackageCategory | "all">("all");
+const compatibleOnly = ref(false);
 const query = ref("");
 /** package id -> most recent install operation id */
 const installOperations = ref(new Map<string, string>());
@@ -42,37 +50,67 @@ watch(
 );
 
 async function refreshInstalled(): Promise<void> {
+  const request = ++installedRequest;
   const current = device.value;
+  if (installedDeviceId !== (current?.id ?? null)) {
+    installed.value = [];
+    installedDeviceId = current?.id ?? null;
+  }
+  installedIssue.value = null;
   if (!current || !useGateway().capabilities.packages) {
     installed.value = [];
     return;
   }
   try {
-    installed.value = await useGateway().store.installed(current.id);
-  } catch {
-    installed.value = [];
+    const result = await useGateway().store.installed(current.id);
+    if (request === installedRequest) installed.value = result;
+  } catch (error) {
+    if (request === installedRequest)
+      installedIssue.value =
+        error instanceof GatewayError ? error.code : "unknown";
+  }
+}
+
+async function refreshCatalog(refresh = true): Promise<void> {
+  const request = ++catalogRequest;
+  if (refresh) loading.value = true;
+  loadError.value = null;
+  try {
+    const result = await useGateway().store.catalog(device.value?.id, refresh);
+    if (request !== catalogRequest) return;
+    snapshot.value = result;
+    catalog.value = result.entries;
+  } catch (error) {
+    if (request === catalogRequest)
+      loadError.value = error instanceof GatewayError ? error.code : "unknown";
+  } finally {
+    if (request === catalogRequest) loading.value = false;
   }
 }
 
 async function initialize(): Promise<void> {
   if (initialized) return;
   initialized = true;
-  loading.value = true;
-  loadError.value = null;
-  try {
-    catalog.value = await useGateway().store.catalog();
-  } catch (error) {
-    loadError.value = error instanceof GatewayError ? error.code : "unknown";
-  } finally {
-    loading.value = false;
-  }
+  await refreshCatalog();
   await refreshInstalled();
   if (!watchingSession) {
     watchingSession = true;
     watch(
-      () => device.value?.id,
+      () =>
+        JSON.stringify([
+          device.value?.id,
+          device.value?.modelIdentifier,
+          device.value?.osVersion,
+          device.value?.buildNumber,
+          device.value?.mode,
+          readiness.value?.status,
+        ]),
       () => {
-        if (!device.value) queuedIds.value = [];
+        if (!device.value) {
+          queuedIds.value = [];
+          compatibleOnly.value = false;
+        }
+        if (useGateway().flavor === "tauri") void refreshCatalog(false);
         void refreshInstalled();
       },
     );
@@ -185,11 +223,18 @@ async function cancelInstall(packageId: string): Promise<void> {
 }
 
 export function useStore() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const allPackages = computed(() => catalog.value.map(view));
   const packages = computed(() => {
     const needle = query.value.trim().toLowerCase();
     return catalog.value
+      .filter((entry) => entry.details?.app.listing !== "unlisted")
+      .filter(
+        (entry) =>
+          !compatibleOnly.value ||
+          evaluateCompatibility(entry, device.value, readiness.value) ===
+            "compatible",
+      )
       .filter(
         (entry) =>
           categoryFilter.value === "all" ||
@@ -199,8 +244,12 @@ export function useStore() {
         (entry) =>
           needle === "" ||
           entry.id.includes(needle) ||
-          t(`catalog.${entry.id}.name`).toLowerCase().includes(needle) ||
-          t(`catalog.${entry.id}.summary`).toLowerCase().includes(needle) ||
+          packageText(entry, "name", locale.value, t)
+            .toLowerCase()
+            .includes(needle) ||
+          packageText(entry, "summary", locale.value, t)
+            .toLowerCase()
+            .includes(needle) ||
           entry.developer.toLowerCase().includes(needle),
       )
       .map(view);
@@ -213,10 +262,12 @@ export function useStore() {
 
   return {
     catalog: readonly(catalog),
+    snapshot: readonly(snapshot),
     installed: readonly(installed),
     queuedIds: readonly(queuedIds),
     loading: readonly(loading),
     loadError: readonly(loadError),
+    installedIssue: readonly(installedIssue),
     packages,
     allPackages,
     reload: async () => {
@@ -226,6 +277,7 @@ export function useStore() {
     selected,
     selectedId,
     categoryFilter,
+    compatibleOnly,
     query,
     initialize,
     install,

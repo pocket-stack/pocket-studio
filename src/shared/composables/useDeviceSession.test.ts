@@ -39,7 +39,12 @@ function fixture() {
   const gateway: StudioGateway = {
     ...createSimulatedGateway(),
     flavor: "tauri",
-    capabilities: { demo: false, preparation: false, packages: false },
+    capabilities: {
+      demo: false,
+      preparation: false,
+      catalog: false,
+      packages: false,
+    },
     devices: { list, onEvent: subscribe, checkReadiness: vi.fn() },
   };
   return {

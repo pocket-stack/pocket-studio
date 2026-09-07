@@ -6,8 +6,9 @@ use std::sync::Arc;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::application::store::CatalogSnapshot;
 use crate::application::{EventSink, Studio, StudioError};
-use crate::domain::catalog::{CatalogEntry, InstalledPackage};
+use crate::domain::catalog::InstalledPackage;
 use crate::domain::device::{DeviceEvent, DiscoverySnapshot};
 use crate::domain::log::LogEntry;
 use crate::domain::operation::{OperationEvent, OperationHandle};
@@ -99,8 +100,29 @@ pub async fn start_preparation(
 }
 
 #[tauri::command]
-pub async fn list_catalog() -> CommandResult<Vec<CatalogEntry>> {
-    Ok(Vec::new())
+pub async fn list_catalog(
+    state: State<'_, AppState>,
+    device_id: Option<String>,
+    refresh: Option<bool>,
+) -> CommandResult<CatalogSnapshot> {
+    state
+        .studio
+        .store
+        .catalog(device_id.as_deref(), refresh.unwrap_or(true))
+        .await
+        .map_err(|error| StudioError::from(error).into())
+}
+
+#[tauri::command]
+pub async fn store_media(state: State<'_, AppState>, sha256: String) -> CommandResult<String> {
+    state
+        .studio
+        .store
+        .repository
+        .media(&sha256)
+        .await
+        .map(|path| path.to_string_lossy().into_owned())
+        .map_err(|error| StudioError::from(error).into())
 }
 
 #[tauri::command]

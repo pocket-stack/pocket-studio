@@ -4,20 +4,17 @@ import type {
   CatalogEntry,
   DeviceSummary,
   ReadinessReport,
+  StoreVerdict,
 } from "../../shared/gateway";
 
-export type CompatibilityVerdict =
-  | "compatible"
-  | "requiresPreparation"
-  | "unsupportedModel"
-  | "unsupportedOs"
-  | "noDevice";
+export type CompatibilityVerdict = StoreVerdict;
 
 export function evaluateCompatibility(
   entry: CatalogEntry,
   device: DeviceSummary | null,
   readiness: ReadinessReport | null,
 ): CompatibilityVerdict {
+  if (entry.details) return entry.details.verdict;
   if (!device || !device.modelIdentifier || !device.osVersion)
     return "noDevice";
   const { compatibility } = entry;

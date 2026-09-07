@@ -11,8 +11,9 @@ import {
 import { formatBytes } from "./compatibility";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
 import PackageArtwork from "./PackageArtwork.vue";
+import { packageText } from "./packageContent";
 const emit = defineEmits<{ openStore: []; detail: [id: string] }>();
-const { t, d } = useI18n();
+const { t, d, locale } = useI18n();
 const store = useStore();
 const gateway = useGateway();
 const { active } = useOperations();
@@ -25,8 +26,8 @@ const installed = computed(() =>
     .sort((a, b) =>
       sort.value === "recent"
         ? (b.installed?.installedAt ?? 0) - (a.installed?.installedAt ?? 0)
-        : t(`catalog.${a.entry.id}.name`).localeCompare(
-            t(`catalog.${b.entry.id}.name`),
+        : packageText(a.entry, "name", locale.value, t).localeCompare(
+            packageText(b.entry, "name", locale.value, t),
           ),
     ),
 );
@@ -85,13 +86,17 @@ const totalSize = computed(() =>
         :key="item.entry.id"
         class="mt-[15px] flex items-center gap-3.5 border-t border-line pt-[15px]"
       >
-        <PackageArtwork :package-id="item.entry.id" :size="36" />
+        <PackageArtwork
+          :entry="item.entry"
+          :package-id="item.entry.id"
+          :size="36"
+        />
         <div class="min-w-0 flex-1">
           <button
             class="text-xs font-medium"
             @click="emit('detail', item.entry.id)"
           >
-            {{ t(`catalog.${item.entry.id}.name`) }}
+            {{ packageText(item.entry, "name", locale, t) }}
           </button>
           <div class="mt-1.5 flex items-center gap-3">
             <ProgressBar
@@ -215,11 +220,12 @@ const totalSize = computed(() =>
                     @click="emit('detail', item.entry.id)"
                   >
                     <PackageArtwork
+                      :entry="item.entry"
                       :package-id="item.entry.id"
                       :size="38"
                     /><span
                       ><b class="text-[12px] font-medium">{{
-                        t(`catalog.${item.entry.id}.name`)
+                        packageText(item.entry, "name", locale, t)
                       }}</b
                       ><small class="mt-1 block text-[10px] text-muted">{{
                         t(`store.category.${item.entry.category}`)
@@ -306,7 +312,10 @@ const totalSize = computed(() =>
           t("studio.sources")
         }}</span
         ><b class="mt-[7px] block text-[11px] font-normal">{{
-          t("studio.demoCatalog")
+          store.snapshot.value?.source === "demo"
+            ? t("store.source.demo")
+            : (store.snapshot.value?.sourceLabel ??
+              t("store.source.unconfigured"))
         }}</b>
         <p class="mt-[7px] text-[12px] text-muted">
           {{ t("studio.installedNotice") }}

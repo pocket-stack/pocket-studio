@@ -3,6 +3,7 @@
 
 pub mod discovery;
 pub mod preparation;
+pub mod store;
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -83,6 +84,8 @@ impl OperationLog {
 #[derive(Debug, thiserror::Error)]
 pub enum StudioError {
     #[error(transparent)]
+    Store(#[from] store::StoreError),
+    #[error(transparent)]
     Preparation(#[from] preparation::PreparationError),
     #[error("device is not attached")]
     DeviceNotFound,
@@ -93,6 +96,7 @@ pub enum StudioError {
 impl StudioError {
     pub fn code(&self) -> &'static str {
         match self {
+            Self::Store(error) => error.code(),
             Self::Preparation(error) => error.code(),
             Self::DeviceNotFound => "deviceNotFound",
             Self::OperationUnavailable => "operationUnavailable",
@@ -105,6 +109,7 @@ impl StudioError {
 pub struct Studio {
     pub discovery: Arc<discovery::DeviceDiscovery>,
     pub preparation: Arc<preparation::PreparationService>,
+    pub store: Arc<store::StoreService>,
     log: Arc<OperationLog>,
 }
 
@@ -112,11 +117,13 @@ impl Studio {
     pub fn new(
         discovery: Arc<discovery::DeviceDiscovery>,
         preparation: Arc<preparation::PreparationService>,
+        store: Arc<store::StoreService>,
         log: Arc<OperationLog>,
     ) -> Self {
         Self {
             discovery,
             preparation,
+            store,
             log,
         }
     }

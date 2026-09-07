@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use super::device::{DeviceSummary, Platform, compare_versions};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum PackageCategory {
@@ -17,20 +15,21 @@ pub enum InstallPolicy {
     Deb,
     Ipa,
     Bootstrap,
+    Unsupported,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageCompatibility {
-    pub platform: Platform,
+    pub platform: String,
     pub models: Vec<String>,
     pub min_os_version: String,
     pub max_os_version: String,
     pub requires_jailbreak: bool,
 }
 
-/// A verified catalog manifest entry. Display text lives in the webview
-/// locale files keyed by `id`.
+/// Display projection for the webview. The signed App/Release/Artifact models
+/// in `store` are authoritative; this projection never authorizes installation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogEntry {
@@ -45,6 +44,23 @@ pub struct CatalogEntry {
     pub compatibility: PackageCompatibility,
     pub dependencies: Vec<String>,
     pub published_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<CatalogDetails>,
+}
+
+/// Presentation projection of the selected signed release. It is never used as
+/// an installation manifest; execution resolves the authenticated catalog again.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogDetails {
+    pub app: super::store::Application,
+    pub release_id: String,
+    pub artifact_id: String,
+    pub target_id: String,
+    pub revision: u64,
+    pub native_identity: super::store::NativeIdentity,
+    pub verdict: super::store::StoreVerdict,
+    pub history: Vec<super::store::Release>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,116 +69,4 @@ pub struct InstalledPackage {
     pub package_id: String,
     pub version: String,
     pub installed_at: u64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CompatibilityVerdict {
-    Compatible,
-    RequiresPreparation,
-    UnsupportedModel,
-    UnsupportedOs,
-    UnknownDevice,
-}
-
-/// Pure compatibility rule shared by the installer gate and the UI.
-pub fn evaluate(
-    entry: &CatalogEntry,
-    device: &DeviceSummary,
-    jailbroken: bool,
-) -> CompatibilityVerdict {
-    let (Some(model), Some(version)) = (&device.model_identifier, &device.os_version) else {
-        return CompatibilityVerdict::UnknownDevice;
-    };
-    let compat = &entry.compatibility;
-    if compat.platform != device.platform || !compat.models.contains(model) {
-        return CompatibilityVerdict::UnsupportedModel;
-    }
-    if compare_versions(version, &compat.min_os_version).is_lt()
-        || compare_versions(version, &compat.max_os_version).is_gt()
-    {
-        return CompatibilityVerdict::UnsupportedOs;
-    }
-    if compat.requires_jailbreak && !jailbroken {
-        return CompatibilityVerdict::RequiresPreparation;
-    }
-    CompatibilityVerdict::Compatible
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::device::{DeviceMode, Transport};
-
-    fn device(model: &str, os: &str) -> DeviceSummary {
-        DeviceSummary {
-            id: "d".into(),
-            platform: Platform::Ios,
-            model_identifier: Some(model.into()),
-            marketing_name: String::new(),
-            chip: Some(String::new()),
-            board_config: Some(String::new()),
-            os_version: Some(os.into()),
-            build_number: Some(String::new()),
-            udid_masked: Some(String::new()),
-            ecid_masked: Some(String::new()),
-            serial_masked: Some(String::new()),
-            storage_gb: Some(0),
-            battery_percent: Some(100),
-            storage_total_bytes: None,
-            storage_free_bytes: None,
-            mode: DeviceMode::Normal,
-            transport: Transport::Usb,
-        }
-    }
-
-    fn entry(requires_jailbreak: bool) -> CatalogEntry {
-        CatalogEntry {
-            id: "p".into(),
-            version: "1".into(),
-            developer: String::new(),
-            category: PackageCategory::Tool,
-            size_bytes: 1,
-            install_policy: InstallPolicy::Deb,
-            checksum_sha256: String::new(),
-            signed: true,
-            compatibility: PackageCompatibility {
-                platform: Platform::Ios,
-                models: vec!["iPod4,1".into()],
-                min_os_version: "6.0".into(),
-                max_os_version: "6.1.6".into(),
-                requires_jailbreak,
-            },
-            dependencies: vec![],
-            published_at: 0,
-        }
-    }
-
-    #[test]
-    fn jailbreak_requirement_gates_stock_devices() {
-        let stock = device("iPod4,1", "6.1.6");
-        assert_eq!(
-            evaluate(&entry(true), &stock, false),
-            CompatibilityVerdict::RequiresPreparation
-        );
-        assert_eq!(
-            evaluate(&entry(true), &stock, true),
-            CompatibilityVerdict::Compatible
-        );
-        assert_eq!(
-            evaluate(&entry(false), &stock, false),
-            CompatibilityVerdict::Compatible
-        );
-    }
-
-    #[test]
-    fn model_and_os_are_checked_before_jailbreak() {
-        assert_eq!(
-            evaluate(&entry(true), &device("iPhone4,1", "6.1.6"), true),
-            CompatibilityVerdict::UnsupportedModel
-        );
-        assert_eq!(
-            evaluate(&entry(true), &device("iPod4,1", "5.1.1"), true),
-            CompatibilityVerdict::UnsupportedOs
-        );
-    }
 }

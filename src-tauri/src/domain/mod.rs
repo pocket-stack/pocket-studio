@@ -7,6 +7,7 @@ pub mod log;
 pub mod operation;
 pub mod preparation;
 pub mod readiness;
+pub mod store;
 
 /// Milliseconds since the Unix epoch, the timestamp representation shared
 /// with the webview.

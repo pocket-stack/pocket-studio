@@ -235,10 +235,45 @@ export type OperationEvent =
   | { type: "cancelled"; operationId: string; stepId: StepId };
 
 export type PackageCategory = "runtime" | "tool" | "app" | "game";
-export type InstallPolicy = "deb" | "ipa" | "bootstrap";
+export type InstallPolicy = "deb" | "ipa" | "bootstrap" | "unsupported";
+export type SignedCatalog = import("./storeProtocol.generated").SignedCatalog;
+export type StoreApplication = SignedCatalog["apps"][number];
+export type StoreRelease = SignedCatalog["releases"][number];
+export type StoreArtifact = StoreRelease["artifacts"][number];
+export type StoreVerdict =
+  | "compatible"
+  | "requiresPreparation"
+  | "unsupportedModel"
+  | "unsupportedOs"
+  | "unsupportedInstaller"
+  | "unknownDevice"
+  | "noDevice"
+  | "withdrawn"
+  | "catalogExpired";
+export interface CatalogDetails {
+  app: StoreApplication;
+  releaseId: string;
+  artifactId: string;
+  targetId: string;
+  revision: number;
+  nativeIdentity: StoreArtifact["native_identity"];
+  verdict: StoreVerdict;
+  history: StoreRelease[];
+}
+export interface CatalogSnapshot {
+  entries: CatalogEntry[];
+  source: "network" | "cache" | "unconfigured" | "demo";
+  sourceLabel: string | null;
+  sequence: number | null;
+  expiresAt: number | null;
+  checkedAt: number | null;
+  expired: boolean;
+  verified: boolean;
+  issue: string | null;
+}
 
 export interface PackageCompatibility {
-  platform: Platform;
+  platform: string;
   models: string[];
   minOsVersion: string;
   maxOsVersion: string;
@@ -257,6 +292,7 @@ export interface CatalogEntry {
   compatibility: PackageCompatibility;
   dependencies: string[];
   publishedAt: number;
+  details?: CatalogDetails;
 }
 
 export interface InstalledPackage {
@@ -309,6 +345,7 @@ export interface StudioGateway {
   readonly capabilities: {
     demo: boolean;
     preparation: boolean;
+    catalog: boolean;
     packages: boolean;
   };
   devices: {
@@ -323,7 +360,8 @@ export interface StudioGateway {
     start(consent: ConsentRecord): Promise<OperationHandle>;
   };
   store: {
-    catalog(): Promise<CatalogEntry[]>;
+    catalog(deviceId?: string, refresh?: boolean): Promise<CatalogSnapshot>;
+    media(sha256: string): Promise<string>;
     installed(deviceId: string): Promise<InstalledPackage[]>;
     uninstall(deviceId: string, packageId: string): Promise<void>;
     install(deviceId: string, packageId: string): Promise<OperationHandle>;

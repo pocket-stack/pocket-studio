@@ -22,6 +22,7 @@ import SettingsView from "./features/settings/SettingsView.vue";
 import StoreView from "./features/store/StoreView.vue";
 import InstalledView from "./features/store/InstalledView.vue";
 import { useStore } from "./features/store/useStore";
+import { packageText } from "./features/store/packageContent";
 import { useDeviceSession } from "./shared/composables/useDeviceSession";
 import { useLogMessage } from "./shared/composables/useLogMessage";
 import { useOperationLog } from "./shared/composables/useOperationLog";
@@ -32,7 +33,7 @@ import {
 import { useGateway } from "./shared/gateway";
 import StudioDialog from "./shared/ui/StudioDialog.vue";
 
-const { t, d } = useI18n();
+const { t, d, locale } = useI18n();
 const renderLog = useLogMessage();
 const lastDeviceSection = ref<DeviceSection>("summary");
 const mainContent = ref<HTMLElement | null>(null);
@@ -62,11 +63,16 @@ const progress = computed(() =>
 );
 const lcdTitle = computed(() => {
   const operation = current.value;
+  const entry =
+    operation &&
+    store.catalog.value.find((item) => item.id === operation.subject);
   if (operation)
     return operation.kind === "preparation"
       ? t("studio.preparing")
       : t("studio.installing", {
-          name: t(`catalog.${operation.subject}.name`),
+          name: entry
+            ? packageText(entry, "name", locale.value, t)
+            : (operation.subject ?? t("store.title")),
         });
   return session.device.value
     ? session.device.value.marketingName

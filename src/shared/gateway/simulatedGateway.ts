@@ -491,7 +491,12 @@ export function createSimulatedGateway(): StudioGateway {
 
   const gateway: StudioGateway = {
     flavor: "browser",
-    capabilities: { demo: true, preparation: true, packages: true },
+    capabilities: {
+      demo: true,
+      preparation: true,
+      catalog: true,
+      packages: true,
+    },
     devices: {
       async list() {
         return {
@@ -607,7 +612,23 @@ export function createSimulatedGateway(): StudioGateway {
       },
       async catalog() {
         await sleep(300);
-        return demoCatalog;
+        return {
+          entries: demoCatalog,
+          source: "demo",
+          sourceLabel: null,
+          sequence: null,
+          expiresAt: null,
+          checkedAt: null,
+          expired: false,
+          verified: false,
+          issue: null,
+        };
+      },
+      async media() {
+        throw new GatewayError(
+          "operationUnavailable",
+          "Media downloads are unavailable in the browser demo",
+        );
       },
       async installed(deviceId) {
         requireDevice(deviceId);
