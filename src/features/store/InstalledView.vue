@@ -50,7 +50,7 @@ const tasks = computed(() =>
     v-if="!gateway.capabilities.installed"
     class="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center"
   >
-    <IconStudioGrid width="32" height="32" class="text-muted" />
+    <IconPhSquaresFour width="32" height="32" class="text-muted" />
     <h1 class="text-xl font-semibold">{{ t("studio.installedApps") }}</h1>
     <p class="max-w-[500px] text-sm leading-7 text-muted">
       {{ t("connection.installedUnavailable") }}
@@ -78,7 +78,7 @@ const tasks = computed(() =>
         class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
         @click="emit('openStore')"
       >
-        <IconStudioStore width="14" height="14" />{{ t("studio.browseStore") }}
+        <IconPhStorefront width="14" height="14" />{{ t("studio.browseStore") }}
       </button>
     </header>
     <p
@@ -157,7 +157,7 @@ const tasks = computed(() =>
           @click="emit('detail', item.entry.id)"
         >
           {{ t("studio.viewDetails")
-          }}<IconStudioChevronRight width="12" height="12" />
+          }}<IconPhCaretRight width="12" height="12" />
         </button>
       </article>
     </section>
@@ -188,7 +188,7 @@ const tasks = computed(() =>
         >
           <span
             class="mb-2 grid size-[75px] place-items-center rounded-[18px] border border-line bg-surface text-[#9aabbc]"
-            ><IconStudioGrid width="35" height="35"
+            ><IconPhSquaresFour width="35" height="35"
           /></span>
           <h2 class="text-[17px] font-medium">
             {{
@@ -221,7 +221,7 @@ const tasks = computed(() =>
             @click="emit('openStore')"
           >
             {{ t("studio.findApps")
-            }}<IconStudioArrowRight width="14" height="14" />
+            }}<IconPhArrowRight width="14" height="14" />
           </button>
         </div>
         <div v-else class="overflow-x-auto rounded-[7px] border border-line">
@@ -379,7 +379,7 @@ const tasks = computed(() =>
       <aside
         class="w-[220px] shrink-0 border-l border-line pl-6 max-[1150px]:w-[190px] max-[800px]:hidden"
       >
-        <IconStudioDevice class="mb-3.5 text-muted" width="24" height="24" />
+        <IconPhDeviceMobile class="mb-3.5 text-muted" width="24" height="24" />
         <h2 class="text-[14px] font-medium">{{ t("studio.deviceName") }}</h2>
         <p class="mt-[7px] text-[12px] text-muted">
           {{ device ? t("studio.usbConnected") : t("app.noDevice") }}

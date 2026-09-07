@@ -84,7 +84,7 @@ function formatElapsed(seconds: number): string {
           : 'border-warning/40 bg-warning/8'
       "
     >
-      <IconStudioWarning
+      <IconPhWarning
         class="mt-0.5"
         :class="passedPointOfNoReturn ? 'text-danger' : 'text-warning'"
       />
@@ -114,7 +114,7 @@ function formatElapsed(seconds: number): string {
         :disabled="!canCancel"
         @click="emit('cancel')"
       >
-        <IconStudioStop width="16" height="16" />
+        <IconPhStop width="16" height="16" />
         {{ t("preparation.execution.cancel") }}
       </button>
       <span class="text-xs text-muted">

@@ -84,7 +84,7 @@ function startPreparation(): void {
     <div class="relative mb-[7px] opacity-80">
       <DeviceIllustration :width="135" screen="off" cable /><span
         class="absolute top-[40%] -right-2.5 grid size-[46px] place-items-center rounded-full bg-raised text-signal shadow-[0_3px_20px_#00000012]"
-        ><IconStudioUsb width="23" height="23"
+        ><IconPhUsb width="23" height="23"
       /></span>
     </div>
     <p class="text-[10px] tracking-[0.04em] text-muted">
@@ -117,7 +117,7 @@ function startPreparation(): void {
           gateway.capabilities.demo ? gateway.demo.attachDevice() : refresh()
         "
       >
-        <IconStudioUsb width="15" height="15" />{{
+        <IconPhUsb width="15" height="15" />{{
           t(gateway.capabilities.demo ? "demo.attach" : "studio.detectDevice")
         }}</button
       ><button
@@ -273,9 +273,7 @@ function startPreparation(): void {
         class="max-w-[640px] p-4 rounded-lg border border-line bg-surface"
       >
         <div class="flex gap-4">
-          <span class="hidden"
-            ><IconStudioPocket width="30" height="30"
-          /></span>
+          <span class="hidden"><IconPhPackage width="30" height="30" /></span>
           <div class="flex-1">
             <div class="flex items-center gap-3">
               <h2 class="text-[15px] font-semibold">
@@ -310,7 +308,7 @@ function startPreparation(): void {
           <p
             class="flex flex-1 basis-full items-start gap-[7px] text-[11px] text-muted"
           >
-            <IconStudioInfo width="16" height="16" />{{
+            <IconPhInfo width="16" height="16" />{{
               t("studio.environmentRisk")
             }}
           </p>
@@ -321,7 +319,7 @@ function startPreparation(): void {
             @click="startPreparation"
           >
             {{ t("studio.beginPreparation")
-            }}<IconStudioArrowRight width="15" height="15" /></button
+            }}<IconPhArrowRight width="15" height="15" /></button
           ><button
             v-else
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
@@ -345,7 +343,7 @@ function startPreparation(): void {
         </div>
       </section>
       <div class="hidden">
-        <IconStudioExternal width="15" height="15" /><span>{{
+        <IconPhArrowSquareOut width="15" height="15" /><span>{{
           t("studio.reference")
         }}</span
         ><a

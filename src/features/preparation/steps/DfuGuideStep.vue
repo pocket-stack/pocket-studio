@@ -167,11 +167,11 @@ onBeforeUnmount(() => {
               class="absolute inset-0 flex items-center justify-center font-mono font-semibold tabular-nums text-[25px] leading-[1.2]"
             >
               {{ phase === "detecting" ? "" : secondsLeft }}
-              <IconStudioSpinner
+              <IconSvgSpinnersRingResize
                 v-if="phase === 'detecting'"
                 width="24"
                 height="24"
-                class="text-info motion-safe:animate-studio-spin"
+                class="text-info"
               />
             </span>
           </div>
@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
             @click="start"
           >
-            <IconStudioPlay width="16" height="16" />
+            <IconPhPlayFill width="16" height="16" />
             {{
               phase === "timeout"
                 ? t("preparation.dfu.retry")
@@ -223,7 +223,7 @@ onBeforeUnmount(() => {
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
             @click="reset"
           >
-            <IconStudioRefresh width="16" height="16" />
+            <IconPhArrowsClockwise width="16" height="16" />
             {{ t("preparation.dfu.restart") }}
           </button>
         </div>
@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
         class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-danger bg-transparent text-danger enabled:hover:bg-danger/10"
         @click="emit('cancel')"
       >
-        <IconStudioStop width="16" height="16" />
+        <IconPhStop width="16" height="16" />
         {{ t("preparation.execution.cancel") }}
       </button>
       <span class="text-xs text-muted">{{

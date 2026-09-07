@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import IconStudioChevronDown from "~icons/studio/chevron-down";
-import IconStudioChevronRight from "~icons/studio/chevron-right";
+import IconPhCaretDown from "~icons/ph/caret-down";
+import IconPhCaretRight from "~icons/ph/caret-right";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useLogMessage } from "../../shared/composables/useLogMessage";
@@ -85,22 +85,22 @@ onMounted(() => void log.initialize());
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
             @click="copy(log.serializeLogs(visible))"
           >
-            <IconStudioCopy width="14" height="14" />{{
-              t("logs.copy")
-            }}</button
+            <IconPhCopy width="14" height="14" />{{ t("logs.copy") }}</button
           ><button
             class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
             :disabled="log.exporting.value"
             @click="log.exportLogs"
           >
-            <IconStudioDownload width="14" height="14" />{{ t("logs.export") }}
+            <IconPhDownloadSimple width="14" height="14" />{{
+              t("logs.export")
+            }}
           </button>
         </div>
       </header>
       <div class="mb-4 flex gap-3 max-[1150px]:flex-wrap">
         <label
           class="flex flex-1 items-center gap-2 rounded-[5px] border border-line px-[11px] py-[7px] text-[11px] text-muted max-[1150px]:basis-full"
-          ><IconStudioSearch width="14" height="14" /><input
+          ><IconPhMagnifyingGlass width="14" height="14" /><input
             v-model="search"
             class="w-full text-ink outline-none"
             :placeholder="t('studio.logSearch')"
@@ -230,8 +230,8 @@ onMounted(() => void log.initialize());
                     <component
                       :is="
                         expandedId === entry.id
-                          ? IconStudioChevronDown
-                          : IconStudioChevronRight
+                          ? IconPhCaretDown
+                          : IconPhCaretRight
                       "
                       width="12"
                       height="12"
@@ -267,14 +267,14 @@ onMounted(() => void log.initialize());
           v-if="!visible.length"
           class="flex min-h-[250px] items-center justify-center gap-2.5 text-[12px] text-muted"
         >
-          <IconStudioLogs width="24" height="24" />{{ t("logs.empty") }}
+          <IconPhFileText width="24" height="24" />{{ t("logs.empty") }}
         </div>
       </div>
       <footer
         class="mt-[15px] flex items-center justify-between gap-[18px] text-[9px] text-muted max-[800px]:flex-wrap"
       >
         <span class="flex items-center gap-1.5 whitespace-nowrap"
-          ><IconStudioShield width="13" height="13" />{{
+          ><IconPhShieldCheck width="13" height="13" />{{
             t("studio.logLocal")
           }}</span
         >
@@ -330,7 +330,7 @@ onMounted(() => void log.initialize());
       class="mt-4 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
       @click="copy(log.exportText.value ?? '')"
     >
-      <IconStudioCopy width="14" height="14" />{{ t("logs.copy") }}
+      <IconPhCopy width="14" height="14" />{{ t("logs.copy") }}
     </button></StudioDialog
   >
 </template>

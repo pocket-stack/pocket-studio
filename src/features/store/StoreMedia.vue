@@ -45,10 +45,14 @@ watch(
         failed ? t('store.mediaUnavailable') : t('store.mediaLoading')
       "
     >
-      <IconStudioGrid v-if="failed" width="24" height="24" aria-hidden="true" />
-      <IconStudioSpinner
+      <IconPhSquaresFour
+        v-if="failed"
+        width="24"
+        height="24"
+        aria-hidden="true"
+      />
+      <IconSvgSpinnersRingResize
         v-else
-        class="motion-safe:animate-studio-spin"
         width="18"
         height="18"
         aria-hidden="true"

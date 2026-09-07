@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import IconStudioInfo from "~icons/studio/info";
-import IconStudioCheck from "~icons/studio/check";
-import IconStudioWarning from "~icons/studio/warning";
-import IconStudioCross from "~icons/studio/cross";
+import IconPhInfo from "~icons/ph/info";
+import IconPhCheck from "~icons/ph/check";
+import IconPhWarning from "~icons/ph/warning";
+import IconPhX from "~icons/ph/x";
 import { useI18n } from "vue-i18n";
 
 import { useNotifications } from "../shared/composables/useNotifications";
@@ -17,10 +17,10 @@ const tones = {
   error: "border-danger/40 text-danger",
 };
 const icons = {
-  info: IconStudioInfo,
-  success: IconStudioCheck,
-  warning: IconStudioWarning,
-  error: IconStudioCross,
+  info: IconPhInfo,
+  success: IconPhCheck,
+  warning: IconPhWarning,
+  error: IconPhX,
 };
 </script>
 
@@ -49,7 +49,7 @@ const icons = {
         />
         <p class="flex-1 text-ink">{{ t(item.key, item.params ?? {}) }}</p>
         <button class="text-muted hover:text-ink" @click="dismiss(item.id)">
-          <IconStudioCross width="14" height="14" />
+          <IconPhX width="14" height="14" />
         </button>
       </div>
     </TransitionGroup>

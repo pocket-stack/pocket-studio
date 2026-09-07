@@ -30,17 +30,13 @@ const { t } = useI18n();
           'border-warning text-warning': step.status === 'cancelled',
         }"
       >
-        <IconStudioCheck v-if="step.status === 'done'" width="14" height="14" />
-        <IconStudioCross
-          v-else-if="step.status === 'failed'"
-          width="14"
-          height="14"
-        />
-        <IconStudioSpinnerCompact
+        <IconPhCheck v-if="step.status === 'done'" width="14" height="14" />
+        <IconPhX v-else-if="step.status === 'failed'" width="14" height="14" />
+        <IconSvgSpinners90Ring
           v-else-if="step.status === 'running'"
           width="12"
           height="12"
-          class="text-on-signal motion-safe:animate-studio-spin"
+          class="text-on-signal"
         />
         <span v-else>{{ index + 1 }}</span>
       </span>
@@ -55,13 +51,13 @@ const { t } = useI18n();
               class="text-danger"
               :title="t('operation.pointOfNoReturn')"
             >
-              <IconStudioWarning width="14" height="14" />
+              <IconPhWarning width="14" height="14" />
             </span>
             <span
               v-if="!step.cancellable && step.status !== 'done'"
               :title="t('operation.notCancellable')"
             >
-              <IconStudioShield width="14" height="14" />
+              <IconPhShieldCheck width="14" height="14" />
             </span>
             <span v-if="step.status === 'running'">{{
               step.indeterminate

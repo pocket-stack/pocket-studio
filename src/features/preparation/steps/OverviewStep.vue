@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import IconStudioBattery from "~icons/studio/battery";
-import IconStudioDevice from "~icons/studio/device";
-import IconStudioShield from "~icons/studio/shield";
-import IconStudioCable from "~icons/studio/cable";
-import IconStudioClock from "~icons/studio/clock";
+import IconPhBatteryMedium from "~icons/ph/battery-medium";
+import IconPhDeviceMobile from "~icons/ph/device-mobile";
+import IconPhShieldCheck from "~icons/ph/shield-check";
+import IconPhPlugs from "~icons/ph/plugs";
+import IconPhClock from "~icons/ph/clock";
 import { computed, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 
@@ -70,11 +70,11 @@ const facts = computed(() => [
 ]);
 
 const prerequisiteIcons: Record<PrerequisiteId, Component> = {
-  batteryAbove50: IconStudioBattery,
-  workingButtons: IconStudioDevice,
-  backupCompleted: IconStudioShield,
-  stableCable: IconStudioCable,
-  computerAwake: IconStudioClock,
+  batteryAbove50: IconPhBatteryMedium,
+  workingButtons: IconPhDeviceMobile,
+  backupCompleted: IconPhShieldCheck,
+  stableCable: IconPhPlugs,
+  computerAwake: IconPhClock,
 };
 </script>
 
@@ -221,7 +221,7 @@ const prerequisiteIcons: Record<PrerequisiteId, Component> = {
         @click="emit('next')"
       >
         {{ t("preparation.overview.continue") }}
-        <IconStudioArrowRight width="16" height="16" />
+        <IconPhArrowRight width="16" height="16" />
       </button>
     </footer>
   </div>

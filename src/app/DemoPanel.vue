@@ -40,7 +40,7 @@ async function armFailure(): Promise<void> {
 <template>
   <div class="flex flex-col gap-3 text-xs">
     <p class="flex items-center gap-2 font-semibold text-muted">
-      <IconStudioLab width="14" height="14" />
+      <IconPhFlask width="14" height="14" />
       {{ t("demo.title") }}
     </p>
     <p class="text-muted">{{ t("demo.hint") }}</p>

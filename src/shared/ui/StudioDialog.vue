@@ -46,7 +46,7 @@ watch(
         :aria-label="t('common.close')"
         @click="emit('close')"
       >
-        <IconStudioCross width="18" height="18" />
+        <IconPhX width="18" height="18" />
       </button>
     </header>
     <div

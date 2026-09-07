@@ -39,7 +39,7 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
   <div class="flex min-h-0 flex-1 flex-col gap-4">
     <div class="text-[12px]">
       <div class="flex items-start gap-3">
-        <IconStudioWarning class="mt-0.5 text-danger hidden" />
+        <IconPhWarning class="mt-0.5 text-danger hidden" />
         <div>
           <p class="font-semibold hidden m-0 text-[12px] leading-[1.428571]">
             {{ t("preparation.risks.banner.title") }}
@@ -96,7 +96,7 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
         class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink px-3 py-1.5 text-[12px]"
         @click="emit('back')"
       >
-        <IconStudioArrowLeft width="16" height="16" />
+        <IconPhArrowLeft width="16" height="16" />
         {{ t("common.back") }}
       </button>
       <div class="flex items-center gap-3">
@@ -106,7 +106,7 @@ function severityTone(severity: RiskSeverity): "danger" | "warning" | "info" {
           @click="emit('next', elapsed)"
         >
           {{ t("preparation.risks.continue") }}
-          <IconStudioArrowRight width="16" height="16" />
+          <IconPhArrowRight width="16" height="16" />
         </button>
       </div>
     </footer>

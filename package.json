@@ -31,11 +31,14 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
+    "motion-v": "2.4.2",
     "vue": "^3.5.42",
     "vue-i18n": "^11.4.10"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@iconify-json/ph": "1.2.2",
+    "@iconify-json/svg-spinners": "1.2.4",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^24.3.0",

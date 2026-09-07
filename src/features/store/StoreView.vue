@@ -90,9 +90,7 @@ onMounted(() => void store.initialize());
       class="mb-5 inline-flex items-center gap-1 text-xs text-signal hover:underline"
       @click="emit('openPackage', null)"
     >
-      <IconStudioArrowLeft width="14" height="14" />{{
-        t("studio.backToStore")
-      }}
+      <IconPhArrowLeft width="14" height="14" />{{ t("studio.backToStore") }}
     </button>
     <PackageDetail
       :item="store.selected.value"
@@ -118,7 +116,7 @@ onMounted(() => void store.initialize());
         :disabled="store.loading.value"
         @click="store.reload"
       >
-        <IconStudioRefresh
+        <IconPhArrowsClockwise
           width="14"
           height="14"
           :class="{ 'motion-safe:animate-studio-spin': store.loading.value }"
@@ -130,11 +128,7 @@ onMounted(() => void store.initialize());
       class="mb-5 flex items-start gap-2.5 rounded-md border border-warning/30 bg-warning/5 px-4 py-3 text-xs leading-6"
       role="status"
     >
-      <IconStudioInfo
-        width="16"
-        height="16"
-        class="mt-1 shrink-0 text-warning"
-      />
+      <IconPhInfo width="16" height="16" class="mt-1 shrink-0 text-warning" />
       <p>
         {{
           store.snapshot.value?.expired ? t("store.source.expired") : issueText
@@ -173,7 +167,7 @@ onMounted(() => void store.initialize());
             @click="emit('openPackage', featuredPackage.entry.id)"
           >
             {{ t("studio.viewDetails")
-            }}<IconStudioArrowRight width="13" height="13" />
+            }}<IconPhArrowRight width="13" height="13" />
           </button>
         </div>
         <div v-if="featured.length > 1" class="flex shrink-0 gap-1.5">
@@ -212,15 +206,13 @@ onMounted(() => void store.initialize());
           v-if="store.loading.value && !store.catalog.value.length"
           class="flex min-h-[250px] items-center justify-center gap-2 text-xs text-muted"
         >
-          <IconStudioSpinner class="motion-safe:animate-studio-spin" />{{
-            t("store.loading")
-          }}
+          <IconSvgSpinnersRingResize />{{ t("store.loading") }}
         </div>
         <div
           v-else-if="!store.packages.value.length"
           class="flex min-h-[250px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-line px-6 text-center text-muted"
         >
-          <IconStudioGrid width="32" height="32" />
+          <IconPhSquaresFour width="32" height="32" />
           <p class="text-sm">{{ issue ? issueText : t("store.empty") }}</p>
           <p v-if="!issue && !filtered" class="text-xs leading-6">
             {{ t("store.emptyCatalog") }}
@@ -311,12 +303,12 @@ onMounted(() => void store.initialize());
         </button>
         <h3 class="mb-2 mt-6 text-xs text-muted">{{ t("studio.sources") }}</h3>
         <div class="flex items-center gap-2 text-xs">
-          <IconStudioPocket
+          <IconPhPackage
             width="16"
             height="16"
             class="shrink-0 text-signal"
           /><span class="truncate">{{ sourceLabel }}</span
-          ><IconStudioShield
+          ><IconPhShieldCheck
             v-if="store.snapshot.value?.verified"
             width="14"
             height="14"
@@ -347,7 +339,7 @@ onMounted(() => void store.initialize());
           @click="emit('openEnvironment')"
         >
           {{ t("studio.environmentGuide")
-          }}<IconStudioChevronRight width="12" height="12" />
+          }}<IconPhCaretRight width="12" height="12" />
         </button>
       </aside>
     </div>

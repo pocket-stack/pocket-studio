@@ -1,7 +1,5 @@
-import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
-import { FileSystemIconLoader } from "unplugin-icons/loaders";
 import IconsResolver from "unplugin-icons/resolver";
 import Icons from "unplugin-icons/vite";
 import Components from "unplugin-vue-components/vite";
@@ -17,11 +15,6 @@ export default defineConfig({
     svgLoader({ svgo: false }),
     Icons({
       compiler: "vue3",
-      customCollections: {
-        studio: FileSystemIconLoader(
-          fileURLToPath(new URL("./src/assets/icons", import.meta.url)),
-        ),
-      },
       defaultClass: "shrink-0",
       iconCustomizer(_collection, _icon, props) {
         props.width = "18";
@@ -37,8 +30,7 @@ export default defineConfig({
       resolvers: [
         IconsResolver({
           prefix: "Icon",
-          enabledCollections: [],
-          customCollections: ["studio"],
+          enabledCollections: ["ph", "svg-spinners"],
         }),
       ],
     }),

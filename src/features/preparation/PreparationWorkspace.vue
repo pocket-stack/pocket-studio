@@ -244,24 +244,24 @@ function openLogs(): void {
         >
           <span
             class="grid h-[18px] w-4 place-items-center text-[10px] text-muted group-data-[status=done]/flow-step:text-success"
-            ><IconStudioCheck
+            ><IconPhCheck
               v-if="step.status === 'done'"
               width="14"
               height="14"
-            /><IconStudioWarning
+            /><IconPhWarning
               v-else-if="step.status === 'restartRequired'"
               width="14"
               height="14"
               class="text-warning"
-            /><IconStudioCross
+            /><IconPhX
               v-else-if="step.status === 'failed'"
               width="14"
               height="14"
-            /><IconStudioSpinnerCompact
+            /><IconSvgSpinners90Ring
               v-else-if="step.status === 'running'"
               width="12"
               height="12"
-              class="text-signal motion-safe:animate-studio-spin"
+              class="text-signal"
             /><span v-else>{{ index + 1 }}</span></span
           >
           <div class="flex-1">

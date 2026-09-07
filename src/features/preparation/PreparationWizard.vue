@@ -58,7 +58,7 @@ watch(preparation.consentVisible, async (visible) => {
           :aria-label="t('common.close')"
           @click="preparation.close"
         >
-          <IconStudioCross width="17" height="17" />
+          <IconPhX width="17" height="17" />
         </button>
       </header>
       <RiskStep

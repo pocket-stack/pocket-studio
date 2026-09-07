@@ -28,7 +28,7 @@ const failedPackageId = ref<string>();
     v-else-if="entry?.details"
     class="inline-flex shrink-0 items-center justify-center rounded-[18%] border border-line bg-track text-muted"
     :style="{ width: `${size ?? 80}px`, height: `${size ?? 80}px` }"
-    ><IconStudioGrid width="32" height="32" aria-hidden="true"
+    ><IconPhSquaresFour width="32" height="32" aria-hidden="true"
   /></span>
   <img
     v-else

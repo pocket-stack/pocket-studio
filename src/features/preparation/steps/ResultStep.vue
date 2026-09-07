@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import IconStudioCheck from "~icons/studio/check";
-import IconStudioWarning from "~icons/studio/warning";
-import IconStudioCross from "~icons/studio/cross";
-import IconStudioStop from "~icons/studio/stop";
+import IconPhCheck from "~icons/ph/check";
+import IconPhWarning from "~icons/ph/warning";
+import IconPhX from "~icons/ph/x";
+import IconPhStop from "~icons/ph/stop";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useGateway } from "../../../shared/gateway";
@@ -80,12 +80,12 @@ const canRecheck = computed(
         <component
           :is="
             outcome === 'success'
-              ? IconStudioCheck
+              ? IconPhCheck
               : outcome === 'failed'
                 ? canRecheck
-                  ? IconStudioWarning
-                  : IconStudioCross
-                : IconStudioStop
+                  ? IconPhWarning
+                  : IconPhX
+                : IconPhStop
           "
           width="26"
           height="26"
@@ -168,7 +168,7 @@ const canRecheck = computed(
           class="mt-3 flex items-start gap-2 text-xs"
           :class="canRecheck ? 'text-warning' : 'text-danger'"
         >
-          <IconStudioWarning width="14" height="14" class="mt-0.5" />
+          <IconPhWarning width="14" height="14" class="mt-0.5" />
           {{
             t(
               canRecheck
@@ -188,7 +188,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-transparent text-muted enabled:hover:bg-ink/6 enabled:hover:text-ink"
           @click="emit('openLogs')"
         >
-          <IconStudioLogs width="16" height="16" />
+          <IconPhFileText width="16" height="16" />
           {{ t("preparation.result.viewLogs") }}
         </button>
       </div>
@@ -204,7 +204,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('recheck')"
         >
-          <IconStudioRefresh width="16" height="16" />
+          <IconPhArrowsClockwise width="16" height="16" />
           {{
             t(
               needsRestart
@@ -220,7 +220,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('openStore')"
         >
-          <IconStudioStore width="16" height="16" />
+          <IconPhStorefront width="16" height="16" />
           {{ t("preparation.result.openStore") }}
         </button>
         <button
@@ -228,7 +228,7 @@ const canRecheck = computed(
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
           @click="emit('retry')"
         >
-          <IconStudioRefresh width="16" height="16" />
+          <IconPhArrowsClockwise width="16" height="16" />
           {{ t("preparation.result.retry") }}
         </button>
       </div>

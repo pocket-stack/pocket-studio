@@ -339,7 +339,7 @@ const facts = computed(() => [
         rel="noopener noreferrer"
         class="mt-5 inline-flex items-center gap-1 text-signal hover:underline"
         >{{ t("store.detail.sourceCode")
-        }}<IconStudioExternal width="12" height="12"
+        }}<IconPhArrowSquareOut width="12" height="12"
       /></a>
     </aside>
   </article>

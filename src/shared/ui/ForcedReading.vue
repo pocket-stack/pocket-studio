@@ -74,11 +74,11 @@ defineExpose({ elapsed });
         />
       </div>
       <span v-if="!timeSatisfied" class="flex items-center gap-1">
-        <IconStudioClock width="14" height="14" />
+        <IconPhClock width="14" height="14" />
         {{ t("reading.remaining", { seconds: remaining }) }}
       </span>
       <span v-else class="flex items-center gap-1 text-success">
-        <IconStudioCheck width="14" height="14" />
+        <IconPhCheck width="14" height="14" />
         {{ t("reading.timeMet") }}
       </span>
     </div>

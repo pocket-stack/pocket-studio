@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import IconStudioCheck from "~icons/studio/check";
-import IconStudioWarning from "~icons/studio/warning";
-import IconStudioMinus from "~icons/studio/minus";
+import IconPhCheck from "~icons/ph/check";
+import IconPhWarning from "~icons/ph/warning";
+import IconPhMinus from "~icons/ph/minus";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
@@ -122,7 +122,7 @@ const canReviewPreparation = computed(() => {
       >
     </header>
     <div v-if="!report" class="p-7 text-sm text-muted flex items-center gap-2">
-      <IconStudioRefresh
+      <IconPhArrowsClockwise
         :class="{ 'motion-safe:animate-studio-spin': checking }"
         width="16"
         height="16"
@@ -140,10 +140,10 @@ const canReviewPreparation = computed(() => {
           ><component
             :is="
               check.status === 'pass'
-                ? IconStudioCheck
+                ? IconPhCheck
                 : check.status === 'fail'
-                  ? IconStudioWarning
-                  : IconStudioMinus
+                  ? IconPhWarning
+                  : IconPhMinus
             "
             width="14"
             height="14"
@@ -225,7 +225,7 @@ const canReviewPreparation = computed(() => {
                 ? "preparation.appSync.action"
                 : "preparation.reviewPlan",
             )
-          }}<IconStudioArrowRight width="14" height="14" /></button
+          }}<IconPhArrowRight width="14" height="14" /></button
         ><button
           v-else-if="
             report?.status === 'ready' && gateway.capabilities.packages
@@ -234,13 +234,13 @@ const canReviewPreparation = computed(() => {
           @click="emit('openStore')"
         >
           {{ t("device.next.action")
-          }}<IconStudioArrowRight width="14" height="14" /></button
+          }}<IconPhArrowRight width="14" height="14" /></button
         ><button
           class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
           :disabled="checking"
           @click="emit('recheck')"
         >
-          <IconStudioRefresh
+          <IconPhArrowsClockwise
             width="13"
             height="13"
             :class="{ 'motion-safe:animate-studio-spin': checking }"
@@ -253,7 +253,7 @@ const canReviewPreparation = computed(() => {
         @click="emit('details')"
       >
         {{ t("studio.allConditions")
-        }}<IconStudioChevronRight width="12" height="12" /></button
+        }}<IconPhCaretRight width="12" height="12" /></button
       ><span v-else-if="report" class="text-xs text-muted">{{
         t("readiness.checkedAt", { time: d(report.checkedAt, "time") })
       }}</span>
