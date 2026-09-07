@@ -19,7 +19,9 @@
     "notRequired": "Not required",
     "previous": "Previous page",
     "next": "Next page",
-    "pageOf": "{page} / {total}"
+    "pageOf": "{page} / {total}",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "demo": {
     "title": "Demo controls",
@@ -69,7 +71,7 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Appearance, language and about.",
+    "subtitle": "Appearance, language, device password and about.",
     "theme": {
       "title": "Theme",
       "system": "System",
@@ -84,6 +86,10 @@
     "about": {
       "title": "About",
       "version": "Version"
+    },
+    "ssh": {
+      "title": "Device root SSH password",
+      "hint": "Leave empty to use the factory default alpine. Stored on this computer only."
     }
   }
 }

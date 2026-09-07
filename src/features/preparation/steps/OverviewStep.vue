@@ -10,6 +10,7 @@ import { useI18n } from "vue-i18n";
 import type { PrerequisiteId, PreparationPlan } from "../../../shared/gateway";
 import { useGateway } from "../../../shared/gateway";
 import { useElementSize } from "../../../shared/composables/useElementSize";
+import { useDefaultSshPassword } from "../../../shared/preferences/sshPassword";
 import StudioButton from "../../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../../shared/ui/StudioCallout.vue";
 import StudioInput from "../../../shared/ui/StudioInput.vue";
@@ -28,6 +29,7 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 const { t } = useI18n();
+const { effective: defaultPassword } = useDefaultSshPassword();
 
 const totalMinutes = computed(() =>
   Math.ceil(
@@ -200,6 +202,7 @@ const prerequisiteIcons: Record<PrerequisiteId, Component> = {
               class="min-w-0 flex-1"
               autocomplete="off"
               maxlength="1024"
+              :secret="defaultPassword"
               :label="t('preparation.appSync.password')"
               @update:model-value="emit('update:sshPassword', $event)"
             />

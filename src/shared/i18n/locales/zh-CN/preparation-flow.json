@@ -205,7 +205,7 @@
       "intro": "设备已经越狱。本次仅通过 USB SSH 检查并补齐 AppSync 及其依赖，不执行 DFU 或越狱步骤。",
       "packages": "将安装或更新以下固定版本的系统插件；已有较新版本会保留。安装前检查依赖冲突，不强制覆盖。过程可能短暂重启设备桌面和安装服务。",
       "password": "设备 root SSH 密码",
-      "passwordHint": "未修改过的默认密码通常为 alpine。密码仅用于这次 USB SSH 连接，不写入日志或磁盘。",
+      "passwordHint": "留空则使用偏好设置中的默认密码。密码仅用于这次 USB SSH 连接，不写入日志。",
       "successTitle": "应用安装环境准备完成",
       "successBody": "已核对 AppSync 及依赖的安装记录。可以前往应用商店试装应用；若是首次安装且尚未重启，请先重启设备。",
       "disclaimerSections": [

@@ -19,7 +19,9 @@
     "notRequired": "不需要",
     "previous": "上一页",
     "next": "下一页",
-    "pageOf": "{page} / {total}"
+    "pageOf": "{page} / {total}",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码"
   },
   "demo": {
     "title": "演示控制",
@@ -69,7 +71,7 @@
   },
   "settings": {
     "title": "设置",
-    "subtitle": "外观、语言与关于信息。",
+    "subtitle": "外观、语言、设备密码与关于信息。",
     "theme": {
       "title": "主题",
       "system": "跟随系统",
@@ -84,6 +86,10 @@
     "about": {
       "title": "关于",
       "version": "版本"
+    },
+    "ssh": {
+      "title": "设备 root SSH 密码",
+      "hint": "留空则使用出厂默认密码 alpine，仅保存在本机。"
     }
   }
 }

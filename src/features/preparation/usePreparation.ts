@@ -8,6 +8,7 @@ import {
   useOperations,
   type OperationState,
 } from "../../shared/composables/useOperations";
+import { useDefaultSshPassword } from "../../shared/preferences/sshPassword";
 import {
   GatewayError,
   useGateway,
@@ -44,8 +45,12 @@ const disclaimerReadingSeconds = ref(0);
 const disclaimerAcceptedAt = ref<number | null>(null);
 const operationId = ref<string | null>(null);
 const startError = ref<string | null>(null);
-const sshPassword = ref("alpine");
+const sshPassword = ref("");
 const attempt = ref(0);
+// An empty field means the default from Preferences.
+const effectiveSshPassword = computed(
+  () => sshPassword.value || useDefaultSshPassword().effective.value,
+);
 
 const { get } = useOperations();
 
@@ -96,7 +101,7 @@ async function open(deviceId: string): Promise<void> {
   }
   minimized.value = false;
   resetConsent();
-  sshPassword.value = "alpine";
+  sshPassword.value = "";
   operationId.value = null;
   startError.value = null;
   planError.value = null;
@@ -130,7 +135,7 @@ function proceedToRisks(): void {
   if (
     !plan.value ||
     stage.value !== "overview" ||
-    (useGateway().flavor === "tauri" && !sshPassword.value)
+    (useGateway().flavor === "tauri" && !effectiveSshPassword.value)
   )
     return;
   if (confirmedPrerequisites.value.length !== plan.value.prerequisites.length)
@@ -202,7 +207,7 @@ async function launch(): Promise<void> {
     await useOperations().ready();
     const handle = await useGateway().preparation.start(
       consent,
-      sshPassword.value,
+      effectiveSshPassword.value,
     );
     attempt.value += 1;
     trackOperation(handle);
@@ -314,7 +319,8 @@ export function usePreparation() {
         plan.value !== null &&
         confirmedPrerequisites.value.length ===
           plan.value.prerequisites.length &&
-        (useGateway().flavor !== "tauri" || sshPassword.value.length > 0),
+        (useGateway().flavor !== "tauri" ||
+          effectiveSshPassword.value.length > 0),
     ),
     open,
     close,

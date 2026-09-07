@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { GatewayError, useGateway } from "../../shared/gateway";
+import { useDefaultSshPassword } from "../../shared/preferences/sshPassword";
 import StudioButton from "../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../shared/ui/StudioCallout.vue";
 import StudioDialog from "../../shared/ui/StudioDialog.vue";
@@ -10,6 +11,7 @@ import StudioInput from "../../shared/ui/StudioInput.vue";
 const props = defineProps<{ open: boolean; deviceId: string }>();
 const emit = defineEmits<{ close: []; checked: [] }>();
 const { t } = useI18n();
+const { effective: defaultPassword } = useDefaultSshPassword();
 const password = ref("");
 const pending = ref(false);
 const error = ref<string | null>(null);
@@ -18,16 +20,16 @@ watch(
   () => [props.open, props.deviceId],
   () => {
     generation += 1;
-    password.value = props.open ? "alpine" : "";
+    password.value = "";
     pending.value = false;
     error.value = null;
   },
   { immediate: true },
 );
 async function check(): Promise<void> {
-  if (!password.value || pending.value) return;
+  const secret = password.value || defaultPassword.value;
+  if (!secret || pending.value) return;
   const request = generation;
-  const secret = password.value;
   password.value = "";
   pending.value = true;
   error.value = null;
@@ -66,6 +68,7 @@ async function check(): Promise<void> {
           class="w-full"
           autofocus
           autocomplete="off"
+          :secret="defaultPassword"
           maxlength="1024"
           :disabled="pending"
           :label="t('preparation.appSync.password')"
@@ -90,7 +93,7 @@ async function check(): Promise<void> {
           type="submit"
           variant="primary"
           :loading="pending"
-          :disabled="!password"
+          :disabled="!password && !defaultPassword"
         >
           {{ t("readiness.appSyncCheck.action") }}
         </StudioButton>

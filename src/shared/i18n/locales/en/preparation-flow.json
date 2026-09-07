@@ -207,7 +207,7 @@
       "intro": "This device is already jailbroken. This plan prepares AppSync and its dependencies over USB SSH, without DFU or jailbreak steps.",
       "packages": "Install or update these pinned system packages while retaining newer installed versions. Dependencies are checked before installation, without forced overrides. The device UI and installation service may briefly restart.",
       "password": "Device root SSH password",
-      "passwordHint": "The unchanged default password is usually alpine. It is used only for this USB SSH connection and is not written to logs or disk.",
+      "passwordHint": "Leave empty to use the default from Preferences. The password is used only for this USB SSH connection and never written to logs.",
       "successTitle": "Application installation support prepared",
       "successBody": "AppSync and its dependencies have verified installation records. Try installing an app from the store; if this is the first installation and you have not restarted yet, restart the device first.",
       "disclaimerSections": [

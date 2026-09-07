@@ -493,3 +493,20 @@ it("only authenticates and reads AppSync after an explicit verification submit",
   expect(input.props.value).toBe("");
   expect(gateway.preparation.start).not.toHaveBeenCalled();
 });
+
+it("falls back to the default root password when the AppSync field is left empty", async () => {
+  gateway.devices.checkAppSync.mockClear();
+  const root = mount(AppSyncCheckDialog, { open: true, deviceId: "device" });
+  const input = find(root, (n) => n.tag === "input")[0]!;
+  expect(input.props.value).toBe("");
+  expect(input.props.placeholder).toBe("••••••");
+  const form = find(root, (n) => n.tag === "form")[0]!;
+  await (form.props.onSubmit as (event: unknown) => Promise<void>)({
+    preventDefault() {},
+  });
+  await nextTick();
+  expect(gateway.devices.checkAppSync).toHaveBeenCalledExactlyOnceWith(
+    "device",
+    "alpine",
+  );
+});
