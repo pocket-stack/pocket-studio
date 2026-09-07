@@ -256,7 +256,9 @@
         "checksumMismatch": "The IPA does not match its signed digest or native metadata. Installation was stopped.",
         "downloadFailed": "The package could not be downloaded. Refresh the catalog or provide a complete verified cache.",
         "cancelled": "The operation was cancelled before system submission.",
-        "unknown": "The application operation could not be completed. Refresh its state and try again."
+        "unknown": "The application operation could not be completed. Refresh its state and try again.",
+        "systemApplication": "The matching app is registered as a System application. Store operations require a User application; handle the existing system installation manually.",
+        "applicationTypeUnknown": "The native application type could not be confirmed. Refresh device apps before retrying."
       },
       "working": "Working…",
       "activity": "{action} {name} · {device}"

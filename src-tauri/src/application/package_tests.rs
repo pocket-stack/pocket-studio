@@ -538,3 +538,31 @@ async fn a_changed_installation_is_not_silently_converted_to_an_update() {
     );
     assert_eq!(s.device.writes.load(Ordering::SeqCst), 0);
 }
+
+#[tokio::test]
+async fn system_and_unknown_application_types_have_actionable_errors() {
+    let s = setup();
+    s.device.apps.lock().unwrap().push(NativeApplication {
+        bundle_id: "dev.example.notes.ios".into(),
+        product_version: Some("1.0.0".into()),
+        build_number: Some("1".into()),
+        application_type: Some("System".into()),
+        receipt_build_id: None,
+    });
+    let request = PackageRequest {
+        device_id: "device-one".into(),
+        app_id: "dev.example.notes".into(),
+        action: PackageAction::Uninstall,
+        bundle_id: None,
+    };
+    assert_eq!(
+        s.service.plan(request.clone()).await.unwrap_err(),
+        PackageError::SystemApplication
+    );
+    s.device.apps.lock().unwrap()[0].application_type = None;
+    assert_eq!(
+        s.service.plan(request).await.unwrap_err(),
+        PackageError::ApplicationTypeUnknown
+    );
+    assert_eq!(s.device.writes.load(Ordering::SeqCst), 0);
+}

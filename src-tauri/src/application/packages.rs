@@ -37,6 +37,12 @@ pub enum PackageError {
     Downgrade,
     #[error("this action does not match the installed state")]
     InvalidAction,
+    #[error(
+        "the matching native application is a System app and cannot be managed by User installation"
+    )]
+    SystemApplication,
+    #[error("the native application type could not be confirmed; refresh its state")]
+    ApplicationTypeUnknown,
     #[error("AppSync is missing; install it on the device and refresh")]
     NeedsAppSync,
     #[error("an operation for this app is already queued or running")]
@@ -79,6 +85,8 @@ impl PackageError {
             Self::StateChanged => "installedStateChanged",
             Self::Downgrade => "packageDowngrade",
             Self::InvalidAction => "invalidPackageAction",
+            Self::SystemApplication => "systemApplication",
+            Self::ApplicationTypeUnknown => "applicationTypeUnknown",
             Self::NeedsAppSync => "appsyncMissing",
             Self::Busy => "operationBusy",
             Self::PlanExpired => "planExpired",
@@ -981,8 +989,12 @@ pub fn validate_action(
     previous: Option<&NativeApplication>,
     artifact: Option<&crate::domain::store::Artifact>,
 ) -> Result<(), PackageError> {
-    if previous.is_some_and(|a| a.application_type.as_deref() != Some("User")) {
-        return Err(PackageError::InvalidAction);
+    if let Some(previous) = previous {
+        match previous.application_type.as_deref() {
+            Some("User") => {}
+            Some("System") => return Err(PackageError::SystemApplication),
+            _ => return Err(PackageError::ApplicationTypeUnknown),
+        }
     }
     match (action, previous) {
         (PackageAction::Install, Some(_))

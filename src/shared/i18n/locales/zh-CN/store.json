@@ -256,7 +256,9 @@
         "checksumMismatch": "IPA 与签名目录中的摘要或原生元数据不匹配，已停止安装。",
         "downloadFailed": "无法下载应用，请刷新目录或提供完整且通过校验的缓存。",
         "cancelled": "操作已在提交系统请求前取消。",
-        "unknown": "无法完成应用操作，请刷新状态后重试。"
+        "unknown": "无法完成应用操作，请刷新状态后重试。",
+        "systemApplication": "该原生身份已注册为系统应用。商店操作仅支持 User 应用，请手动处理现有的系统安装。",
+        "applicationTypeUnknown": "无法确认原生应用类型，请刷新设备应用后重试。"
       },
       "working": "处理中…",
       "activity": "{action} {name} · {device}"

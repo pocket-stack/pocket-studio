@@ -266,12 +266,13 @@ fn native_error(error: ServiceError) -> PackageError {
             legacy_ios_services::AppRejection::Storage,
         )) => PackageError::DeviceStorageFull,
         ServiceError::Application(AppFailure::Rejected(_)) => PackageError::WriteRejected,
-        ServiceError::Application(
-            AppFailure::NotInstalled
-            | AppFailure::AlreadyInstalled
-            | AppFailure::SystemApplication
-            | AppFailure::UnknownApplicationType,
-        ) => PackageError::StateChanged,
+        ServiceError::Application(AppFailure::SystemApplication) => PackageError::SystemApplication,
+        ServiceError::Application(AppFailure::UnknownApplicationType) => {
+            PackageError::ApplicationTypeUnknown
+        }
+        ServiceError::Application(AppFailure::NotInstalled | AppFailure::AlreadyInstalled) => {
+            PackageError::StateChanged
+        }
         _ => PackageError::DeviceChanged,
     }
 }
