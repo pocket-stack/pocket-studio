@@ -492,19 +492,6 @@ onMounted(async () => {
           </button>
         </div>
         <div class="mt-auto px-2 pb-3">
-          <div
-            class="mx-2 mb-2 flex items-center gap-2 py-2.5 text-xs text-muted"
-          >
-            <IconPhUsb width="14" height="14" /><span>{{
-              session.device.value
-                ? t("studio.usbConnected")
-                : t("studio.disconnected")
-            }}</span
-            ><i
-              class="ml-auto inline-block size-[5px] shrink-0 rounded-full"
-              :class="session.device.value ? 'bg-success' : 'bg-muted'"
-            />
-          </div>
           <button
             class="flex w-full items-center gap-2.5 rounded-control px-2.5 py-[5px] text-left text-base text-ink transition-colors hover:bg-ink/6"
             @click="settingsOpen = true"
