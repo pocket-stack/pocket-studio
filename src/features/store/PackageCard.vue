@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { operationProgress } from "../../shared/composables/useOperations";
+import {
+  operationProgress,
+  operationStepCeiling,
+} from "../../shared/composables/useOperations";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
+import StudioButton from "../../shared/ui/StudioButton.vue";
 import PackageArtwork from "./PackageArtwork.vue";
 import type { PackageView } from "./useStore";
 import { useGateway } from "../../shared/gateway";
 import { packageText } from "./packageContent";
+
+import { CARD_ART } from "./storeLayout";
+
 const props = defineProps<{ item: PackageView }>();
 const emit = defineEmits<{ select: []; install: [] }>();
 const { t, locale } = useI18n();
@@ -40,29 +47,43 @@ const state = computed(() => {
     return "incompatible";
   return "details";
 });
+const actionable = computed(
+  () => state.value === "details" || state.value === "update",
+);
+const label = computed(() => {
+  switch (state.value) {
+    case "details":
+      return t("store.detail.install");
+    case "update":
+      return t("store.detail.update");
+    case "queued":
+      return t("studio.queued", { position: props.item.queuePosition });
+    case "failed":
+      return t("preparation.result.retry");
+    default:
+      return t(`store.state.${state.value}`);
+  }
+});
 </script>
 <template>
-  <article class="min-w-0">
+  <article class="flex min-w-0 flex-col" :style="{ width: `${CARD_ART}px` }">
     <button
-      class="group/package block w-full text-left"
+      class="group/package flex flex-col text-left"
       :aria-label="t('studio.viewApp', { name })"
       @click="emit('select')"
     >
       <PackageArtwork
-        class="aspect-square h-auto! w-full! max-w-none transition-[transform,box-shadow] duration-200 group-hover/package:-translate-y-[3px] group-hover/package:shadow-[inset_0_1px_1px_#ffffff80,0_8px_16px_#00000012]"
+        class="rounded-[18%] transition-[transform,box-shadow] duration-200 group-hover/package:-translate-y-0.5 group-hover/package:shadow-raised"
         :package-id="item.entry.id"
         :entry="item.entry"
+        :size="CARD_ART"
       />
-      <h3
-        class="mt-[5px] truncate text-[13px] font-semibold max-[1150px]:text-[11px]"
-      >
+      <h3 class="mt-1.5 w-full truncate text-sm leading-[18px] font-semibold">
         {{ name }}
       </h3>
-      <p
-        class="mt-[3px] flex gap-[5px] text-[11px] text-muted max-[1150px]:text-[10px]"
-      >
-        {{ t(`store.category.${item.entry.category}`) }}<span>·</span
-        >{{
+      <p class="w-full truncate text-2xs text-muted">
+        {{ t(`store.category.${item.entry.category}`) }} ·
+        {{
           (item.entry.details?.app.publisher.verified ??
           item.entry.developer === "PocketJS")
             ? t("studio.official")
@@ -72,19 +93,21 @@ const state = computed(() => {
     </button>
     <div
       v-if="state === 'installing' && item.operation"
-      class="mt-3 flex items-center gap-[7px] text-[10px] text-signal"
+      class="mt-2 flex h-6 items-center gap-1.5 text-2xs text-signal tabular-nums"
     >
       <ProgressBar
         class="flex-1"
         :percent="operationProgress(item.operation)"
+        :trickle-to="operationStepCeiling(item.operation)"
         compact
         active
       /><span>{{ operationProgress(item.operation) }}%</span>
     </div>
-    <button
+    <StudioButton
       v-else
-      :data-muted="state !== 'details' && state !== 'update'"
-      class="mt-[5px] inline-flex min-h-[22px] min-w-[45px] items-center justify-center rounded-[5px] border border-[#2f6fd6] bg-[#2f6fd6] px-2.5 py-px text-[12px] text-white enabled:hover:bg-[#255cad] enabled:hover:text-white disabled:opacity-55 data-[muted=true]:border-[#b5b5b5] data-[muted=true]:bg-canvas data-[muted=true]:text-muted data-[muted=true]:enabled:hover:bg-[#255cad] data-[muted=true]:enabled:hover:text-white"
+      size="sm"
+      class="mt-1.5 min-w-[52px] self-start"
+      :variant="actionable ? 'primary' : 'secondary'"
       :disabled="
         !useGateway().capabilities.packages ||
         [
@@ -95,23 +118,9 @@ const state = computed(() => {
           'unavailable',
         ].includes(state)
       "
-      @click="
-        state === 'details' || state === 'update'
-          ? emit('install')
-          : emit('select')
-      "
+      @click="actionable ? emit('install') : emit('select')"
     >
-      {{
-        state === "details"
-          ? t("store.detail.install")
-          : state === "update"
-            ? t("store.detail.update")
-            : state === "queued"
-              ? t("studio.queued", { position: item.queuePosition })
-              : state === "failed"
-                ? t("preparation.result.retry")
-                : t(`store.state.${state}`)
-      }}
-    </button>
+      {{ label }}
+    </StudioButton>
   </article>
 </template>

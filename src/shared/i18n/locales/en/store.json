@@ -266,6 +266,14 @@
       },
       "working": "Working…",
       "activity": "{action} {name} · {device}"
-    }
+    },
+    "tabs": {
+      "description": "Description",
+      "previews": "Previews",
+      "history": "Version history",
+      "steps": "Install steps"
+    },
+    "featuredPrevious": "Previous feature",
+    "featuredNext": "Next feature"
   }
 }

@@ -1,18 +1,28 @@
 <script setup lang="ts">
 import PackageOperations from "./PackageOperations.vue";
 import { useGateway } from "../../shared/gateway";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "./useStore";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
+import { useElementSize } from "../../shared/composables/useElementSize";
 import {
   operationProgress,
+  operationStepCeiling,
   useOperations,
 } from "../../shared/composables/useOperations";
 import { formatBytes } from "./compatibility";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
+import StudioButton from "../../shared/ui/StudioButton.vue";
+import StudioCallout from "../../shared/ui/StudioCallout.vue";
+import StudioPanel from "../../shared/ui/StudioPanel.vue";
+import StudioSelect from "../../shared/ui/StudioSelect.vue";
 import PackageArtwork from "./PackageArtwork.vue";
 import { packageText } from "./packageContent";
+
+const ROW_HEIGHT = 44;
+const HEAD_HEIGHT = 28;
+
 const emit = defineEmits<{ openStore: []; detail: [id: string] }>();
 const { t, d, locale } = useI18n();
 const store = useStore();
@@ -21,6 +31,12 @@ const { active } = useOperations();
 const { device, isReady } = useDeviceSession();
 const sort = ref("name");
 const removingId = ref<string | null>(null);
+const page = ref(0);
+const table = ref<HTMLElement | null>(null);
+const { height } = useElementSize(table);
+const rowsPerPage = computed(() =>
+  Math.max(3, Math.floor((height.value - HEAD_HEIGHT) / ROW_HEIGHT)),
+);
 const installed = computed(() =>
   store.installed.value
     .flatMap((record) => {
@@ -37,256 +53,261 @@ const installed = computed(() =>
           ),
     ),
 );
-const tasks = computed(() =>
-  store.allPackages.value.filter(
-    (item) =>
-      item.queuePosition ||
-      (item.operation && item.operation.status !== "finished"),
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(installed.value.length / rowsPerPage.value)),
+);
+const pageRows = computed(() =>
+  installed.value.slice(
+    page.value * rowsPerPage.value,
+    (page.value + 1) * rowsPerPage.value,
   ),
+);
+watch(pageCount, (count) => {
+  page.value = Math.min(page.value, count - 1);
+});
+const tasks = computed(() =>
+  store.allPackages.value
+    .filter(
+      (item) =>
+        item.queuePosition ||
+        (item.operation && item.operation.status !== "finished"),
+    )
+    .slice(0, 3),
+);
+const subtitle = computed(() =>
+  [
+    t("store.installed.count", { count: installed.value.length }),
+    device.value ? device.value.marketingName : t("app.noDevice"),
+    store.installedSnapshot.value?.observedAt
+      ? t("store.installed.observed", {
+          time: d(store.installedSnapshot.value.observedAt, "date"),
+        })
+      : null,
+    t(isReady.value ? "studio.allReady" : "studio.needsPreparation"),
+  ]
+    .filter(Boolean)
+    .join(" · "),
 );
 </script>
 <template>
   <section
     v-if="!gateway.capabilities.installed"
-    class="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center"
+    class="flex h-full flex-col items-center justify-center gap-3 text-center"
   >
-    <IconPhSquaresFour width="32" height="32" class="text-muted" />
+    <IconPhSquaresFour width="28" height="28" class="text-muted" />
     <h1 class="text-xl font-semibold">{{ t("studio.installedApps") }}</h1>
-    <p class="max-w-[500px] text-sm leading-7 text-muted">
+    <p class="max-w-[460px] text-sm text-muted">
       {{ t("connection.installedUnavailable") }}
     </p>
   </section>
   <div
     v-else
-    class="mx-auto min-h-full max-w-[1360px] motion-safe:animate-rise"
+    class="flex h-full min-h-0 flex-col gap-3 motion-safe:animate-rise"
   >
-    <header class="flex items-center gap-5 mb-[15px] justify-end">
-      <button
-        class="text-sm text-signal disabled:opacity-50"
-        :disabled="!device || store.installedLoading.value"
+    <header class="flex items-center gap-3">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-xl font-semibold">{{ t("studio.installedApps") }}</h1>
+        <p class="truncate text-xs text-muted">{{ subtitle }}</p>
+      </div>
+      <label class="flex items-center gap-1.5 text-xs text-muted"
+        >{{ t("studio.sort")
+        }}<StudioSelect v-model="sort" size="sm" :label="t('studio.sort')">
+          <option value="name">{{ t("studio.sortName") }}</option>
+          <option v-if="gateway.flavor === 'browser'" value="recent">
+            {{ t("studio.sortRecent") }}
+          </option>
+        </StudioSelect></label
+      >
+      <StudioButton
+        size="sm"
+        variant="ghost"
+        :disabled="!device"
+        :loading="store.installedLoading.value"
         @click="store.refreshInstalled()"
       >
-        {{ t("store.installed.refresh") }}
-      </button>
-      <div class="hidden">
-        <p class="text-[10px] tracking-[0.04em] text-muted">
-          {{ t("studio.onDevice") }}
-        </p>
-        <h1>{{ t("studio.installedApps") }}</h1>
-      </div>
-      <button
-        class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-        @click="emit('openStore')"
-      >
-        <IconPhStorefront width="14" height="14" />{{ t("studio.browseStore") }}
-      </button>
+        <IconPhArrowsClockwise
+          v-if="!store.installedLoading.value"
+          width="13"
+          height="13"
+        />{{ t("store.installed.refresh") }}
+      </StudioButton>
+      <StudioButton size="sm" variant="primary" @click="emit('openStore')">
+        <IconPhStorefront width="13" height="13" />{{ t("studio.browseStore") }}
+      </StudioButton>
     </header>
-    <p
-      v-if="store.installedIssue.value"
-      role="status"
-      class="mb-4 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-warning"
-    >
+    <StudioCallout v-if="store.installedIssue.value" tone="warning">
       {{ t("store.installed.readFailed") }}
-    </p>
-    <p
-      v-if="store.installedSnapshot.value?.observedAt"
-      class="mb-4 text-xs text-muted"
-    >
-      {{
-        t("store.installed.observed", {
-          time: d(store.installedSnapshot.value.observedAt, "date"),
-        })
-      }}
-    </p>
-    <PackageOperations v-if="gateway.flavor === 'tauri'" />
-    <section
+    </StudioCallout>
+    <PackageOperations
+      v-if="gateway.flavor === 'tauri'"
+      @detail="emit('detail', $event)"
+    />
+    <StudioPanel
       v-if="gateway.flavor === 'browser' && tasks.length"
-      class="mb-[26px] rounded-lg border border-line bg-surface px-5 py-4"
+      :padded="false"
+      class="px-4 py-2"
     >
-      <header class="flex items-center justify-between text-[12px]">
+      <div class="flex items-center justify-between text-xs">
         <h2 class="font-semibold">{{ t("studio.installTasks") }}</h2>
-        <span class="text-[10px] text-muted">{{
+        <span class="text-2xs text-muted">{{
           t("studio.taskCount", { count: tasks.length })
         }}</span>
-      </header>
-      <article
+      </div>
+      <div
         v-for="item in tasks"
         :key="item.entry.id"
-        class="mt-[15px] flex items-center gap-3.5 border-t border-line pt-[15px]"
+        class="mt-1.5 flex items-center gap-3"
       >
         <PackageArtwork
           :entry="item.entry"
           :package-id="item.entry.id"
-          :size="36"
+          :size="24"
+          class="rounded-[18%]"
         />
-        <div class="min-w-0 flex-1">
-          <button
-            class="text-xs font-medium"
-            @click="emit('detail', item.entry.id)"
-          >
-            {{ packageText(item.entry, "name", locale, t) }}
-          </button>
-          <div class="mt-1.5 flex items-center gap-3">
-            <ProgressBar
-              class="max-w-56 flex-1"
-              :percent="
-                item.operation && !item.queuePosition
-                  ? operationProgress(item.operation)
-                  : 0
-              "
-              :tone="
-                item.operation?.status === 'failed'
-                  ? 'danger'
-                  : item.operation?.status === 'finished'
-                    ? 'success'
-                    : 'signal'
-              "
-              :active="item.operation?.status === 'running'"
-              compact
-            /><span class="text-[10px] text-muted">{{
-              item.queuePosition
-                ? t("studio.queued", { position: item.queuePosition })
-                : item.operation?.status === "running"
-                  ? `${operationProgress(item.operation!)}%`
-                  : t(`studio.taskStatus.${item.operation?.status}`)
-            }}</span>
-          </div>
-        </div>
         <button
-          class="inline-flex items-center gap-[5px] text-[11px] text-signal hover:underline hover:underline-offset-[3px]"
+          class="w-[160px] truncate text-left text-xs font-medium hover:text-signal"
+          @click="emit('detail', item.entry.id)"
+        >
+          {{ packageText(item.entry, "name", locale, t) }}
+        </button>
+        <ProgressBar
+          class="max-w-56 flex-1"
+          :percent="
+            item.operation && !item.queuePosition
+              ? operationProgress(item.operation)
+              : 0
+          "
+          :trickle-to="
+            item.operation ? operationStepCeiling(item.operation) : 0
+          "
+          :tone="
+            item.operation?.status === 'failed'
+              ? 'danger'
+              : item.operation?.status === 'finished'
+                ? 'success'
+                : 'signal'
+          "
+          :active="item.operation?.status === 'running'"
+          compact
+        />
+        <span class="w-16 text-2xs text-muted tabular-nums">{{
+          item.queuePosition
+            ? t("studio.queued", { position: item.queuePosition })
+            : item.operation?.status === "running"
+              ? `${operationProgress(item.operation!)}%`
+              : t(`studio.taskStatus.${item.operation?.status}`)
+        }}</span>
+        <StudioButton
+          size="sm"
+          variant="link"
+          class="ml-auto"
           @click="emit('detail', item.entry.id)"
         >
           {{ t("studio.viewDetails")
-          }}<IconPhCaretRight width="12" height="12" />
-        </button>
-      </article>
-    </section>
-    <div class="flex gap-[30px]">
-      <section class="min-w-0 flex-1">
-        <div
-          class="mb-[15px] flex items-center justify-between gap-[15px] text-[12px] text-muted"
-        >
-          <span>{{
-            t("store.installed.count", { count: installed.length })
-          }}</span
-          ><label class="flex items-center gap-2"
-            >{{ t("studio.sort")
-            }}<select
-              v-model="sort"
-              class="rounded border border-line bg-surface px-2 py-1 text-ink"
-            >
-              <option value="name">{{ t("studio.sortName") }}</option>
-              <option v-if="gateway.flavor === 'browser'" value="recent">
-                {{ t("studio.sortRecent") }}
-              </option>
-            </select></label
-          >
-        </div>
-        <div
-          v-if="!installed.length"
-          class="flex min-h-[380px] flex-col items-center justify-center gap-[17px] rounded-lg border border-line p-[30px]"
-        >
-          <span
-            class="mb-2 grid size-[75px] place-items-center rounded-[18px] border border-line bg-surface text-[#9aabbc]"
-            ><IconPhSquaresFour width="35" height="35"
-          /></span>
-          <h2 class="text-[17px] font-medium">
-            {{
-              t(
-                !device
-                  ? "device.empty.title"
-                  : store.installedLoading.value
-                    ? "store.installed.loading"
-                    : store.installedIssue.value
-                      ? "store.installed.unavailable"
-                      : "studio.noInstalledTitle",
-              )
-            }}
-          </h2>
-          <p
-            class="max-w-[380px] text-center text-[12px] leading-[1.8] text-muted"
-          >
-            {{
-              t(
-                !device
-                  ? "studio.noDeviceInstalled"
+          }}<IconPhCaretRight width="11" height="11" />
+        </StudioButton>
+      </div>
+    </StudioPanel>
+    <StudioPanel
+      :padded="false"
+      class="flex min-h-0 flex-1 flex-col overflow-hidden"
+    >
+      <div
+        v-if="!installed.length"
+        class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+      >
+        <span
+          class="grid size-14 place-items-center rounded-[18px] bg-ink/5 text-muted"
+          ><IconPhSquaresFour width="26" height="26"
+        /></span>
+        <h2 class="text-lg font-semibold">
+          {{
+            t(
+              !device
+                ? "device.empty.title"
+                : store.installedLoading.value
+                  ? "store.installed.loading"
                   : store.installedIssue.value
-                    ? "store.installed.readFailed"
-                    : "studio.noInstalledBody",
-              )
-            }}
-          </p>
-          <button
-            class="inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 bg-signal text-on-signal enabled:hover:brightness-[1.06]"
-            @click="emit('openStore')"
-          >
-            {{ t("studio.findApps")
-            }}<IconPhArrowRight width="14" height="14" />
-          </button>
-        </div>
-        <div v-else class="overflow-x-auto rounded-[7px] border border-line">
-          <table class="w-full border-collapse text-left text-[12px]">
-            <thead class="bg-surface text-muted">
-              <tr>
-                <th
-                  class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
-                >
-                  {{ t("studio.appName") }}
-                </th>
-                <th
-                  class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
-                >
+                    ? "store.installed.unavailable"
+                    : "studio.noInstalledTitle",
+            )
+          }}
+        </h2>
+        <p class="max-w-[380px] text-sm text-muted">
+          {{
+            t(
+              !device
+                ? "studio.noDeviceInstalled"
+                : store.installedIssue.value
+                  ? "store.installed.readFailed"
+                  : "studio.noInstalledBody",
+            )
+          }}
+        </p>
+        <StudioButton variant="primary" @click="emit('openStore')">
+          {{ t("studio.findApps") }}<IconPhArrowRight width="14" height="14" />
+        </StudioButton>
+      </div>
+      <template v-else>
+        <div ref="table" class="min-h-0 flex-1 overflow-hidden">
+          <table class="w-full table-fixed border-collapse text-left text-sm">
+            <colgroup>
+              <col />
+              <col class="w-[150px]" />
+              <col class="w-[90px]" />
+              <col class="w-[110px]" />
+              <col class="w-[300px]" />
+            </colgroup>
+            <thead>
+              <tr class="h-7 bg-ink/4 text-2xs font-medium text-muted">
+                <th class="px-4 font-medium">{{ t("studio.appName") }}</th>
+                <th class="px-2 font-medium">
                   {{ t("store.detail.version") }}
                 </th>
-                <th
-                  class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
-                >
+                <th class="px-2 font-medium">
                   {{ t("store.installed.packageSize") }}
                 </th>
-                <th
-                  class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
-                >
+                <th class="px-2 font-medium">
                   {{ t("store.installed.revision") }}
                 </th>
-                <th
-                  class="px-[15px] py-2.5 text-[12px] font-normal whitespace-nowrap"
-                >
+                <th class="px-2 font-medium">
                   <span class="sr-only">{{ t("studio.actions") }}</span>
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="item in installed"
+                v-for="item in pageRows"
                 :key="item.installed.native?.bundleId ?? item.entry.id"
+                class="h-11 even:bg-ink/3 hover:bg-ink/6"
               >
-                <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
+                <td class="px-4">
                   <button
-                    class="flex items-center gap-3 text-left"
+                    class="flex min-w-0 items-center gap-2.5 text-left"
                     @click="emit('detail', item.entry.id)"
                   >
                     <PackageArtwork
                       :entry="item.entry"
                       :package-id="item.entry.id"
-                      :size="38"
-                    /><span
-                      ><b class="text-[12px] font-medium">{{
+                      :size="28"
+                      class="rounded-[18%]"
+                    /><span class="min-w-0"
+                      ><b class="block truncate font-medium">{{
                         packageText(item.entry, "name", locale, t)
                       }}</b
-                      ><small class="mt-1 block text-[10px] text-muted">{{
+                      ><small class="block truncate text-2xs text-muted">{{
                         t(`store.category.${item.entry.category}`)
                       }}</small></span
                     >
                   </button>
                 </td>
-                <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
+                <td class="truncate px-2 text-xs">
                   {{
                     item.installed?.version ||
                     t("store.installed.unknownVersion")
-                  }}
-                  <small
+                  }}<small
                     v-if="item.installed?.native?.buildNumber"
-                    class="block text-muted"
+                    class="block text-2xs text-muted"
                     >{{
                       t("store.installed.build", {
                         value: item.installed.native.buildNumber,
@@ -294,117 +315,121 @@ const tasks = computed(() =>
                     }}</small
                   >
                 </td>
-                <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
+                <td class="px-2 text-xs">
                   {{ formatBytes(item.entry.sizeBytes) }}
                 </td>
-                <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
+                <td class="px-2 text-xs">
                   {{
                     item.installed?.revision ??
                     t("store.installed.unknownRevision")
                   }}
                 </td>
-                <td class="border-t border-line px-3 py-2.5 whitespace-nowrap">
-                  <button
-                    class="inline-flex min-h-[22px] min-w-[45px] items-center justify-center rounded-[5px] border border-[#2f6fd6] bg-[#2f6fd6] px-2.5 py-px text-[12px] text-white enabled:hover:bg-[#255cad] enabled:hover:text-white disabled:opacity-55 m-0"
-                    @click="emit('detail', item.entry.id)"
-                  >
-                    {{ t("studio.viewDetails") }}
-                  </button>
-                  <button
-                    v-if="
-                      gateway.capabilities.packages &&
-                      (gateway.flavor === 'tauri' ||
-                        item.installed?.version !== item.entry.version)
-                    "
-                    class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-                    :disabled="
-                      !!item.queuePosition ||
-                      item.operation?.status === 'running'
-                    "
-                    @click="store.install(item.entry.id)"
-                  >
-                    {{
-                      t(
-                        gateway.flavor === "tauri" &&
-                          (!item.installed.revision ||
-                            item.installed.artifactId ===
-                              item.entry.details?.artifactId)
-                          ? "store.detail.reinstall"
-                          : "store.detail.update",
-                      )
-                    }}
-                  </button>
-                  <button
-                    v-if="
-                      gateway.capabilities.packages &&
-                      removingId !== item.entry.id
-                    "
-                    class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-                    :disabled="
-                      !!active.length || !!store.queuedIds.value.length
-                    "
-                    @click="
-                      gateway.flavor === 'tauri'
-                        ? store.uninstall(
-                            item.entry.id,
-                            item.installed.native?.bundleId ?? null,
-                          )
-                        : (removingId = item.entry.id)
-                    "
-                  >
-                    {{ t("studio.uninstall") }}
-                  </button>
-                  <template v-else-if="gateway.capabilities.packages"
-                    ><button
-                      class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-danger bg-transparent text-danger enabled:hover:bg-danger/10"
+                <td class="px-2">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <StudioButton
+                      size="sm"
+                      variant="link"
+                      @click="emit('detail', item.entry.id)"
+                    >
+                      {{ t("studio.viewDetails") }}
+                    </StudioButton>
+                    <StudioButton
+                      v-if="
+                        gateway.capabilities.packages &&
+                        (gateway.flavor === 'tauri' ||
+                          item.installed?.version !== item.entry.version)
+                      "
+                      size="sm"
+                      :disabled="
+                        !!item.queuePosition ||
+                        item.operation?.status === 'running'
+                      "
+                      @click="store.install(item.entry.id)"
+                    >
+                      {{
+                        t(
+                          gateway.flavor === "tauri" &&
+                            (!item.installed.revision ||
+                              item.installed.artifactId ===
+                                item.entry.details?.artifactId)
+                            ? "store.detail.reinstall"
+                            : "store.detail.update",
+                        )
+                      }}
+                    </StudioButton>
+                    <StudioButton
+                      v-if="
+                        gateway.capabilities.packages &&
+                        removingId !== item.entry.id
+                      "
+                      size="sm"
+                      variant="ghost"
+                      :disabled="
+                        !!active.length || !!store.queuedIds.value.length
+                      "
                       @click="
-                        store.uninstall(item.entry.id);
-                        removingId = null;
+                        gateway.flavor === 'tauri'
+                          ? store.uninstall(
+                              item.entry.id,
+                              item.installed.native?.bundleId ?? null,
+                            )
+                          : (removingId = item.entry.id)
                       "
                     >
-                      {{ t("studio.confirmUninstall") }}</button
-                    ><button
-                      class="ml-2 inline-flex items-center justify-center gap-2 rounded-md px-[15px] py-1.5 text-[13px] leading-[18px] font-medium transition disabled:cursor-not-allowed disabled:opacity-45 border border-[#b5b5b5] bg-raised text-ink enabled:hover:border-muted"
-                      @click="removingId = null"
-                    >
-                      {{ t("common.cancel") }}
-                    </button></template
-                  >
+                      {{ t("studio.uninstall") }}
+                    </StudioButton>
+                    <template v-else-if="gateway.capabilities.packages">
+                      <StudioButton
+                        size="sm"
+                        variant="danger"
+                        @click="
+                          store.uninstall(item.entry.id);
+                          removingId = null;
+                        "
+                      >
+                        {{ t("studio.confirmUninstall") }}
+                      </StudioButton>
+                      <StudioButton
+                        size="sm"
+                        variant="ghost"
+                        @click="removingId = null"
+                      >
+                        {{ t("common.cancel") }}
+                      </StudioButton>
+                    </template>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </section>
-      <aside
-        class="w-[220px] shrink-0 border-l border-line pl-6 max-[1150px]:w-[190px] max-[800px]:hidden"
-      >
-        <IconPhDeviceMobile class="mb-3.5 text-muted" width="24" height="24" />
-        <h2 class="text-[14px] font-medium">{{ t("studio.deviceName") }}</h2>
-        <p class="mt-[7px] text-[12px] text-muted">
-          {{ device ? t("studio.usbConnected") : t("app.noDevice") }}
-        </p>
-        <hr class="mx-0 my-5 border-line" />
-        <span class="mt-5 block text-[10px] text-muted">{{
-          t("studio.sections.environment")
-        }}</span
-        ><b
-          class="mt-[7px] block text-[11px] font-normal"
-          :class="isReady ? 'text-success' : 'text-warning'"
-          >{{ t(isReady ? "studio.allReady" : "studio.needsPreparation") }}</b
-        ><span class="mt-5 block text-[10px] text-muted">{{
-          t("studio.sources")
-        }}</span
-        ><b class="mt-[7px] block text-[11px] font-normal">{{
-          store.snapshot.value?.source === "demo"
-            ? t("store.source.demo")
-            : (store.snapshot.value?.sourceLabel ??
-              t("store.source.unconfigured"))
-        }}</b>
-        <p class="mt-[7px] text-[12px] text-muted">
-          {{ t("store.installed.notice") }}
-        </p>
-      </aside>
-    </div>
+        <footer
+          v-if="pageCount > 1"
+          class="flex h-8 shrink-0 items-center justify-end gap-1 bg-ink/3 px-2 text-xs text-muted"
+        >
+          <span class="tabular-nums">{{
+            t("common.pageOf", { page: page + 1, total: pageCount })
+          }}</span>
+          <StudioButton
+            size="sm"
+            variant="ghost"
+            :disabled="page <= 0"
+            :aria-label="t('common.previous')"
+            @click="page -= 1"
+          >
+            <IconPhCaretLeft width="13" height="13" />
+          </StudioButton>
+          <StudioButton
+            size="sm"
+            variant="ghost"
+            :disabled="page >= pageCount - 1"
+            :aria-label="t('common.next')"
+            @click="page += 1"
+          >
+            <IconPhCaretRight width="13" height="13" />
+          </StudioButton>
+        </footer>
+      </template>
+    </StudioPanel>
   </div>
 </template>

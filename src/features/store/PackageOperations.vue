@@ -2,95 +2,93 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useStore } from "./useStore";
-import { useOperations } from "../../shared/composables/useOperations";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
-import StepList from "../../shared/ui/StepList.vue";
+import StatusPill from "../../shared/ui/StatusPill.vue";
+import StudioButton from "../../shared/ui/StudioButton.vue";
+import StudioPanel from "../../shared/ui/StudioPanel.vue";
+const emit = defineEmits<{ detail: [id: string] }>();
 const store = useStore();
-const { get } = useOperations();
 const { device } = useDeviceSession();
 const { t, locale, te } = useI18n();
 const jobs = computed(() =>
-  store.packageJobs.value.filter(
-    (job, index) =>
-      ["queued", "running", "verifying"].includes(job.phase) || index < 20,
-  ),
+  store.packageJobs.value
+    .filter(
+      (job, index) =>
+        ["queued", "running", "verifying"].includes(job.phase) || index < 3,
+    )
+    .slice(0, 4),
 );
 const errorText = (reason?: string) => {
   const key = `store.actions.errors.${reason}`;
   return te(key) ? t(key) : t("store.actions.errors.unknown");
 };
+function tone(phase: string): "warning" | "success" | "neutral" | "signal" {
+  if (["failed", "unverified", "interrupted"].includes(phase)) return "warning";
+  if (phase === "verified") return "success";
+  if (["running", "verifying"].includes(phase)) return "signal";
+  return "neutral";
+}
 </script>
 <template>
-  <section
-    v-if="jobs.length"
-    class="mb-6 space-y-4 rounded-lg border border-line bg-surface p-5"
-  >
-    <h2 class="text-sm font-semibold">{{ t("store.actions.operations") }}</h2>
-    <article
-      v-for="job in jobs"
-      :key="job.handle.operationId"
-      class="border-t border-line pt-4 text-xs"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h3 class="font-medium">
-            {{ job.plan.names[locale] ?? job.plan.names.en ?? job.plan.appId }}
-          </h3>
-          <p class="mt-1 break-words text-muted">
-            {{ job.plan.deviceName }} ·
+  <StudioPanel v-if="jobs.length" :padded="false" class="px-4 py-2">
+    <h2 class="text-xs font-semibold">{{ t("store.actions.operations") }}</h2>
+    <ul class="mt-1 flex flex-col">
+      <li
+        v-for="job in jobs"
+        :key="job.handle.operationId"
+        class="flex items-center gap-3 py-1.5 text-xs"
+      >
+        <div class="min-w-0 flex-1">
+          <span class="font-medium">{{
+            job.plan.names[locale] ?? job.plan.names.en ?? job.plan.appId
+          }}</span>
+          <span class="text-muted">
+            · {{ job.plan.deviceName }} ·
             {{ t(`store.actions.kind.${job.plan.action}`)
             }}<template v-if="job.plan.version">
               · {{ job.plan.version }} · r{{ job.plan.revision }}</template
-            >
+            ></span
+          >
+          <p v-if="job.error" class="truncate text-2xs text-warning">
+            {{ errorText(job.error.diagnostic?.reason ?? job.error.code) }}
+          </p>
+          <p
+            v-if="job.cleanupComplete === false"
+            class="truncate text-2xs text-muted"
+          >
+            {{ t("store.actions.cleanupPending") }}
           </p>
         </div>
-        <span
-          :class="
-            ['failed', 'unverified', 'interrupted'].includes(job.phase)
-              ? 'text-warning'
-              : job.phase === 'verified'
-                ? 'text-success'
-                : 'text-muted'
-          "
-          >{{ t(`store.actions.phase.${job.phase}`) }}</span
-        >
-      </div>
-      <p v-if="job.error" class="mt-2 leading-6 text-warning">
-        {{ errorText(job.error.diagnostic?.reason ?? job.error.code) }}
-      </p>
-      <p v-if="job.cleanupComplete === false" class="mt-2 text-muted">
-        {{ t("store.actions.cleanupPending") }}
-      </p>
-      <div class="mt-3 flex items-center gap-4">
-        <button
+        <StatusPill :tone="tone(job.phase)">{{
+          t(`store.actions.phase.${job.phase}`)
+        }}</StatusPill>
+        <StudioButton
           v-if="['queued', 'running'].includes(job.phase) && !job.submitted"
-          class="text-signal"
+          size="sm"
+          variant="ghost"
           @click="store.cancelJob(job)"
         >
           {{ t("common.cancel") }}
-        </button>
-        <button
+        </StudioButton>
+        <StudioButton
           v-if="
             job.submitted &&
             ['unverified', 'failed', 'interrupted'].includes(job.phase)
           "
-          class="text-signal disabled:opacity-50"
+          size="sm"
           :disabled="!device"
           @click="store.verifyJob(job)"
         >
           {{ t("store.actions.verify") }}
-        </button>
-        <details v-if="get(job.handle.operationId)" class="min-w-0 flex-1">
-          <summary class="cursor-pointer text-muted">
-            {{ t("studio.viewDetails") }}
-          </summary>
-          <StepList
-            class="mt-3"
-            :steps="get(job.handle.operationId)!.steps"
-            label-prefix="store.steps"
-          />
-        </details>
-      </div>
-    </article>
-  </section>
+        </StudioButton>
+        <StudioButton
+          size="sm"
+          variant="link"
+          @click="emit('detail', job.plan.appId)"
+        >
+          {{ t("studio.viewDetails") }}
+        </StudioButton>
+      </li>
+    </ul>
+  </StudioPanel>
 </template>

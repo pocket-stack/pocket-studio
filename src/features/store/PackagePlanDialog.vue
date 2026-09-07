@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import StudioButton from "../../shared/ui/StudioButton.vue";
+import StudioCallout from "../../shared/ui/StudioCallout.vue";
 import StudioDialog from "../../shared/ui/StudioDialog.vue";
 import { useStore } from "./useStore";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
@@ -41,24 +43,26 @@ const changed = computed(
     <p
       v-if="store.planning.value"
       role="status"
-      class="py-5 text-sm text-muted"
+      class="flex items-center gap-2 py-4 text-sm text-muted"
     >
-      {{ t("store.actions.planning") }}
+      <IconSvgSpinners90Ring width="14" height="14" />{{
+        t("store.actions.planning")
+      }}
     </p>
-    <div v-if="plan" class="space-y-5 text-sm">
+    <div v-if="plan" class="flex flex-col gap-3 text-sm">
       <div>
         <p class="text-xs text-muted">
           {{ t(`store.actions.kind.${plan.action}`) }}
         </p>
-        <h3 class="mt-1 text-xl font-semibold">{{ name }}</h3>
+        <h3 class="text-lg font-semibold">{{ name }}</h3>
       </div>
       <dl
-        class="grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 rounded-lg border border-line bg-surface p-4 text-xs"
+        class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-control bg-ink/4 px-3 py-2.5 text-xs"
       >
         <dt class="text-muted">{{ t("store.actions.device") }}</dt>
         <dd class="text-right break-words">{{ plan.deviceName }}</dd>
         <dt class="text-muted">{{ t("store.actions.nativeId") }}</dt>
-        <dd class="text-right break-all font-mono">{{ plan.bundleId }}</dd>
+        <dd class="text-right font-mono break-all">{{ plan.bundleId }}</dd>
         <template v-if="plan.previous"
           ><dt class="text-muted">{{ t("store.actions.current") }}</dt>
           <dd class="text-right">
@@ -76,7 +80,8 @@ const changed = computed(
         <template v-if="plan.artifact"
           ><dt class="text-muted">{{ t("store.actions.selected") }}</dt>
           <dd class="text-right">
-            {{ plan.version }} · r{{ plan.revision }}<br />{{
+            {{ plan.version }} · r{{ plan.revision }} ·
+            {{
               t("store.installed.build", {
                 value: plan.artifact.native_identity.build_number,
               })
@@ -88,7 +93,7 @@ const changed = computed(
           </dd></template
         >
       </dl>
-      <p class="text-xs leading-6 text-muted">
+      <p class="text-xs text-muted">
         {{
           t(
             plan.action === "uninstall"
@@ -99,16 +104,16 @@ const changed = computed(
           )
         }}
       </p>
-      <p
+      <StudioCallout
         v-if="
           plan.action !== 'uninstall' &&
           (plan.appsync === 'unknown' || plan.jailbreak === 'unknown')
         "
-        class="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs leading-6 text-warning"
+        tone="warning"
       >
         {{ t("store.actions.unknownRequirements") }}
-      </p>
-      <p v-if="plan.action !== 'uninstall'" class="text-xs text-muted">
+      </StudioCallout>
+      <p v-if="plan.action !== 'uninstall'" class="text-2xs text-muted">
         {{
           t("store.actions.catalogValid", {
             time: d(plan.catalogExpiresAt, "date"),
@@ -117,50 +122,36 @@ const changed = computed(
       </p>
       <label
         v-if="plan.action === 'uninstall'"
-        class="flex items-start gap-3 rounded-md border border-danger/30 p-3 text-xs leading-6"
+        class="flex items-start gap-2.5 rounded-control bg-danger/8 px-3 py-2 text-xs leading-[18px]"
         ><input
           v-model="deleteData"
           type="checkbox"
-          class="mt-1 accent-danger"
+          class="mt-0.5 accent-danger"
         />{{ t("store.actions.deleteConsent") }}</label
       >
-      <p v-if="changed" class="text-xs text-warning">
+      <StudioCallout v-if="changed" tone="warning">
         {{ t("store.actions.deviceChanged") }}
-      </p>
+      </StudioCallout>
     </div>
-    <p
-      v-if="store.planIssue.value"
-      role="alert"
-      class="mt-4 text-xs leading-6 text-danger"
-    >
+    <StudioCallout v-if="store.planIssue.value" tone="danger" class="mt-3">
       {{ issue }}
-    </p>
-    <div class="mt-6 flex justify-end gap-3 text-sm">
-      <button
-        class="rounded-md border border-line px-3 py-2 disabled:opacity-50"
+    </StudioCallout>
+    <div class="mt-4 flex justify-end gap-2">
+      <StudioButton
         :disabled="store.submitting.value"
         @click="store.closePlan()"
       >
         {{ t("common.cancel") }}
-      </button>
-      <button
+      </StudioButton>
+      <StudioButton
         v-if="plan"
-        class="rounded-md bg-signal px-4 py-2 text-on-signal disabled:opacity-50"
-        :disabled="
-          store.submitting.value ||
-          changed ||
-          (plan.action === 'uninstall' && !deleteData)
-        "
+        variant="primary"
+        :loading="store.submitting.value"
+        :disabled="changed || (plan.action === 'uninstall' && !deleteData)"
         @click="store.confirmPlan(deleteData)"
       >
-        {{
-          t(
-            store.submitting.value
-              ? "store.actions.starting"
-              : "store.actions.confirm",
-          )
-        }}
-      </button>
+        {{ t("store.actions.confirm") }}
+      </StudioButton>
     </div>
   </StudioDialog>
 </template>

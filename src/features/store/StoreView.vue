@@ -1,14 +1,27 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useGateway, type PackageCategory } from "../../shared/gateway";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
-import { useOperations } from "../../shared/composables/useOperations";
+import { useElementSize } from "../../shared/composables/useElementSize";
+import StudioButton from "../../shared/ui/StudioButton.vue";
+import StudioCallout from "../../shared/ui/StudioCallout.vue";
+import StudioPanel from "../../shared/ui/StudioPanel.vue";
+import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 import PackageCard from "./PackageCard.vue";
 import PackageDetail from "./PackageDetail.vue";
 import PackageArtwork from "./PackageArtwork.vue";
 import { packageText } from "./packageContent";
+import { CARD_ART, CARD_GAP, CARD_HEIGHT, SECTION_HEADER } from "./storeLayout";
 import { useStore } from "./useStore";
+
 const emit = defineEmits<{
   prepare: [];
   openInstalled: [];
@@ -16,19 +29,36 @@ const emit = defineEmits<{
   openPackage: [id: string | null];
 }>();
 const { t, d, te, locale } = useI18n();
-const store = useStore(),
-  gateway = useGateway();
+const store = useStore();
+const gateway = useGateway();
 const { device } = useDeviceSession();
-const { active } = useOperations();
-const feature = ref(0);
+
+const page = ref<HTMLElement | null>(null);
+const { width, height } = useElementSize(page);
+const CHROME_HEIGHT = 98; // header + footer + gaps
+const HERO_HEIGHT = 150;
+const HERO_COMPACT_HEIGHT = 104;
+
 const featured = computed(() =>
   [...store.packages.value]
     .sort((a, b) => b.entry.publishedAt - a.entry.publishedAt)
     .slice(0, 3),
 );
-const featuredPackage = computed(
-  () => featured.value[feature.value % Math.max(1, featured.value.length)],
-);
+const feature = ref(0);
+const hovering = ref(false);
+let rotation: number | undefined;
+function rotate(step: number): void {
+  const count = featured.value.length;
+  if (!count) return;
+  feature.value = (feature.value + step + count) % count;
+}
+onMounted(() => {
+  rotation = window.setInterval(() => {
+    if (!hovering.value && featured.value.length > 1) rotate(1);
+  }, 7000);
+});
+onBeforeUnmount(() => window.clearInterval(rotation));
+
 const filtered = computed(
   () =>
     !!store.query.value ||
@@ -53,13 +83,59 @@ const sections = computed(() =>
         },
       ].filter((section) => section.items.length),
 );
-const categories: Array<PackageCategory | "all"> = [
-  "all",
-  "app",
-  "game",
-  "tool",
-  "runtime",
-];
+const columns = computed(() =>
+  Math.max(3, Math.floor((width.value + CARD_GAP) / (CARD_ART + CARD_GAP))),
+);
+const available = computed(() => height.value - CHROME_HEIGHT);
+const spare = computed(
+  () =>
+    available.value - sections.value.length * (CARD_HEIGHT + SECTION_HEADER),
+);
+const showHero = computed(
+  () =>
+    !filtered.value &&
+    featured.value.length > 0 &&
+    spare.value >= HERO_COMPACT_HEIGHT + 8,
+);
+const heroHeight = computed(() =>
+  spare.value >= HERO_HEIGHT + 20 ? HERO_HEIGHT : HERO_COMPACT_HEIGHT,
+);
+const rowsPerSection = computed(() =>
+  filtered.value
+    ? Math.max(1, Math.floor((available.value - SECTION_HEADER) / CARD_HEIGHT))
+    : 1,
+);
+const perPage = computed(() => rowsPerSection.value * columns.value);
+const pages = reactive<Record<string, number>>({});
+function pageCount(items: unknown[]): number {
+  return Math.max(1, Math.ceil(items.length / perPage.value));
+}
+function pageItems<T>(id: string, items: T[]): T[] {
+  const current = Math.min(pages[id] ?? 0, pageCount(items) - 1);
+  return items.slice(current * perPage.value, (current + 1) * perPage.value);
+}
+function turn(id: string, items: unknown[], step: number): void {
+  pages[id] = Math.min(
+    pageCount(items) - 1,
+    Math.max(0, (pages[id] ?? 0) + step),
+  );
+}
+watch([filtered, () => store.query.value], () => {
+  for (const key of Object.keys(pages)) pages[key] = 0;
+});
+
+const categories = computed(() =>
+  (["all", "app", "game", "tool", "runtime"] as const).map((value) => ({
+    value,
+    label: t(`store.category.${value}`),
+  })),
+);
+const categoryModel = computed({
+  get: () => store.categoryFilter.value as string,
+  set: (value) => {
+    store.categoryFilter.value = value as PackageCategory | "all";
+  },
+});
 const issue = computed(
   () => store.loadError.value ?? store.snapshot.value?.issue,
 );
@@ -78,20 +154,14 @@ onMounted(() => void store.initialize());
 <template>
   <section
     v-if="!gateway.capabilities.catalog"
-    class="flex min-h-full items-center justify-center p-8 text-muted"
+    class="flex h-full items-center justify-center text-muted"
   >
     {{ t("store.loadFailed") }}
   </section>
   <div
     v-else-if="store.selected.value"
-    class="mx-auto min-h-full motion-safe:animate-rise"
+    class="flex h-full min-h-0 flex-col motion-safe:animate-rise"
   >
-    <button
-      class="mb-5 inline-flex items-center gap-1 text-xs text-signal hover:underline"
-      @click="emit('openPackage', null)"
-    >
-      <IconPhArrowLeft width="14" height="14" />{{ t("studio.backToStore") }}
-    </button>
     <PackageDetail
       :item="store.selected.value"
       @install="store.install(store.selected.value.entry.id)"
@@ -101,98 +171,184 @@ onMounted(() => void store.initialize());
       @dependency="emit('openPackage', $event)"
     />
   </div>
-  <div v-else class="mx-auto min-h-full motion-safe:animate-rise">
-    <header
-      class="mb-5 flex items-center justify-between gap-5 border-b border-line pb-4"
-    >
-      <div>
+  <div
+    v-else
+    ref="page"
+    class="flex h-full min-h-0 flex-col gap-3 motion-safe:animate-rise"
+  >
+    <header class="flex items-center gap-3">
+      <div class="min-w-0 flex-1">
         <h1 class="text-xl font-semibold">{{ t("store.title") }}</h1>
-        <p class="mt-1 max-w-2xl text-xs leading-6 text-muted">
-          {{ t("store.subtitle") }}
-        </p>
+        <p class="truncate text-xs text-muted">{{ t("store.subtitle") }}</p>
       </div>
-      <button
-        class="inline-flex shrink-0 items-center gap-2 rounded-md border border-line bg-raised px-3 py-1.5 text-xs hover:border-muted disabled:opacity-50"
-        :disabled="store.loading.value"
+      <StudioSegmented
+        v-model="categoryModel"
+        :options="categories"
+        :label="t('studio.category')"
+        size="sm"
+      />
+      <label class="flex items-center gap-1.5 text-xs text-muted"
+        ><input
+          v-model="store.compatibleOnly.value"
+          type="checkbox"
+          :disabled="!device"
+        />{{ t("store.compatibleOnly") }}</label
+      >
+      <StudioButton
+        size="sm"
+        variant="ghost"
+        :loading="store.loading.value"
+        :aria-label="t('store.refresh')"
+        :title="t('store.refresh')"
         @click="store.reload"
       >
         <IconPhArrowsClockwise
+          v-if="!store.loading.value"
           width="14"
           height="14"
-          :class="{ 'motion-safe:animate-studio-spin': store.loading.value }"
-        />{{ t("store.refresh") }}
-      </button>
+        />
+      </StudioButton>
     </header>
+    <StudioCallout v-if="issue || store.snapshot.value?.expired" tone="warning">
+      {{ store.snapshot.value?.expired ? t("store.source.expired") : issueText
+      }}<span v-if="store.snapshot.value?.verified" class="ml-2 text-muted">{{
+        t("store.source.cachedContent")
+      }}</span>
+    </StudioCallout>
     <div
-      v-if="issue || store.snapshot.value?.expired"
-      class="mb-5 flex items-start gap-2.5 rounded-md border border-warning/30 bg-warning/5 px-4 py-3 text-xs leading-6"
-      role="status"
-    >
-      <IconPhInfo width="16" height="16" class="mt-1 shrink-0 text-warning" />
-      <p>
-        {{
-          store.snapshot.value?.expired ? t("store.source.expired") : issueText
-        }}<span v-if="store.snapshot.value?.verified" class="ml-2 text-muted">{{
-          t("store.source.cachedContent")
-        }}</span>
-      </p>
-    </div>
-    <section
-      v-if="featuredPackage && !filtered"
-      class="mb-6 overflow-hidden rounded-lg border border-line bg-raised"
+      v-if="showHero"
+      class="relative shrink-0 overflow-hidden"
+      :style="{ height: `${heroHeight}px` }"
       :aria-label="t('studio.featured')"
+      @mouseenter="hovering = true"
+      @mouseleave="hovering = false"
     >
       <div
-        class="flex min-h-[190px] items-center gap-8 px-8 py-7 max-[850px]:gap-5 max-[850px]:px-5"
+        class="flex h-full transition-transform duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform motion-reduce:transition-none"
+        :style="{ transform: `translateX(calc(14% - ${feature * 72}%))` }"
       >
-        <PackageArtwork
-          :entry="featuredPackage.entry"
-          :package-id="featuredPackage.entry.id"
-          :size="116"
-          class="shadow-[0_6px_20px_#00000012]"
-        />
-        <div class="min-w-0 flex-1">
-          <span
-            class="text-[10px] font-medium uppercase tracking-[0.14em] text-muted"
-            >{{ t("store.fromCatalog") }}</span
+        <div
+          v-for="(item, index) in featured"
+          :key="item.entry.id"
+          class="h-full w-[72%] shrink-0 px-1.5 transition-opacity duration-500"
+          :class="index === feature ? 'opacity-100' : 'opacity-55'"
+          :inert="index !== feature"
+        >
+          <StudioPanel
+            :level="2"
+            :padded="false"
+            class="flex h-full items-center gap-5 px-6"
           >
-          <h2 class="mt-2 truncate text-2xl font-semibold tracking-tight">
-            {{ packageText(featuredPackage.entry, "name", locale, t) }}
-          </h2>
-          <p class="mt-2 max-w-xl text-sm leading-6 text-muted">
-            {{ packageText(featuredPackage.entry, "summary", locale, t) }}
-          </p>
-          <button
-            class="mt-4 inline-flex items-center gap-2 rounded-md bg-signal px-3.5 py-1.5 text-xs text-on-signal hover:brightness-110"
-            @click="emit('openPackage', featuredPackage.entry.id)"
-          >
-            {{ t("studio.viewDetails")
-            }}<IconPhArrowRight width="13" height="13" />
-          </button>
+            <PackageArtwork
+              :entry="item.entry"
+              :package-id="item.entry.id"
+              :size="heroHeight - 40"
+              class="rounded-[18%] shadow-raised"
+            />
+            <div class="min-w-0 flex-1">
+              <span
+                class="text-2xs font-semibold tracking-[0.12em] text-muted uppercase"
+                >{{ t("store.fromCatalog") }}</span
+              >
+              <h2 class="mt-0.5 truncate text-2xl font-semibold tracking-tight">
+                {{ packageText(item.entry, "name", locale, t) }}
+              </h2>
+              <p class="mt-0.5 line-clamp-1 text-sm text-muted">
+                {{ packageText(item.entry, "summary", locale, t) }}
+              </p>
+              <StudioButton
+                variant="primary"
+                size="sm"
+                class="mt-2"
+                @click="emit('openPackage', item.entry.id)"
+              >
+                {{ t("studio.viewDetails")
+                }}<IconPhArrowRight width="12" height="12" />
+              </StudioButton>
+            </div>
+          </StudioPanel>
         </div>
-        <div v-if="featured.length > 1" class="flex shrink-0 gap-1.5">
+      </div>
+      <template v-if="featured.length > 1">
+        <button
+          class="absolute top-1/2 left-2 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-raised text-muted shadow-control hover:text-ink"
+          :aria-label="t('store.featuredPrevious')"
+          @click="rotate(-1)"
+        >
+          <IconPhCaretLeft width="14" height="14" />
+        </button>
+        <button
+          class="absolute top-1/2 right-2 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-raised text-muted shadow-control hover:text-ink"
+          :aria-label="t('store.featuredNext')"
+          @click="rotate(1)"
+        >
+          <IconPhCaretRight width="14" height="14" />
+        </button>
+        <div class="absolute bottom-1.5 left-1/2 flex -translate-x-1/2 gap-1">
           <button
             v-for="(_, index) in featured"
             :key="index"
-            class="p-2 after:block after:size-1.5 after:rounded-full after:bg-line aria-pressed:after:bg-signal"
+            class="p-1 after:block after:size-1.5 after:rounded-full after:bg-ink/20 aria-pressed:after:bg-signal"
             :aria-label="t('studio.featurePage', { index: index + 1 })"
-            :aria-pressed="feature % featured.length === index"
+            :aria-pressed="feature === index"
             @click="feature = index"
           />
         </div>
+      </template>
+    </div>
+    <div class="flex min-h-0 flex-1 flex-col gap-3">
+      <div
+        v-if="store.loading.value && !store.catalog.value.length"
+        class="flex flex-1 items-center justify-center gap-2 text-sm text-muted"
+      >
+        <IconSvgSpinnersRingResize width="16" height="16" />{{
+          t("store.loading")
+        }}
       </div>
-    </section>
-    <div class="flex gap-7">
-      <div class="min-w-0 flex-1">
-        <div
+      <div
+        v-else-if="!store.packages.value.length"
+        class="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted"
+      >
+        <IconPhSquaresFour width="28" height="28" />
+        <p class="text-sm">{{ issue ? issueText : t("store.empty") }}</p>
+        <p v-if="!issue && !filtered" class="text-xs">
+          {{ t("store.emptyCatalog") }}
+        </p>
+        <StudioButton
           v-if="filtered"
-          class="mb-5 flex items-center justify-between text-xs"
+          variant="link"
+          @click="
+            store.query.value = '';
+            store.categoryFilter.value = 'all';
+            store.compatibleOnly.value = false;
+          "
         >
-          <span>{{
-            t("studio.searchResults", { count: store.packages.value.length })
-          }}</span
-          ><button
-            class="text-signal hover:underline"
+          {{ t("studio.clearFilters") }}
+        </StudioButton>
+      </div>
+      <section
+        v-for="section in sections"
+        v-else
+        :key="section.id"
+        class="flex flex-col"
+      >
+        <header class="flex h-[30px] items-center gap-2">
+          <h2 class="text-base font-semibold">
+            {{
+              section.id === "results"
+                ? t("studio.searchResults", { count: section.items.length })
+                : t(`store.collection.${section.id}`)
+            }}
+          </h2>
+          <span
+            v-if="section.id !== 'results'"
+            class="text-xs text-muted tabular-nums"
+            >{{ section.items.length }}</span
+          >
+          <StudioButton
+            v-if="filtered"
+            variant="link"
+            size="sm"
             @click="
               store.query.value = '';
               store.categoryFilter.value = 'all';
@@ -200,148 +356,90 @@ onMounted(() => void store.initialize());
             "
           >
             {{ t("studio.clearFilters") }}
-          </button>
-        </div>
-        <div
-          v-if="store.loading.value && !store.catalog.value.length"
-          class="flex min-h-[250px] items-center justify-center gap-2 text-xs text-muted"
-        >
-          <IconSvgSpinnersRingResize />{{ t("store.loading") }}
-        </div>
-        <div
-          v-else-if="!store.packages.value.length"
-          class="flex min-h-[250px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-line px-6 text-center text-muted"
-        >
-          <IconPhSquaresFour width="32" height="32" />
-          <p class="text-sm">{{ issue ? issueText : t("store.empty") }}</p>
-          <p v-if="!issue && !filtered" class="text-xs leading-6">
-            {{ t("store.emptyCatalog") }}
-          </p>
-        </div>
-        <section
-          v-for="section in sections"
-          v-else
-          :key="section.id"
-          class="mb-7"
-        >
-          <header
-            v-if="section.id !== 'results'"
-            class="mb-4 flex items-center justify-between border-b border-line pb-2"
-          >
-            <h2 class="text-base font-semibold">
-              {{ t(`store.collection.${section.id}`) }}
-            </h2>
-            <span class="text-xs tabular-nums text-muted">{{
-              section.items.length
-            }}</span>
-          </header>
+          </StudioButton>
           <div
-            class="grid grid-cols-[repeat(auto-fill,minmax(108px,1fr))] gap-x-5 gap-y-6"
+            v-if="pageCount(section.items) > 1"
+            class="ml-auto flex items-center gap-1 text-xs text-muted"
           >
-            <PackageCard
-              v-for="item in section.items"
-              :key="item.entry.id"
-              :item="item"
-              @select="emit('openPackage', item.entry.id)"
-              @install="
-                item.missingDependencies.length
-                  ? emit('openPackage', item.entry.id)
-                  : store.install(item.entry.id)
+            <span class="tabular-nums">{{
+              t("common.pageOf", {
+                page: (pages[section.id] ?? 0) + 1,
+                total: pageCount(section.items),
+              })
+            }}</span>
+            <StudioButton
+              size="sm"
+              variant="ghost"
+              :disabled="(pages[section.id] ?? 0) <= 0"
+              :aria-label="t('common.previous')"
+              @click="turn(section.id, section.items, -1)"
+            >
+              <IconPhCaretLeft width="13" height="13" />
+            </StudioButton>
+            <StudioButton
+              size="sm"
+              variant="ghost"
+              :disabled="
+                (pages[section.id] ?? 0) >= pageCount(section.items) - 1
               "
-            />
+              :aria-label="t('common.next')"
+              @click="turn(section.id, section.items, 1)"
+            >
+              <IconPhCaretRight width="13" height="13" />
+            </StudioButton>
           </div>
-        </section>
-      </div>
-      <aside
-        class="w-[205px] shrink-0 border-l border-line pl-6 max-[1150px]:w-[180px] max-[850px]:w-40"
-      >
-        <h2 class="mb-2 text-sm font-semibold">{{ t("studio.category") }}</h2>
-        <label class="sr-only" for="store-category">{{
-          t("studio.category")
-        }}</label>
-        <select
-          id="store-category"
-          v-model="store.categoryFilter.value"
-          class="w-full rounded-md border border-line bg-raised px-2 py-1.5 text-xs text-ink focus:border-signal"
+        </header>
+        <div
+          class="grid justify-between"
+          :style="{
+            gridTemplateColumns: `repeat(${columns}, ${CARD_ART}px)`,
+            rowGap: '14px',
+          }"
         >
-          <option
-            v-for="category in categories"
-            :key="category"
-            :value="category"
-          >
-            {{ t(`store.category.${category}`) }}
-          </option>
-        </select>
-        <label class="mt-3 flex items-start gap-2 text-xs leading-5 text-muted"
-          ><input
-            v-model="store.compatibleOnly.value"
-            type="checkbox"
-            class="mt-1 accent-signal"
-            :disabled="!device"
-          />{{ t("store.compatibleOnly") }}</label
-        >
-        <h3 class="mb-2 mt-6 text-xs text-muted">
-          {{ t("studio.quickLinks") }}
-        </h3>
-        <button
-          class="flex w-full items-center justify-between py-1.5 text-left text-xs hover:text-signal"
-          @click="emit('openInstalled')"
-        >
-          {{ t("studio.installedApps")
-          }}<span class="text-muted">{{
-            gateway.capabilities.installed ? store.installed.value.length : "—"
-          }}</span>
-        </button>
-        <button
-          class="flex w-full items-center justify-between py-1.5 text-left text-xs hover:text-signal"
-          @click="emit('openInstalled')"
-        >
-          {{ t("studio.queue")
-          }}<span class="text-muted">{{
-            active.length + store.queuedIds.value.length
-          }}</span>
-        </button>
-        <h3 class="mb-2 mt-6 text-xs text-muted">{{ t("studio.sources") }}</h3>
-        <div class="flex items-center gap-2 text-xs">
-          <IconPhPackage
-            width="16"
-            height="16"
-            class="shrink-0 text-signal"
-          /><span class="truncate">{{ sourceLabel }}</span
-          ><IconPhShieldCheck
-            v-if="store.snapshot.value?.verified"
-            width="14"
-            height="14"
-            class="ml-auto shrink-0 text-success"
+          <PackageCard
+            v-for="item in pageItems(section.id, section.items)"
+            :key="item.entry.id"
+            :item="item"
+            @select="emit('openPackage', item.entry.id)"
+            @install="
+              item.missingDependencies.length
+                ? emit('openPackage', item.entry.id)
+                : store.install(item.entry.id)
+            "
           />
         </div>
-        <p class="mt-2 text-[11px] leading-5 text-muted">
-          {{
-            store.snapshot.value?.verified
-              ? t("store.source.verified")
-              : store.snapshot.value?.source === "demo"
-                ? t("store.source.demoNotice")
-                : t("store.source.unconfigured")
-          }}
-        </p>
-        <p
-          v-if="store.snapshot.value?.checkedAt"
-          class="mt-2 text-[11px] leading-5 text-muted"
-        >
-          {{
-            t("store.source.checkedAt", {
-              date: d(store.snapshot.value.checkedAt, "date"),
-            })
-          }}
-        </p>
-        <button
-          class="mt-6 inline-flex items-center gap-1 text-xs text-signal hover:underline"
-          @click="emit('openEnvironment')"
-        >
-          {{ t("studio.environmentGuide")
-          }}<IconPhCaretRight width="12" height="12" />
-        </button>
-      </aside>
+      </section>
     </div>
+    <footer class="flex items-center gap-2 text-2xs text-muted">
+      <IconPhPackage width="12" height="12" class="text-signal" />
+      <span class="truncate">{{ sourceLabel }}</span>
+      <IconPhShieldCheck
+        v-if="store.snapshot.value?.verified"
+        width="12"
+        height="12"
+        class="text-success"
+      />
+      <span class="truncate">{{
+        store.snapshot.value?.verified
+          ? t("store.source.verified")
+          : store.snapshot.value?.source === "demo"
+            ? t("store.source.demoNotice")
+            : t("store.source.unconfigured")
+      }}</span>
+      <span v-if="store.snapshot.value?.checkedAt">{{
+        t("store.source.checkedAt", {
+          date: d(store.snapshot.value.checkedAt, "date"),
+        })
+      }}</span>
+      <StudioButton
+        variant="link"
+        size="sm"
+        class="ml-auto text-2xs"
+        @click="emit('openEnvironment')"
+      >
+        {{ t("studio.environmentGuide")
+        }}<IconPhCaretRight width="11" height="11" />
+      </StudioButton>
+    </footer>
   </div>
 </template>

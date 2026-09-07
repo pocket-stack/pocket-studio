@@ -16,7 +16,10 @@
     "cancel": "Cancel",
     "close": "Close",
     "required": "Required",
-    "notRequired": "Not required"
+    "notRequired": "Not required",
+    "previous": "Previous page",
+    "next": "Next page",
+    "pageOf": "{page} / {total}"
   },
   "demo": {
     "title": "Demo controls",

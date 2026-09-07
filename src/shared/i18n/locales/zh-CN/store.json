@@ -266,6 +266,14 @@
       },
       "working": "处理中…",
       "activity": "{action} {name} · {device}"
-    }
+    },
+    "tabs": {
+      "description": "简介",
+      "previews": "预览",
+      "history": "版本记录",
+      "steps": "安装步骤"
+    },
+    "featuredPrevious": "上一个精选",
+    "featuredNext": "下一个精选"
   }
 }
