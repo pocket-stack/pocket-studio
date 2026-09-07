@@ -218,3 +218,20 @@ export function hydratePackageJobs(
     }
   }
 }
+
+/** Percent the operation reaches once the running step completes. */
+export function operationStepCeiling(operation: OperationState): number {
+  const total = operation.steps.reduce(
+    (sum, step) => sum + step.estimatedSeconds,
+    0,
+  );
+  if (total === 0) return 0;
+  const reached = operation.steps.reduce(
+    (sum, step) =>
+      step.status === "done" || step.status === "running"
+        ? sum + step.estimatedSeconds
+        : sum,
+    0,
+  );
+  return Math.round((reached / total) * 100);
+}

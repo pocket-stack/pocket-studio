@@ -121,3 +121,30 @@ it("hydrates submitted jobs as read-only follow-up state and preserves their bou
   expect(state.status).toBe("finished");
   expect(state.steps[0]?.status).toBe("done");
 });
+
+it("reports the percent a running step will reach so progress can trickle toward it", async () => {
+  vi.resetModules();
+  const { operationProgress, operationStepCeiling } =
+    await import("./useOperations");
+  const step = (id: string, estimatedSeconds: number) => ({
+    id: id as never,
+    estimatedSeconds,
+    cancellable: true,
+    pointOfNoReturn: false,
+    percent: 0,
+    status: "pending" as const,
+  });
+  const operation = {
+    id: "op",
+    kind: "preparation" as const,
+    status: "running" as const,
+    startedAt: 0,
+    steps: [
+      { ...step("fetchResources", 30), status: "done" as const, percent: 100 },
+      { ...step("buildRamdisk", 50), status: "running" as const, percent: 20 },
+      step("bootRamdisk", 20),
+    ],
+  };
+  expect(operationProgress(operation)).toBe(40);
+  expect(operationStepCeiling(operation)).toBe(80);
+});

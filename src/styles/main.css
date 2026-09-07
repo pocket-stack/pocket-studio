@@ -55,6 +55,9 @@
   --animate-rise: ps-rise 0.25s ease-out both;
   --animate-studio-spin: ps-spin 0.9s linear infinite;
   --animate-device-pulse: ps-pulse 1.4s ease-in-out infinite;
+  --animate-stripes: ps-stripes 0.7s linear infinite;
+  --animate-indeterminate: ps-indeterminate 1.4s cubic-bezier(0.4, 0, 0.2, 1)
+    infinite;
 
   @keyframes ps-rise {
     from {
@@ -69,6 +72,19 @@
   @keyframes ps-spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+  @keyframes ps-stripes {
+    to {
+      transform: translateX(20px);
+    }
+  }
+  @keyframes ps-indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
     }
   }
 }

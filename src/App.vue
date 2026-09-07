@@ -29,6 +29,7 @@ import { useLogMessage } from "./shared/composables/useLogMessage";
 import { useOperationLog } from "./shared/composables/useOperationLog";
 import {
   operationProgress,
+  operationStepCeiling,
   useOperations,
 } from "./shared/composables/useOperations";
 import { useGateway } from "./shared/gateway";
@@ -67,6 +68,9 @@ const latestMessage = computed(() => {
 });
 const progress = computed(() =>
   current.value ? operationProgress(current.value) : 0,
+);
+const ceiling = computed(() =>
+  current.value ? operationStepCeiling(current.value) : 0,
 );
 const stepPosition = computed(() => {
   const operation = current.value;
@@ -277,6 +281,7 @@ onMounted(async () => {
           v-if="current"
           class="mt-1.5"
           :percent="progress"
+          :trickle-to="ceiling"
           active
           compact
         />

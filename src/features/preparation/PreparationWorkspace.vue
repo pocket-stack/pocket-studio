@@ -187,11 +187,11 @@ function openLogs(): void {
             :width="220"
             :screen="currentStep?.id === 'rebootDevice' ? 'apple' : 'off'"
             cable
-          /><img
+          /><IconSvgSpinnersRingResize
             v-if="currentStep?.id !== 'rebootDevice'"
-            src="/vectors/indicators/device-spinner.svg"
-            alt=""
-            class="absolute top-[43%] left-[calc(50%-13px)] size-[26px] motion-safe:animate-studio-spin"
+            class="absolute top-[43%] left-[calc(50%-13px)] text-white"
+            width="26"
+            height="26"
           />
         </div>
         <p class="mb-5 text-center text-[16px]">
