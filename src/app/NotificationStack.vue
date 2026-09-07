@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import IconPhInfo from "~icons/ph/info";
-import IconPhCheck from "~icons/ph/check";
+import IconPhCheckCircle from "~icons/ph/check-circle";
 import IconPhWarning from "~icons/ph/warning";
-import IconPhX from "~icons/ph/x";
+import IconPhWarningOctagon from "~icons/ph/warning-octagon";
 import { useI18n } from "vue-i18n";
 
 import { useNotifications } from "../shared/composables/useNotifications";
@@ -11,45 +11,51 @@ const { t } = useI18n();
 const { items, dismiss } = useNotifications();
 
 const tones = {
-  info: "border-info/40 text-info",
-  success: "border-success/40 text-success",
-  warning: "border-warning/40 text-warning",
-  error: "border-danger/40 text-danger",
+  info: "text-info",
+  success: "text-success",
+  warning: "text-warning",
+  error: "text-danger",
 };
 const icons = {
   info: IconPhInfo,
-  success: IconPhCheck,
+  success: IconPhCheckCircle,
   warning: IconPhWarning,
-  error: IconPhX,
+  error: IconPhWarningOctagon,
 };
 </script>
 
 <template>
   <div
-    class="pointer-events-none fixed right-4 bottom-4 z-50 flex w-80 flex-col gap-2"
+    class="pointer-events-none fixed right-3 bottom-[42px] z-50 flex w-80 flex-col gap-2"
   >
     <TransitionGroup
-      enter-active-class="transition-[opacity,transform] duration-200 ease-[ease] motion-reduce:transition-none"
-      leave-active-class="transition-[opacity,transform] duration-200 ease-[ease] motion-reduce:transition-none"
+      enter-active-class="transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
+      leave-active-class="transition-[opacity,transform] duration-150 ease-in motion-reduce:transition-none"
       enter-from-class="translate-y-2 opacity-0"
       leave-to-class="translate-y-2 opacity-0"
     >
       <div
         v-for="item in items"
         :key="item.id"
-        class="pointer-events-auto flex items-start gap-3 rounded-xl border bg-raised p-3 text-sm shadow-lg"
-        :class="tones[item.tone]"
+        class="pointer-events-auto flex items-start gap-2.5 rounded-panel bg-raised px-3 py-2.5 text-sm shadow-overlay"
         role="status"
       >
         <component
           :is="icons[item.tone]"
           width="16"
           height="16"
-          class="mt-0.5"
+          class="mt-px shrink-0"
+          :class="tones[item.tone]"
         />
-        <p class="flex-1 text-ink">{{ t(item.key, item.params ?? {}) }}</p>
-        <button class="text-muted hover:text-ink" @click="dismiss(item.id)">
-          <IconPhX width="14" height="14" />
+        <p class="min-w-0 flex-1 text-ink">
+          {{ t(item.key, item.params ?? {}) }}
+        </p>
+        <button
+          class="-mr-1 rounded p-0.5 text-muted hover:text-ink"
+          :aria-label="t('common.close')"
+          @click="dismiss(item.id)"
+        >
+          <IconPhX width="13" height="13" />
         </button>
       </div>
     </TransitionGroup>

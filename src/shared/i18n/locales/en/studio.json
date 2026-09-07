@@ -20,7 +20,7 @@
     "navigation": "Main navigation",
     "deviceNavigation": "Device navigation",
     "queue": "Queue",
-    "settingsGroup": "Settings",
+    "settingsGroup": "Device",
     "onDevice": "On this device",
     "installedApps": "Installed apps",
     "preferences": "Preferences",
@@ -231,7 +231,8 @@
     },
     "navigateBack": "Back",
     "navigateForward": "Forward",
-    "historyNavigation": "Navigation history"
+    "historyNavigation": "Navigation history",
+    "stepOf": "Step {index}/{total}"
   },
   "log": {
     "store": {

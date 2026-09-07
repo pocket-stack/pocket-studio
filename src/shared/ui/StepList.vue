@@ -9,33 +9,33 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <ol class="flex flex-col gap-1.5">
+  <ol class="flex flex-col gap-0.5">
     <li
       v-for="(step, index) in steps"
       :key="step.id"
-      class="flex items-start gap-3 rounded-lg px-3 py-2 transition"
+      class="flex items-start gap-2.5 rounded-control px-2 py-1.5 transition-colors"
       :class="{
         'bg-signal/8': step.status === 'running',
-        'opacity-55': step.status === 'pending' || step.status === 'skipped',
+        'opacity-50': step.status === 'pending' || step.status === 'skipped',
       }"
     >
       <span
-        class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
+        class="mt-px flex size-5 shrink-0 items-center justify-center rounded-full text-2xs font-semibold"
         :class="{
-          'border-line text-muted':
+          'bg-ink/8 text-muted':
             step.status === 'pending' || step.status === 'skipped',
-          'border-signal bg-signal text-on-signal': step.status === 'running',
-          'border-success bg-success text-white': step.status === 'done',
-          'border-danger bg-danger text-white': step.status === 'failed',
-          'border-warning text-warning': step.status === 'cancelled',
+          'bg-signal text-on-signal': step.status === 'running',
+          'bg-success text-white': step.status === 'done',
+          'bg-danger text-white': step.status === 'failed',
+          'bg-warning/15 text-warning': step.status === 'cancelled',
         }"
       >
-        <IconPhCheck v-if="step.status === 'done'" width="14" height="14" />
-        <IconPhX v-else-if="step.status === 'failed'" width="14" height="14" />
+        <IconPhCheck v-if="step.status === 'done'" width="12" height="12" />
+        <IconPhX v-else-if="step.status === 'failed'" width="12" height="12" />
         <IconSvgSpinners90Ring
           v-else-if="step.status === 'running'"
-          width="12"
-          height="12"
+          width="11"
+          height="11"
           class="text-on-signal"
         />
         <span v-else>{{ index + 1 }}</span>
@@ -51,13 +51,13 @@ const { t } = useI18n();
               class="text-danger"
               :title="t('operation.pointOfNoReturn')"
             >
-              <IconPhWarning width="14" height="14" />
+              <IconPhWarning width="13" height="13" />
             </span>
             <span
               v-if="!step.cancellable && step.status !== 'done'"
               :title="t('operation.notCancellable')"
             >
-              <IconPhShieldCheck width="14" height="14" />
+              <IconPhShieldCheck width="13" height="13" />
             </span>
             <span v-if="step.status === 'running'">{{
               step.indeterminate
@@ -69,12 +69,12 @@ const { t } = useI18n();
             >
           </span>
         </div>
-        <p class="mt-0.5 text-xs text-muted">
+        <p class="text-xs text-muted">
           {{ t(`${labelPrefix}.${step.id}.detail`) }}
         </p>
         <ProgressBar
           v-if="step.status === 'running' && !step.indeterminate"
-          class="mt-2"
+          class="mt-1.5"
           :percent="step.percent"
           active
           compact

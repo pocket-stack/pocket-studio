@@ -28,31 +28,26 @@ watch(
 <template>
   <dialog
     ref="dialog"
-    class="m-auto max-h-[calc(100dvh-60px)] overflow-auto rounded-[10px] border border-line bg-canvas p-0 text-ink shadow-[0_25px_100px_#00000035] backdrop:bg-[#151c2a50] backdrop:backdrop-blur-[3px]"
+    class="m-auto max-h-[calc(100dvh-60px)] flex-col overflow-hidden rounded-panel bg-surface p-0 text-ink shadow-overlay backdrop:bg-[#0b1220]/35 backdrop:backdrop-blur-[2px] open:flex"
     :class="
       compact
         ? 'w-[min(440px,calc(100vw-40px))]'
-        : 'w-[min(760px,calc(100vw-60px))]'
+        : 'w-[min(720px,calc(100vw-60px))]'
     "
     :aria-label="title"
     @cancel.prevent="emit('close')"
   >
-    <header
-      class="flex items-center justify-between gap-5 border-b border-line bg-chrome px-[22px] py-[15px]"
-    >
-      <h2 class="text-[13px] font-semibold">{{ title }}</h2>
+    <header class="flex shrink-0 items-center justify-between gap-5 px-5 pt-4">
+      <h2 class="text-base font-semibold">{{ title }}</h2>
       <button
-        class="inline-flex items-center justify-center rounded p-[5px] text-muted hover:bg-track hover:text-ink"
+        class="-mr-1.5 inline-flex items-center justify-center rounded-control p-1 text-muted hover:bg-ink/6 hover:text-ink"
         :aria-label="t('common.close')"
         @click="emit('close')"
       >
-        <IconPhX width="18" height="18" />
+        <IconPhX width="16" height="16" />
       </button>
     </header>
-    <div
-      v-if="open"
-      class="max-h-[calc(100dvh-135px)] overflow-y-auto p-6 [scrollbar-width:thin] [scrollbar-color:var(--color-line)_transparent]"
-    >
+    <div v-if="open" class="flex min-h-0 flex-1 flex-col p-5">
       <slot />
     </div>
   </dialog>

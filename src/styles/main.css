@@ -10,6 +10,7 @@
   --color-muted: var(--ps-muted);
   --color-line: var(--ps-line);
   --color-signal: var(--ps-signal);
+  --color-signal-strong: var(--ps-signal-strong);
   --color-on-signal: var(--ps-on-signal);
   --color-success: var(--ps-success);
   --color-warning: var(--ps-warning);
@@ -19,6 +20,11 @@
   --color-sidebar: var(--ps-sidebar);
   --color-track: var(--ps-track);
   --color-lcd: var(--ps-lcd);
+  --shadow-panel: var(--ps-shadow-panel);
+  --shadow-raised: var(--ps-shadow-raised);
+  --shadow-control: var(--ps-shadow-control);
+  --shadow-overlay: var(--ps-shadow-overlay);
+  --shadow-inset: var(--ps-shadow-inset);
 }
 
 @theme {
@@ -27,11 +33,28 @@
     "Noto Sans CJK SC", "Segoe UI", sans-serif;
   --font-mono:
     "SFMono-Regular", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius-card: 8px;
+  /* Compact desktop type scale. */
+  --text-2xs: 10px;
+  --text-2xs--line-height: 14px;
+  --text-xs: 11px;
+  --text-xs--line-height: 16px;
+  --text-sm: 12px;
+  --text-sm--line-height: 18px;
+  --text-base: 13px;
+  --text-base--line-height: 20px;
+  --text-lg: 15px;
+  --text-lg--line-height: 22px;
+  --text-xl: 18px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 22px;
+  --text-2xl--line-height: 30px;
+  --text-3xl: 26px;
+  --text-3xl--line-height: 34px;
+  --radius-control: 6px;
+  --radius-panel: 10px;
   --animate-rise: ps-rise 0.25s ease-out both;
   --animate-studio-spin: ps-spin 0.9s linear infinite;
   --animate-device-pulse: ps-pulse 1.4s ease-in-out infinite;
-  --animate-progress-stripes: ps-stripes 0.8s linear infinite;
 
   @keyframes ps-rise {
     from {
@@ -48,54 +71,67 @@
       transform: rotate(360deg);
     }
   }
-  @keyframes ps-stripes {
-    from {
-      mask-position: 0 0;
-    }
-    to {
-      mask-position: 28px 0;
-    }
-  }
 }
 
 :root {
   color-scheme: light;
-  --ps-canvas: #fff;
-  --ps-surface: #f2f2f2;
-  --ps-raised: #fff;
+  --ps-canvas: #f4f4f6;
+  --ps-surface: #ffffff;
+  --ps-raised: #ffffff;
   --ps-ink: #1d1d1f;
-  --ps-muted: #6e6e6e;
-  --ps-line: #d6d6d6;
+  --ps-muted: #6e6e73;
+  --ps-line: #dededf;
   --ps-signal: #2f6fd6;
+  --ps-signal-strong: #255cad;
   --ps-on-signal: #fff;
-  --ps-success: #4c9175;
-  --ps-warning: #a67728;
+  --ps-success: #3f8f6b;
+  --ps-warning: #a06f1e;
   --ps-danger: #b3261e;
-  --ps-info: #426da5;
-  --ps-chrome: #f6f6f6;
-  --ps-sidebar: #f2f2f2;
-  --ps-track: #e8e8e8;
-  --ps-lcd: #e8e8e8;
+  --ps-info: #3d6aa8;
+  --ps-chrome: #ececee;
+  --ps-sidebar: #eeeef1;
+  --ps-track: #e4e4e8;
+  --ps-lcd: #e6e7e5;
+  --ps-shadow-panel: 0 1px 2px rgb(0 0 0 / 0.05), 0 0 0 0.5px rgb(0 0 0 / 0.04);
+  --ps-shadow-raised:
+    0 1px 3px rgb(0 0 0 / 0.08), 0 4px 14px rgb(0 0 0 / 0.05),
+    0 0 0 0.5px rgb(0 0 0 / 0.04);
+  --ps-shadow-control:
+    0 1px 1px rgb(0 0 0 / 0.08), 0 0 0 0.5px rgb(0 0 0 / 0.08);
+  --ps-shadow-overlay:
+    0 24px 60px rgb(0 0 0 / 0.22), 0 2px 8px rgb(0 0 0 / 0.1),
+    0 0 0 0.5px rgb(0 0 0 / 0.08);
+  --ps-shadow-inset: inset 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ps-canvas: #1c1d20;
-  --ps-surface: #27282c;
-  --ps-raised: #2b2f35;
+  --ps-canvas: #1a1a1d;
+  --ps-surface: #242428;
+  --ps-raised: #2d2d32;
   --ps-ink: #ededee;
-  --ps-muted: #a6a7ac;
-  --ps-line: #414249;
-  --ps-signal: #8ab4ef;
-  --ps-on-signal: #151c26;
+  --ps-muted: #a1a1a6;
+  --ps-line: #37373c;
+  --ps-signal: #6ea0ec;
+  --ps-signal-strong: #8ab4ef;
+  --ps-on-signal: #0f1a2b;
   --ps-success: #6fcf97;
   --ps-warning: #e8b84a;
   --ps-danger: #ff7b72;
   --ps-info: #6fb3e0;
-  --ps-chrome: #292a2e;
-  --ps-sidebar: #242529;
-  --ps-track: #34353a;
-  --ps-lcd: #202125;
+  --ps-chrome: #212124;
+  --ps-sidebar: #1f1f22;
+  --ps-track: #333338;
+  --ps-lcd: #1e1f22;
+  --ps-shadow-panel: 0 0 0 0.5px rgb(255 255 255 / 0.06);
+  --ps-shadow-raised:
+    0 2px 6px rgb(0 0 0 / 0.35), 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  --ps-shadow-control:
+    0 1px 1px rgb(0 0 0 / 0.4), inset 0 0.5px 0 rgb(255 255 255 / 0.1),
+    0 0 0 0.5px rgb(255 255 255 / 0.06);
+  --ps-shadow-overlay:
+    0 24px 60px rgb(0 0 0 / 0.55), 0 0 0 0.5px rgb(255 255 255 / 0.1);
+  --ps-shadow-inset: inset 0 1px 2px rgb(0 0 0 / 0.45);
 }
 
 @layer base {
@@ -105,7 +141,7 @@
     @apply h-full min-h-full;
   }
   body {
-    @apply m-0 overflow-hidden bg-canvas font-sans text-[13px] text-ink antialiased;
+    @apply m-0 overflow-hidden bg-canvas font-sans text-base text-ink antialiased;
   }
   button,
   summary {
@@ -122,9 +158,9 @@
     @apply [-webkit-tap-highlight-color:transparent];
   }
   :where(button, a, summary, input, select, [tabindex]):focus-visible {
-    @apply outline-2 outline-offset-[3px] outline-signal;
+    @apply outline-2 outline-offset-2 outline-signal;
   }
   input[type="checkbox"] {
-    @apply size-[15px] shrink-0;
+    @apply size-[14px] shrink-0 accent-signal;
   }
 }

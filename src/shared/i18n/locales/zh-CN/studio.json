@@ -20,7 +20,7 @@
     "navigation": "主导航",
     "deviceNavigation": "设备导航",
     "queue": "队列",
-    "settingsGroup": "设置",
+    "settingsGroup": "设备",
     "onDevice": "在设备上",
     "installedApps": "已安装应用",
     "preferences": "偏好设置",
@@ -231,7 +231,8 @@
     },
     "navigateBack": "后退",
     "navigateForward": "前进",
-    "historyNavigation": "历史导航"
+    "historyNavigation": "历史导航",
+    "stepOf": "步骤 {index}/{total}"
   },
   "log": {
     "store": {
