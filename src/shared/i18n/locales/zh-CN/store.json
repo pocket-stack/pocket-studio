@@ -274,6 +274,12 @@
       "steps": "安装步骤"
     },
     "featuredPrevious": "上一个精选",
-    "featuredNext": "下一个精选"
+    "featuredNext": "下一个精选",
+    "seeAll": "查看全部",
+    "recentlyPublished": "最近上架",
+    "allApps": "全部应用",
+    "installQueue": "安装队列",
+    "reloadCatalog": "刷新目录",
+    "summaryUnavailable": "暂无简介"
   }
 }

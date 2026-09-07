@@ -41,6 +41,11 @@ const name = computed(() =>
 const description = computed(() =>
   packageText(props.item.entry, "description", locale.value, t),
 );
+const summary = computed(
+  () =>
+    packageText(props.item.entry, "summary", locale.value, t) ||
+    t("store.summaryUnavailable"),
+);
 const screenshots = computed(() =>
   packageMedia(props.item.entry, "screenshot", locale.value),
 );
@@ -104,19 +109,38 @@ const errorBody = computed(() => {
     ? t(specific)
     : t(`store.errors.${props.item.operation?.error?.code}.body`);
 });
-const facts = computed(() => [
-  { label: t("store.detail.developer"), value: props.item.entry.developer },
+// App Store style strip: a label above a large value, with a small detail line.
+const stats = computed(() => [
+  {
+    label: t("store.detail.developer"),
+    value: props.item.entry.developer,
+    sub: props.item.entry.details?.app.publisher.verified
+      ? t("studio.official")
+      : t("studio.community"),
+  },
+  {
+    label: t("store.detail.version"),
+    value: props.item.entry.version,
+    sub: props.item.entry.details
+      ? t("store.detail.revision", {
+          revision: props.item.entry.details.revision,
+        })
+      : d(props.item.entry.publishedAt, "date"),
+  },
   {
     label: t("store.detail.size"),
     value: formatBytes(props.item.entry.sizeBytes),
+    sub: t(`store.policy.${props.item.entry.installPolicy}`),
   },
   {
     label: t("store.detail.compatibility"),
-    value: `${props.item.entry.compatibility.platform === "ios" ? t("store.platform.ios") : props.item.entry.compatibility.platform} ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
+    value: `iOS ${props.item.entry.compatibility.minOsVersion}+`,
+    sub: `${t("store.platform.ios")} ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
   },
   {
     label: t("store.detail.models"),
-    value: props.item.entry.compatibility.models.join(", "),
+    value: String(props.item.entry.compatibility.models.length),
+    sub: props.item.entry.compatibility.models.join(", "),
   },
   {
     label: t("store.detail.jailbreak"),
@@ -125,10 +149,7 @@ const facts = computed(() => [
         ? "common.required"
         : "common.notRequired",
     ),
-  },
-  {
-    label: t("store.detail.policy"),
-    value: t(`store.policy.${props.item.entry.installPolicy}`),
+    sub: t(`store.category.${props.item.entry.category}`),
   },
 ]);
 
@@ -197,33 +218,22 @@ const pageReleases = computed(() =>
     >
       <IconPhArrowLeft width="13" height="13" />{{ t("studio.backToStore") }}
     </StudioButton>
-    <header class="flex items-start gap-5">
+    <header class="flex items-start gap-6">
       <PackageArtwork
         :entry="item.entry"
         :package-id="item.entry.id"
-        :size="96"
-        class="rounded-[18%] shadow-raised"
+        :size="112"
+        class="rounded-[22%] shadow-raised"
       />
-      <div class="min-w-0 flex-1">
-        <h1 class="truncate text-2xl font-semibold tracking-tight">
+      <div class="min-w-0 flex-1 pt-1">
+        <h1 class="truncate text-3xl font-semibold tracking-tight">
           {{ name }}
         </h1>
-        <p class="text-xs text-muted">
-          {{ item.entry.developer }} ·
-          {{ t(`store.category.${item.entry.category}`) }} ·
-          {{ item.entry.version
-          }}<span v-if="item.entry.details">
-            ·
-            {{
-              t("store.detail.revision", {
-                revision: item.entry.details.revision,
-              })
-            }}</span
-          >
-        </p>
-        <div class="mt-3 flex flex-wrap items-center gap-2">
+        <p class="mt-0.5 truncate text-base text-muted">{{ summary }}</p>
+        <div class="mt-3.5 flex flex-wrap items-center gap-3">
           <StudioButton
             variant="primary"
+            class="h-8 rounded-full px-5 font-semibold"
             :disabled="!canInstall"
             @click="emit('install')"
           >
@@ -231,6 +241,7 @@ const pageReleases = computed(() =>
           </StudioButton>
           <StudioButton
             v-if="item.verdict === 'requiresPreparation'"
+            class="rounded-full"
             @click="emit('prepare')"
           >
             {{ t("store.detail.prepareDevice") }}
@@ -276,15 +287,25 @@ const pageReleases = computed(() =>
           </StudioButton>
         </p>
       </div>
-      <dl
-        class="grid w-[300px] shrink-0 grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs max-[1100px]:w-[240px]"
-      >
-        <template v-for="fact in facts" :key="fact.label">
-          <dt class="text-muted">{{ fact.label }}</dt>
-          <dd class="truncate" :title="fact.value">{{ fact.value }}</dd>
-        </template>
-      </dl>
     </header>
+    <dl class="grid grid-cols-6 gap-3 rounded-panel bg-ink/4 px-4 py-2.5">
+      <div
+        v-for="stat in stats"
+        :key="stat.label"
+        class="min-w-0 text-center"
+        :title="stat.sub"
+      >
+        <dt
+          class="truncate text-2xs font-semibold tracking-[0.08em] text-muted uppercase"
+        >
+          {{ stat.label }}
+        </dt>
+        <dd class="mt-0.5 truncate text-lg leading-6 font-semibold">
+          {{ stat.value }}
+        </dd>
+        <dd class="truncate text-2xs text-muted">{{ stat.sub }}</dd>
+      </div>
+    </dl>
     <StudioPanel
       v-if="item.operation"
       :padded="false"

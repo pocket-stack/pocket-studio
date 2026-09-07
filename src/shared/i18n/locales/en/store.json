@@ -274,6 +274,12 @@
       "steps": "Install steps"
     },
     "featuredPrevious": "Previous feature",
-    "featuredNext": "Next feature"
+    "featuredNext": "Next feature",
+    "seeAll": "See All",
+    "recentlyPublished": "Recently published",
+    "allApps": "All apps",
+    "installQueue": "Install queue",
+    "reloadCatalog": "Reload catalog",
+    "summaryUnavailable": "No summary yet"
   }
 }
