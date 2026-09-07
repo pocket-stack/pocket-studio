@@ -11,7 +11,7 @@ const props = withDefaults(
     label?: string;
     disabled?: boolean;
     size?: "sm" | "md";
-    /** Value used when the field is left empty; shown masked until revealed. */
+    /** Value used when the field is left empty; always shown as plain grey text. */
     secret?: string;
   }>(),
   { type: "text", size: "md", placeholder: "", label: "", secret: "" },
@@ -26,13 +26,9 @@ const revealed = ref(false);
 const inputType = computed(() =>
   props.type === "password" && revealed.value ? "text" : props.type,
 );
-const hint = computed(() =>
-  props.secret
-    ? revealed.value
-      ? props.secret
-      : "•".repeat(props.secret.length)
-    : props.placeholder,
-);
+// The default stays readable so the user knows exactly what will be sent;
+// the reveal toggle only affects what they typed.
+const hint = computed(() => props.secret || props.placeholder);
 </script>
 
 <template>
