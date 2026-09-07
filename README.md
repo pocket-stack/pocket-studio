@@ -22,7 +22,7 @@ Pocket Studio 是 Pocket 生态的桌面连接桥梁。项目目标是通过 USB
 - 完整 UDID、ECID、序列号保留在适配器内部；界面使用临时会话 ID 和脱敏标识。
 - Windows 需要 Apple 设备驱动与 Apple Mobile Device Service；Linux 需要 usbmuxd 与适当的 USB 权限；macOS 使用系统服务。应用不会自动重启服务、切换驱动或提升权限。
 
-macOS / iPod touch 4 真机验证已读取 `iPod4,1`、`N81AP`、`A4`、`6.1.6`、`10B500`、脱敏序列号、电量与存储信息，配对、越狱及 SSH 检测均通过。设备使用 Legacy iOS Kit 默认路径越狱：AFC2 和安装服务列表未提供足够证据，SpringBoard 能确认 Cydia 注册信息。
+macOS / iPod touch 4 真机验证已读取 `iPod4,1`、`N81AP`、`A4`、`6.1.6`、`10B500`、脱敏序列号、电量与存储信息，配对、越狱及 SSH 检测均通过。已覆盖 Legacy iOS Kit 默认路径和当前 Studio 准备路径的越狱检测：AFC2 和安装服务列表未提供足够证据，SpringBoard 能确认 Cydia 注册信息。
 
 设备会话按 libimobiledevice 的规则兼容旧协议：iOS 7 之前先验证已有配对，iOS 10 之前使用 TLS 1.0；设备证书必须匹配既有配对记录。兼容实现已移入 Legacy-iOS-Kit-rs；Studio 启用库的 `legacy-tls` 功能并调用 `NormalDevice::inspect()`，应用内不再保留独立 TLS 实现。库使用静态链接的 OpenSSL，仅作用于 USB 设备会话。构建需 C 编译器、Make 和 Perl；程序运行时无需另外安装 OpenSSL。分析与测试说明见 [旧版 iOS 连接兼容性](docs/legacy-ios-compatibility.md)。
 
@@ -41,7 +41,7 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices
 - DFU 与启动过程按 ECID 匹配，ramdisk SSH 按ECID 对应的 USB 端口和本次构建的随机标记核对，不会选择列表中的第一台设备。设备切换模式时，执行界面保持显示。
 - OpenSSH 会被安装并启用，风险页和成功页会提醒修改 root / mobile 默认密码。不会在发现阶段登录 SSH。
 
-已验证：macOS 正常模式及 DFU 真机识别、真实 Apple 固件校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。使用本地库的原生适配器已从新的 DFU 状态通过 A4 PWND 验证、iBSS / iBEC、ramdisk 引导、USB SSH、随机会话标记及磁盘中 iOS 6.1.6 / 10B500 的只读核验；完整 ramdisk 也通过电脑上的只读文件系统检查。USB 复位、A4、引导兼容及 HFS 修复均位于本地库。**越狱包安装和重启后的验收仍待真机验证**；Linux/Windows 的完整硬件流程也未验收。
+已验证：macOS 正常模式及 DFU 真机识别、真实 Apple 固件校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包。使用本地库的原生适配器已从新的 DFU 状态通过 A4 PWND 验证、iBSS / iBEC、ramdisk 引导、USB SSH、随机会话标记及磁盘中 iOS 6.1.6 / 10B500 的只读核验；完整 ramdisk 也通过电脑上的只读文件系统检查。USB 复位、A4、引导兼容及 HFS 修复均位于本地库。后续已实际完成 8 个安装包的写入、重启和正常系统检测，配对、越狱、SSH 均通过，设备状态为“已就绪”。**macOS / iPod4,1 / 6.1.6 的完整准备链已完成真机验收**；Linux/Windows 的完整硬件流程尚未验收。
 
 本机保留 `prepare_resources.rs` 诊断工具时，可以单独验证资源步骤（不连接设备）：
 

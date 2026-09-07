@@ -313,9 +313,9 @@ impl Target {
                     .ssh
                     .take()
                     .ok_or(failure(OperationErrorCode::SshUnavailable))?;
-                checked(&ssh, "sync", OperationErrorCode::WriteFailed).await?;
-                // The reply can disappear when reboot succeeds. Only observing
-                // the original paired device return constitutes completion.
+                // The stock reboot binary flushes filesystems; this ramdisk
+                // has no standalone sync utility. A lost reply is expected.
+                // Completion requires observing the original device return.
                 let _ = timeout(Duration::from_secs(10), ssh.execute("/sbin/reboot_bak")).await;
                 let _ = ssh.disconnect().await;
                 loop {
@@ -477,7 +477,7 @@ impl Target {
         }
         checked(
             ssh,
-            "test -d /mnt1/Applications/Cydia.app && test -x /mnt1/usr/sbin/sshd && sync",
+            "test -d /mnt1/Applications/Cydia.app && test -x /mnt1/usr/sbin/sshd && test -x /mnt1/private/var/aquila/aquila && test -f /mnt1/private/etc/launchd.conf",
             OperationErrorCode::VerificationFailed,
         )
         .await
@@ -541,7 +541,7 @@ fn validate_inspection(
 // No fsck or writable mounting is requested before reading
 // SystemVersion.plist. The two partition layouts follow the pinned mount.sh.
 const READ_ONLY_ROOT: &str = "while ! test -b /dev/disk0s1s1 && ! test -b /dev/disk0s1; do sleep 1; done; if test -b /dev/disk0s1s1; then mount_hfs -o rdonly /dev/disk0s1s1 /mnt1; else mount_hfs -o rdonly /dev/disk0s1 /mnt1; fi";
-const WRITABLE_ROOT: &str = "umount /mnt1 && if test -b /dev/disk0s1s1; then mount_hfs /dev/disk0s1s1 /mnt1; else mount_hfs /dev/disk0s1 /mnt1; fi";
+const WRITABLE_ROOT: &str = "/sbin/mount -u -w /mnt1";
 
 fn verify_disk_firmware(version: &str, build: &str) -> Result<(), PreparationError> {
     if version != "6.1.6" || build != "10B500" {

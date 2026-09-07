@@ -19,7 +19,7 @@ Rust 校验所有风险和前提、方案 ID、条款版本、阅读时长、阅
 5. 在该 ECID 对应的 USB 端口匹配 usbmux 的序列号与设备 ID，连接临时 ramdisk 的 root SSH。会话只接受本次镜像的随机标记；不会回退为“第一台设备”。此处使用临时主机密钥策略和 ramdisk 公开默认密码，不连接正常 iOS 的特权 shell。
 6. 只读挂载系统分区（不请求 fsck 或可写挂载），核对磁盘中的 6.1.6 / 10B500，再检查 `/mnt1/bin/bash`，避免重复安装。
 7. 核验通过后将系统分区重新挂载为可写，再挂载数据分区，安装经过校验的 fstab、Aquila 6、Cydia、SSH deb、OpenSSH、OpenSSL、LukeZGD 和 nopatcyh 资源。严格检查每个命令的退出状态；tar 失败不会因清理命令成功而被忽略。
-8. 检查 Cydia 和 sshd 文件，sync、重启，等待原 ECID 对应的设备返回（正常入口同时绑定原 UDID，DFU 入口按 ECID 解析返回的 UDID），再建立既有配对会话，再确认越狱与 SSH。重启连接丢失本身不算成功。
+8. 检查 Aquila、Cydia 和 sshd 文件，调用 ramdisk 原有的 `reboot_bak` 刷新文件系统并重启，等待原 ECID 对应的设备返回（正常入口同时绑定原 UDID，DFU 入口按 ECID 解析返回的 UDID），再建立既有配对会话，再确认越狱与 SSH。重启连接丢失本身不算成功。
 
 下载、构建和等待 DFU 可取消。limera1n 及其后续步骤不可取消；只读核验通过后，从重新挂载为可写并安装时标记系统修改边界。单个 native 进程只允许一个准备操作；关键步骤失败后不会自动重试或回滚。超时后可能存在部分写入，因此结果要求先检查设备状态。正常关闭窗口和退出会被运行中的准备操作阻止，并显示原因；不能防止强制结束进程、断电或系统崩溃。
 
@@ -44,7 +44,7 @@ macOS、Linux、Windows 都使用已有系统 usbmux 与共享 Rust USB / SSH �
 
 已完成 macOS 正常模式及 DFU 真机只读检测与方案预检，以及真实固件下载校验、iBSS / iBEC 补丁、32 MB SSH ramdisk 构建和 8 个安装资源包校验。自动测试覆盖授权时序与重放、并发互斥、取消边界、失败终止、事件字段、资源损坏及 HFS 目录链接兼容。
 
-旧版 limera1n 执行曾在 USB 控制传输阶段失败，后续只读 GETSTATE 也观察到 IOKit `0xe0004051` 事务超时。此前紧凑 A4 流程已观察到真机 PWND 标记，随后 ramdisk 上传停在 DFU 状态 8；经过后续引导及 HFS 修复，macOS 真机的临时引导、USB SSH 和只读系统核验已经通过；越狱写入和重启验收仍未执行。三平台的真实写入均不应被视为硬件验证通过。后续验收需要用户在桌面应用亲自确认备份与风险、启动操作并按引导进入 DFU。
+旧版 limera1n 执行曾在 USB 控制传输阶段失败，后续只读 GETSTATE 也观察到 IOKit `0xe0004051` 事务超时。此前紧凑 A4 流程已观察到真机 PWND 标记，随后 ramdisk 上传停在 DFU 状态 8；经过后续引导及 HFS 修复，macOS 真机的临时引导、USB SSH 和只读系统核验已经通过；后续 macOS 真机的越狱写入和正常重启检测也已通过。Linux/Windows 的真实写入仍未经硬件验收。产品中的新准备操作仍需用户在桌面应用确认备份与风险、主动启动并按引导进入 DFU。
 
 以下诊断工具位于 Git 忽略的 `src-tauri/examples/`，不随仓库分发；仅在本机保留对应文件时可运行。只验证电脑上的资源步骤：
 
@@ -96,3 +96,16 @@ cargo run --manifest-path src-tauri/Cargo.toml --example detect_devices -- --pla
 对完整生成镜像执行电脑上的只读 `fsck_hfs`，发现并在本地库修正了三个 HFS 问题：新建目录记录缺少末尾字段（应为 88 字节）、覆盖文件后遗留孤立的扩展属性、32,000,000 字节卷的备份头未放在实际卷尾前 1024 字节。修正后的完整 ramdisk 已通过目录树、目录层级、扩展属性、空间位图和卷头检查，`fsck_hfs -fn` 返回 0。检查只附加电脑上的临时镜像为只读且不挂载文件系统，随后解除附加；应用执行链不依赖此工具。
 
 iBSS、iBEC、设备树和内核与本地原版工具的对应输出一致。完成 HFS 修复后，从新的 DFU 状态使用 Studio 同一原生准备适配器进行真机验收：A4 PWND、iBSS / iBEC、ramdisk 引导、USB SSH、随机会话标记、只读挂载和磁盘中的 6.1.6 / 10B500 核验全部通过。`retry_ramdisk --boot-and-check-readonly` 输出 `PASS MountFilesystem` 并正常退出。该验收没有执行 InstallUntether 或重启后的越狱验证；设备留在临时 ramdisk，系统分区只读。
+
+## 安装与重启验收
+
+用户明确要求继续后，在现有 ramdisk 上通过 restored 的 HardwareInfo 查询核对 A4、n81 和 ECID，确认 RAM 根文件系统、只读系统分区、6.1.6 / 10B500 以及尚未越狱。随后实际写入 fstab、Aquila 6、Cydia bootstrap、SSH deb、OpenSSH、OpenSSL、LukeZGD 和 nopatcyh 共 8 个已校验资源包，每包的上传与解包均成功，安装文件核验通过。
+
+本轮修正了应用执行链对精简 ramdisk 工具的两个错误假设：
+
+- ramdisk 没有 `umount`，改用其支持的 `/sbin/mount -u -w /mnt1` 原地切换为可写，并在真机确认挂载状态。
+- ramdisk 没有独立 `sync` 工具，文件核验不再调用它；重启使用原版 `reboot_bak`，该二进制包含自身的文件系统刷新逻辑。安装核验同时检查 Aquila 执行文件与 launchd 配置。
+
+设备成功回到主屏幕。正常系统的 Studio 原生发现与条件检测确认 iPod4,1 / 6.1.6 / 10B500，配对、越狱和 SSH 均通过，报告状态为 `ready`。独立诊断脚本曾在等待重启结果时超时，随后通过正常模式的原生发现完成验收。脚本现与产品中的 DFU 入口一致，按 restored 读取的 ECID 识别重启后的设备，避免依赖跨模式可能变化的 USB 标识。
+
+本地 `continue_installation` 示例仍由 Git 忽略；它使用开发依赖中的 restore crate，只调用 QueryType / QueryValue 做只读身份查询，不调用 StartRestore。`--inspect` 仅做预检；安装与重启的诊断选项必须由用户明确启动。产品的授权和会话标记校验保持不变。
