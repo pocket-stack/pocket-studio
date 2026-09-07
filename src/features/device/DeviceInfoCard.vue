@@ -61,8 +61,9 @@ const rows = computed(() => [
   >
     <div class="relative flex w-[118px] shrink-0 justify-center">
       <DeviceIllustration
-        class="relative z-[1] h-[236px] w-[138px] drop-shadow-[2px_6px_5px_#0000000a]"
-        :width="114"
+        class="relative z-[1]"
+        :width="118"
+        shadow
         :screen="screen"
       />
       <div

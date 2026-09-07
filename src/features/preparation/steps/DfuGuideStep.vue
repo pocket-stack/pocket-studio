@@ -143,8 +143,7 @@ onBeforeUnmount(() => {
             />
           </div>
           <DeviceIllustration
-            class="w-[220px] max-[1150px]:w-[170px]"
-            :width="160"
+            :width="200"
             :press-home="pressHome"
             :press-power="pressPower"
             screen="off"
