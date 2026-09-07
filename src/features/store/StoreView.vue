@@ -219,7 +219,7 @@ onMounted(() => void store.initialize());
       @dependency="emit('openPackage', $event)"
     />
   </div>
-  <div v-else class="flex h-full min-h-0 gap-5 motion-safe:animate-rise">
+  <div v-else class="flex h-full min-h-0 gap-8 px-4 motion-safe:animate-rise">
     <div ref="content" class="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       <StudioCallout
         v-if="issue || store.snapshot.value?.expired"
