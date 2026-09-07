@@ -3393,6 +3393,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-assets"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "legacy-ios-core",
  "serde",
@@ -3403,6 +3404,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-core"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "serde",
  "thiserror 2.0.20",
@@ -3411,6 +3413,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-exploits"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "legacy-ios-core",
  "legacy-ios-image",
@@ -3424,6 +3427,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-firmware"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "crc32fast",
  "flate2",
@@ -3449,6 +3453,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-image"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "aes 0.8.4",
  "bzip2-rs",
@@ -3469,6 +3474,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-restore"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "legacy-ios-core",
  "legacy-ios-firmware",
@@ -3486,6 +3492,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-services"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "aes 0.8.4",
  "aes-gcm 0.10.3",
@@ -3527,6 +3534,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-transport"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "futures-core",
  "futures-util",
@@ -3541,6 +3549,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-workflows"
 version = "0.1.0"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
 dependencies = [
  "hex",
  "legacy-ios-assets",

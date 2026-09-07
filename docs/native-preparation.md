@@ -25,7 +25,7 @@ Rust 校验所有风险和前提、方案 ID、条款版本、阅读时长、阅
 
 ## 资源与实现依据
 
-- 本地 `../../../GitHub/Legacy-iOS-Kit-rs`（相对 `src-tauri`）：USB 传输、A4 利用、镜像处理、HFS 及 ramdisk 启动。当前直接修改并构建此库，不要求先推送远程仓库。
+- Legacy-iOS-Kit-rs（Git 依赖，`main` 分支，由 `Cargo.lock` 锁定提交）：USB 传输、A4 利用、镜像处理、HFS 及 ramdisk 启动。修改库时先推送到 GitHub，再在 Studio 中更新锁文件。
 - [Legacy iOS Kit 1ff4be0 的 device_ramdisk](https://github.com/LukeZGD/Legacy-iOS-Kit/blob/1ff4be07ea2946ccaeff2db60c4426488b8f6e32/restore.sh)：n81 / 10B500 组件、boot args、SSH ramdisk 组合与越狱资源次序。
 - [固定固件密钥元数据](https://github.com/LukeZGD/Legacy-iOS-Kit-Keys/blob/af6bf5934dc61ed557a967a3f42ab7fb8ed8c45e/iPod4%2C1/10B500/index.html)。元数据也经过 SHA-256 校验，不输出其内容。
 - [ipwndfu 0e28932 的 A4 载荷参数](https://github.com/axi0mX/ipwndfu/blob/0e28932ec6a2a570b10fd77e50bda4216418cd98/limera1n.py)：下载同版本 shellcode 后验证占位符，再应用 `constants_574_4`。库的 `A4Limera1n` 在其前方添加 16 个 64 字节堆头，A4 入口地址为 `0x84000401`。

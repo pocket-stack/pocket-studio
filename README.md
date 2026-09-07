@@ -4,7 +4,7 @@ Pocket Studio 是 Pocket 生态的桌面连接桥梁。项目目标是通过 USB
 
 当前版本已开始接入真实设备：**Tauri 桌面窗口使用 Legacy-iOS-Kit-rs 接入 USB 设备，浏览器保留前端交互演示**。设备发现与条件检测保持只读；已接入 iPod touch 4 / iOS 6.1.6（10B500）的真实设备准备与越狱执行链，必须由用户查看方案、确认风险后主动启动。应用安装与卸载仍不可用。
 
-适配器使用本地 Legacy-iOS-Kit-rs 的 services、transport、assets、core、firmware、image、exploits 和 workflows crate；Rust 最低版本为 1.88。当前 Cargo 路径依赖要求 Studio 位于 `Documents/PocketJS/studio`、库位于 `Documents/GitHub/Legacy-iOS-Kit-rs`（即相对 `src-tauri` 的 `../../../GitHub/Legacy-iOS-Kit-rs`），库的本地修改会直接参与构建。原生模拟驱动已移除，模拟数据仅存在于浏览器网关。
+适配器使用 Legacy-iOS-Kit-rs 的 services、transport、assets、core、firmware、image、exploits、restore 和 workflows crate；Rust 最低版本为 1.88。这些 crate 以 Git 依赖的形式指向 `https://github.com/HalfSweet/Legacy-iOS-Kit-rs` 的 `main` 分支，具体提交由 `src-tauri/Cargo.lock` 锁定；升级库时运行 `cargo update --manifest-path src-tauri/Cargo.toml -p legacy-ios-core` 等命令并提交锁文件。克隆仓库后不需要额外的目录结构或本地检出。原生模拟驱动已移除，模拟数据仅存在于浏览器网关。
 
 ## 运行方式
 

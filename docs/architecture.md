@@ -28,7 +28,7 @@ src-tauri/src/
 └── main.rs            # anyhow 应用入口
 ```
 
-当前原生接入由 `infrastructure/legacy_ios` 实现 `application::discovery::DeviceProbe`。它使用本地路径依赖的 Legacy-iOS-Kit-rs 库，不调用外部 CLI。`DeviceDiscovery` 串行执行刷新、缓存设备事实、计算接入报告，并发送带版本的完整 `DiscoverySnapshot`；后台轮询与手动检测共享这条链路，同时到来的刷新复用已经进行中的扫描结果。
+当前原生接入由 `infrastructure/legacy_ios` 实现 `application::discovery::DeviceProbe`。它使用以 Git 依赖引入的 Legacy-iOS-Kit-rs 库，不调用外部 CLI。`DeviceDiscovery` 串行执行刷新、缓存设备事实、计算接入报告，并发送带版本的完整 `DiscoverySnapshot`；后台轮询与手动检测共享这条链路，同时到来的刷新复用已经进行中的扫描结果。
 
 Tauri 命令读取真实 inventory，并将显式准备请求交给 `PreparationService`。安装、卸载等未实现操作返回稳定错误 `operationUnavailable`；`Studio` 不连接模拟工作流驱动。浏览器单独使用 `simulatedGateway.ts`，保留完整交互演示。界面通过 gateway capabilities 显示实际可用功能。
 
