@@ -6,17 +6,16 @@ import {
   operationStepCeiling,
 } from "../../shared/composables/useOperations";
 import ProgressBar from "../../shared/ui/ProgressBar.vue";
-import StudioButton from "../../shared/ui/StudioButton.vue";
 import PackageArtwork from "./PackageArtwork.vue";
 import type { PackageView } from "./useStore";
 import { useGateway } from "../../shared/gateway";
 import { packageText } from "./packageContent";
+import { CARD_PAD } from "./storeLayout";
 
-import { CARD_ART } from "./storeLayout";
-
-const props = defineProps<{ item: PackageView }>();
+const props = defineProps<{ item: PackageView; size: number }>();
 const emit = defineEmits<{ select: []; install: [] }>();
 const { t, locale } = useI18n();
+const gateway = useGateway();
 const name = computed(() =>
   packageText(props.item.entry, "name", locale.value, t),
 );
@@ -47,8 +46,12 @@ const state = computed(() => {
     return "incompatible";
   return "details";
 });
+// App Store style: a price-like pill when the app can be acted on, quiet
+// text otherwise.
 const actionable = computed(
-  () => state.value === "details" || state.value === "update",
+  () =>
+    gateway.capabilities.packages &&
+    ["details", "update", "failed"].includes(state.value),
 );
 const label = computed(() => {
   switch (state.value) {
@@ -66,17 +69,20 @@ const label = computed(() => {
 });
 </script>
 <template>
-  <article class="flex min-w-0 flex-col" :style="{ width: `${CARD_ART}px` }">
+  <article
+    class="flex min-w-0 flex-col"
+    :style="{ width: `${size + CARD_PAD}px` }"
+  >
     <button
       class="group/package flex flex-col text-left"
       :aria-label="t('studio.viewApp', { name })"
       @click="emit('select')"
     >
       <PackageArtwork
-        class="rounded-[18%] transition-[transform,box-shadow] duration-200 group-hover/package:-translate-y-0.5 group-hover/package:shadow-raised"
+        class="rounded-[22%] transition-[transform,box-shadow] duration-200 group-hover/package:-translate-y-0.5 group-hover/package:shadow-raised"
         :package-id="item.entry.id"
         :entry="item.entry"
-        :size="CARD_ART"
+        :size="size"
       />
       <h3 class="mt-1.5 w-full truncate text-sm leading-[18px] font-semibold">
         {{ name }}
@@ -91,36 +97,40 @@ const label = computed(() => {
         }}
       </p>
     </button>
-    <div
-      v-if="state === 'installing' && item.operation"
-      class="mt-2 flex h-6 items-center gap-1.5 text-2xs text-signal tabular-nums"
-    >
-      <ProgressBar
-        class="flex-1"
-        :percent="operationProgress(item.operation)"
-        :trickle-to="operationStepCeiling(item.operation)"
-        compact
-        active
-      /><span>{{ operationProgress(item.operation) }}%</span>
+    <div class="mt-1.5 flex h-[22px] items-center">
+      <template v-if="state === 'installing' && item.operation">
+        <ProgressBar
+          class="flex-1"
+          :percent="operationProgress(item.operation)"
+          :trickle-to="operationStepCeiling(item.operation)"
+          compact
+          active
+        /><span class="ml-1.5 text-2xs text-signal tabular-nums"
+          >{{ operationProgress(item.operation) }}%</span
+        >
+      </template>
+      <button
+        v-else-if="actionable"
+        class="inline-flex h-[22px] min-w-[54px] items-center justify-center gap-1 rounded-full px-3 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45"
+        :class="
+          state === 'failed'
+            ? 'bg-danger/10 text-danger enabled:hover:bg-danger/16'
+            : 'bg-ink/8 text-signal enabled:hover:bg-ink/12'
+        "
+        :disabled="item.pending"
+        @click="emit('install')"
+      >
+        <IconSvgSpinners90Ring v-if="item.pending" width="11" height="11" />{{
+          label
+        }}
+      </button>
+      <button
+        v-else
+        class="truncate text-2xs text-muted hover:text-ink"
+        @click="emit('select')"
+      >
+        {{ label }}
+      </button>
     </div>
-    <StudioButton
-      v-else
-      size="sm"
-      class="mt-1.5 min-w-[52px] self-start"
-      :variant="actionable ? 'primary' : 'secondary'"
-      :disabled="
-        !useGateway().capabilities.packages ||
-        [
-          'incompatible',
-          'installed',
-          'noDevice',
-          'queued',
-          'unavailable',
-        ].includes(state)
-      "
-      @click="actionable ? emit('install') : emit('select')"
-    >
-      {{ label }}
-    </StudioButton>
   </article>
 </template>

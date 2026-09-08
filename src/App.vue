@@ -14,7 +14,6 @@ import DemoPanel from "./app/DemoPanel.vue";
 import NotificationStack from "./app/NotificationStack.vue";
 import DeviceView from "./features/device/DeviceView.vue";
 import LogsView from "./features/logs/LogsView.vue";
-import PackagePlanDialog from "./features/store/PackagePlanDialog.vue";
 import PreparationWizard from "./features/preparation/PreparationWizard.vue";
 import { usePreparation } from "./features/preparation/usePreparation";
 import SettingsView from "./features/settings/SettingsView.vue";
@@ -618,7 +617,6 @@ onMounted(async () => {
     @close="demoOpen = false"
     ><DemoPanel
   /></StudioDialog>
-  <PackagePlanDialog />
   <PreparationWizard />
   <NotificationStack />
 </template>

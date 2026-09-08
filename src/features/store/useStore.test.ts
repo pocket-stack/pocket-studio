@@ -1,6 +1,10 @@
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("vue-i18n", () => ({
-  useI18n: () => ({ t: (key: string) => key, locale: { value: "en" } }),
+  useI18n: () => ({
+    t: (key: string) => key,
+    te: (key: string) => key.startsWith("store.actions.errors."),
+    locale: { value: "en" },
+  }),
 }));
 afterEach(() => {
   vi.useRealTimers();
@@ -92,7 +96,7 @@ it("preserves failed observations and rejects late results after device detachme
   expect(store.installedSnapshot.value).toBe(null);
 });
 
-it("native installation reviews a device-bound plan before starting and rejects a changed selection", async () => {
+it("native installation submits the device-bound plan directly and refuses a changed device", async () => {
   vi.resetModules();
   vi.useFakeTimers();
   vi.stubGlobal("window", { setTimeout, clearTimeout });
@@ -119,8 +123,8 @@ it("native installation reviews a device-bound plan before starting and rejects 
     sequence: 1,
     catalogExpiresAt: Date.now() + 10000,
     expiresAt: Date.now() + 10000,
-    appsync: "unknown",
-    jailbreak: "unknown",
+    appsync: "satisfied",
+    jailbreak: "satisfied",
     steps: [],
   });
   const start = vi.fn().mockResolvedValue({
@@ -145,6 +149,8 @@ it("native installation reviews a device-bound plan before starting and rejects 
   try {
     const { useDeviceSession } =
       await import("../../shared/composables/useDeviceSession");
+    const { useNotifications } =
+      await import("../../shared/composables/useNotifications");
     const { useStore } = await import("./useStore");
     const session = useDeviceSession();
     await session.initialize();
@@ -154,24 +160,34 @@ it("native installation reviews a device-bound plan before starting and rejects 
     const init = store.initialize();
     await vi.advanceTimersByTimeAsync(300);
     await init;
+    // No confirmation step: the plan is resolved and started in one go.
     await store.install("pocket-reader");
     expect(plan).toHaveBeenCalledTimes(1);
-    expect(start).not.toHaveBeenCalled();
-    expect(store.planOpen.value).toBe(true);
-    expect(store.queuedIds.value).toEqual([]);
-    await browser.demo.detachDevice();
-    await vi.advanceTimersByTimeAsync(0);
-    await store.confirmPlan(false);
-    expect(start).not.toHaveBeenCalled();
-    await browser.demo.attachDevice();
-    await vi.advanceTimersByTimeAsync(600);
-    await store.install("pocket-reader");
-    await store.confirmPlan(false);
     expect(start).toHaveBeenCalledWith({
       planId: "native-plan",
       deleteData: false,
     });
-    expect(store.planOpen.value).toBe(false);
+    expect(store.pendingIds.value).toEqual([]);
+    expect(store.queuedIds.value).toEqual([]);
+    // A plan bound to another device never starts.
+    plan.mockImplementationOnce(async () => makePlan("someone-else"));
+    await store.install("pocket-reader");
+    expect(plan).toHaveBeenCalledTimes(2);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(useNotifications().items.value.at(-1)).toMatchObject({
+      tone: "error",
+      key: "store.actions.errors.deviceChanged",
+    });
+    // Uninstall is the one action that carries data-removal consent.
+    plan.mockImplementationOnce(async () => ({
+      ...makePlan(session.device.value!.id),
+      action: "uninstall",
+    }));
+    await store.uninstall("pocket-reader", "reader.native");
+    expect(start).toHaveBeenLastCalledWith({
+      planId: "native-plan",
+      deleteData: true,
+    });
   } finally {
     vi.doUnmock("../../shared/gateway");
   }

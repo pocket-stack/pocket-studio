@@ -16,7 +16,6 @@ import {
   type CatalogSnapshot,
   type InstalledPackage,
   type InstalledSnapshot,
-  type PackagePlan,
   type PackageAction,
   type PackageJob,
   type PackageCategory,
@@ -45,12 +44,8 @@ const query = ref("");
 /** package id -> most recent install operation id */
 const installOperations = ref(new Map<string, string>());
 const packageJobs = ref<PackageJob[]>([]);
-const planOpen = ref(false);
-const planning = ref(false);
-const submitting = ref(false);
-const operationPlan = ref<PackagePlan | null>(null);
-const planIssue = ref<string | null>(null);
-let planRequest = 0;
+/** Packages whose native plan is being resolved and submitted. */
+const pendingIds = ref<string[]>([]);
 let jobsRequest = 0;
 let nativeSubscribed = false;
 let jobsQueued = false;
@@ -74,55 +69,6 @@ function scheduleJobs(): void {
     jobsQueued = false;
     void refreshJobs();
   });
-}
-async function requestAction(
-  appId: string,
-  action: PackageAction,
-  bundleId: string | null = null,
-): Promise<void> {
-  const current = device.value;
-  if (!current || submitting.value) return;
-  const request = ++planRequest;
-  planOpen.value = true;
-  planning.value = true;
-  planIssue.value = null;
-  operationPlan.value = null;
-  try {
-    const plan = await useGateway().store.plan({
-      deviceId: current.id,
-      appId,
-      action,
-      bundleId,
-    });
-    if (request === planRequest) operationPlan.value = plan;
-  } catch (error) {
-    if (request === planRequest)
-      planIssue.value = error instanceof GatewayError ? error.code : "unknown";
-  } finally {
-    if (request === planRequest) planning.value = false;
-  }
-}
-async function confirmPlan(deleteData: boolean): Promise<void> {
-  const plan = operationPlan.value;
-  if (!plan || submitting.value || plan.deviceId !== device.value?.id) return;
-  submitting.value = true;
-  planIssue.value = null;
-  try {
-    await useOperations().ready();
-    const handle = await useGateway().store.start({
-      planId: plan.id,
-      deleteData,
-    });
-    const operation = trackOperation(handle);
-    operation.packagePlan = plan;
-    planOpen.value = false;
-    operationPlan.value = null;
-    await refreshJobs();
-  } catch (error) {
-    planIssue.value = error instanceof GatewayError ? error.code : "unknown";
-  } finally {
-    submitting.value = false;
-  }
 }
 async function verifyJob(job: {
   handle: { operationId: string };
@@ -251,6 +197,8 @@ export interface PackageView {
   operation?: OperationState;
   missingDependencies: string[];
   queuePosition?: number;
+  /** A native plan for this package is being resolved and submitted. */
+  pending: boolean;
 }
 
 function view(entry: CatalogEntry): PackageView {
@@ -293,36 +241,10 @@ function view(entry: CatalogEntry): PackageView {
     missingDependencies: entry.dependencies.filter(
       (dependency) => !installedIds.has(dependency),
     ),
+    pending: pendingIds.value.includes(entry.id),
   };
 }
 
-async function install(packageId: string): Promise<void> {
-  if (useGateway().flavor === "tauri") {
-    const entry = catalog.value.find((entry) => entry.id === packageId);
-    const previous = installed.value.find(
-      (record) =>
-        record.packageId === packageId &&
-        (!record.native ||
-          record.native.bundleId === entry?.details?.nativeIdentity.bundle_id),
-    );
-    const action: PackageAction = !previous
-      ? "install"
-      : !previous.revision || previous.artifactId === entry?.details?.artifactId
-        ? "reinstall"
-        : "update";
-    return requestAction(packageId, action);
-  }
-  if (
-    !device.value ||
-    startingId.value === packageId ||
-    queuedIds.value.includes(packageId)
-  )
-    return;
-  const previous = installOperations.value.get(packageId);
-  if (previous && get(previous)?.status === "running") return;
-  queuedIds.value.push(packageId);
-  await processQueue();
-}
 async function processQueue(): Promise<void> {
   if (active.value.length || startingId.value || !queuedIds.value.length)
     return;
@@ -410,7 +332,7 @@ async function cancelJob(job: {
 }
 
 export function useStore() {
-  const { t, locale } = useI18n();
+  const { t, te, locale } = useI18n();
   const allPackages = computed(() => catalog.value.map(view));
   const packages = computed(() => {
     const needle = query.value.trim().toLowerCase();
@@ -447,23 +369,103 @@ export function useStore() {
     return entry ? view(entry) : null;
   });
 
+  /**
+   * Native application operations resolve a device-bound plan and submit it
+   * in one go; the plan's uncertainties surface as notices instead of a
+   * confirmation dialog. Uninstall is the one action that carries consent.
+   */
+  async function runAction(
+    appId: string,
+    action: PackageAction,
+    bundleId: string | null,
+  ): Promise<void> {
+    const current = device.value;
+    if (!current || pendingIds.value.includes(appId)) return;
+    pendingIds.value = [...pendingIds.value, appId];
+    try {
+      const plan = await useGateway().store.plan({
+        deviceId: current.id,
+        appId,
+        action,
+        bundleId,
+      });
+      if (plan.deviceId !== device.value?.id)
+        throw new GatewayError("deviceChanged", "device changed");
+      if (
+        action !== "uninstall" &&
+        (plan.appsync === "unknown" || plan.jailbreak === "unknown")
+      )
+        notify("warning", "store.actions.requirementsUnconfirmed");
+      await useOperations().ready();
+      const handle = await useGateway().store.start({
+        planId: plan.id,
+        deleteData: action === "uninstall",
+      });
+      const operation = trackOperation(handle);
+      operation.packagePlan = plan;
+      await refreshJobs();
+    } catch (error) {
+      const code = error instanceof GatewayError ? error.code : "unknown";
+      const key = `store.actions.errors.${code}`;
+      notify("error", te(key) ? key : "store.actions.errors.unknown");
+    } finally {
+      pendingIds.value = pendingIds.value.filter((id) => id !== appId);
+    }
+  }
+
+  async function install(packageId: string): Promise<void> {
+    if (useGateway().flavor === "tauri") {
+      const entry = catalog.value.find((entry) => entry.id === packageId);
+      const previous = installed.value.find(
+        (record) =>
+          record.packageId === packageId &&
+          (!record.native ||
+            record.native.bundleId ===
+              entry?.details?.nativeIdentity.bundle_id),
+      );
+      const action: PackageAction = !previous
+        ? "install"
+        : !previous.revision ||
+            previous.artifactId === entry?.details?.artifactId
+          ? "reinstall"
+          : "update";
+      return runAction(packageId, action, null);
+    }
+    if (
+      !device.value ||
+      startingId.value === packageId ||
+      queuedIds.value.includes(packageId)
+    )
+      return;
+    const previous = installOperations.value.get(packageId);
+    if (previous && get(previous)?.status === "running") return;
+    queuedIds.value.push(packageId);
+    await processQueue();
+  }
+
+  async function uninstall(
+    packageId: string,
+    bundleId: string | null = null,
+  ): Promise<void> {
+    if (!device.value) return;
+    if (useGateway().flavor === "tauri")
+      return runAction(packageId, "uninstall", bundleId);
+    try {
+      await useGateway().store.uninstall(device.value.id, packageId);
+      await refreshInstalled();
+    } catch (error) {
+      notify(
+        "error",
+        error instanceof GatewayError && error.code === "packageInUse"
+          ? "studio.packageInUse"
+          : "studio.uninstallFailed",
+      );
+    }
+  }
+
   return {
     packageJobs: readonly(packageJobs),
-    planOpen: readonly(planOpen),
-    planning: readonly(planning),
-    submitting: readonly(submitting),
-    operationPlan: readonly(operationPlan),
-    planIssue: readonly(planIssue),
-    requestAction,
-    confirmPlan,
-    closePlan: () => {
-      if (!submitting.value) {
-        planOpen.value = false;
-        operationPlan.value = null;
-        planRequest++;
-        planning.value = false;
-      }
-    },
+    pendingIds: readonly(pendingIds),
     verifyJob,
     cancelJob,
     refreshJobs,
@@ -491,22 +493,7 @@ export function useStore() {
     initialize,
     install,
     cancelInstall,
-    uninstall: async (packageId: string, bundleId: string | null = null) => {
-      if (!device.value) return;
-      if (useGateway().flavor === "tauri")
-        return requestAction(packageId, "uninstall", bundleId);
-      try {
-        await useGateway().store.uninstall(device.value.id, packageId);
-        await refreshInstalled();
-      } catch (error) {
-        notify(
-          "error",
-          error instanceof GatewayError && error.code === "packageInUse"
-            ? "studio.packageInUse"
-            : "studio.uninstallFailed",
-        );
-      }
-    },
+    uninstall,
     select: (id: string | null) => {
       selectedId.value = id;
     },

@@ -75,7 +75,10 @@
       "checksum": "SHA-256",
       "catalogVerified": "目录已验证",
       "revision": "修订 {revision}",
-      "sourceCode": "源代码"
+      "sourceCode": "源代码",
+      "category": "类别",
+      "none": "无",
+      "catalogState": "目录状态"
     },
     "steps": {
       "resolve": {
@@ -150,7 +153,6 @@
       }
     },
     "refresh": "刷新",
-    "fromCatalog": "发现应用",
     "compatibleOnly": "仅显示可安装的应用",
     "emptyCatalog": "发布后的应用会显示在这里。",
     "mediaLoading": "正在加载图片",
@@ -200,21 +202,7 @@
       "notice": "包括通过其他途径安装、但原生身份匹配的应用。下载大小不代表设备上的实际占用。"
     },
     "actions": {
-      "review": "确认应用操作",
-      "planning": "正在检查设备并选择兼容产物…",
-      "device": "设备",
-      "nativeId": "应用原生身份",
-      "current": "已安装",
-      "selected": "所选版本",
-      "installs": "通过设备的正常安装服务安装 User 应用。",
-      "preservesData": "通过系统更新服务替换应用，保留应用的数据容器。",
-      "removesData": "卸载会从这台设备中删除应用及其数据容器。",
-      "unknownRequirements": "部分安装前提暂时无法确认。可以尝试正常的 User 安装；如果系统拒绝签名，请检查设备上的 AppSync 和应用签名。",
-      "catalogValid": "目录有效期至 {time}。完整且通过校验的缓存支持离线安装。",
-      "deleteConsent": "我已了解：卸载会删除此应用的数据。",
       "deviceChanged": "当前选择的设备已变化。请为目标设备重新确认计划。",
-      "starting": "正在加入队列…",
-      "confirm": "确认操作",
       "operations": "应用操作记录",
       "cleanupPending": "本次操作的暂存文件尚未删除。系统提交结果不确定时会保留该文件。",
       "verify": "核验设备状态",
@@ -265,10 +253,12 @@
         "applicationTypeUnknown": "无法确认原生应用类型，请刷新设备应用后重试。"
       },
       "working": "处理中…",
-      "activity": "{action} {name} · {device}"
+      "activity": "{action} {name} · {device}",
+      "requirementsUnconfirmed": "部分安装前提未确认，将尝试常规安装。",
+      "deleteHint": "将删除应用及其数据"
     },
     "tabs": {
-      "description": "简介",
+      "description": "概览",
       "previews": "预览",
       "history": "版本记录",
       "steps": "安装步骤"
@@ -276,10 +266,16 @@
     "featuredPrevious": "上一个精选",
     "featuredNext": "下一个精选",
     "seeAll": "查看全部",
-    "recentlyPublished": "最近上架",
     "allApps": "全部应用",
-    "installQueue": "安装队列",
     "reloadCatalog": "刷新目录",
-    "summaryUnavailable": "暂无简介"
+    "summaryUnavailable": "暂无简介",
+    "tiles": {
+      "madeFor": "为 {name} 打造",
+      "madeForAll": "为经典设备打造",
+      "compatible": "现在就能安装",
+      "browse": "浏览",
+      "help": "帮助",
+      "device": "设备"
+    }
   }
 }

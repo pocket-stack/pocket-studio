@@ -307,6 +307,7 @@ const tasks = computed(() =>
                 <td class="px-2">
                   <div class="flex items-center justify-end gap-1.5">
                     <StudioButton
+                      v-if="removingId !== item.entry.id"
                       size="sm"
                       variant="link"
                       @click="emit('detail', item.entry.id)"
@@ -315,6 +316,7 @@ const tasks = computed(() =>
                     </StudioButton>
                     <StudioButton
                       v-if="
+                        removingId !== item.entry.id &&
                         gateway.capabilities.packages &&
                         (gateway.flavor === 'tauri' ||
                           item.installed?.version !== item.entry.version)
@@ -322,8 +324,10 @@ const tasks = computed(() =>
                       size="sm"
                       :disabled="
                         !!item.queuePosition ||
-                        item.operation?.status === 'running'
+                        item.operation?.status === 'running' ||
+                        item.pending
                       "
+                      :loading="item.pending"
                       @click="store.install(item.entry.id)"
                     >
                       {{
@@ -345,25 +349,26 @@ const tasks = computed(() =>
                       size="sm"
                       variant="ghost"
                       :disabled="
-                        !!active.length || !!store.queuedIds.value.length
+                        !!active.length ||
+                        !!store.queuedIds.value.length ||
+                        item.pending
                       "
-                      @click="
-                        gateway.flavor === 'tauri'
-                          ? store.uninstall(
-                              item.entry.id,
-                              item.installed.native?.bundleId ?? null,
-                            )
-                          : (removingId = item.entry.id)
-                      "
+                      @click="removingId = item.entry.id"
                     >
                       {{ t("studio.uninstall") }}
                     </StudioButton>
                     <template v-else-if="gateway.capabilities.packages">
+                      <span class="text-2xs text-danger">{{
+                        t("store.actions.deleteHint")
+                      }}</span>
                       <StudioButton
                         size="sm"
                         variant="danger"
                         @click="
-                          store.uninstall(item.entry.id);
+                          store.uninstall(
+                            item.entry.id,
+                            item.installed.native?.bundleId ?? null,
+                          );
                           removingId = null;
                         "
                       >

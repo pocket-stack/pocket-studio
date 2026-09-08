@@ -75,7 +75,10 @@
       "checksum": "SHA-256",
       "catalogVerified": "Verified catalog",
       "revision": "Revision {revision}",
-      "sourceCode": "Source code"
+      "sourceCode": "Source code",
+      "category": "Category",
+      "none": "None",
+      "catalogState": "Catalog"
     },
     "steps": {
       "resolve": {
@@ -150,7 +153,6 @@
       }
     },
     "refresh": "Refresh",
-    "fromCatalog": "From the catalog",
     "compatibleOnly": "Show installable apps only",
     "emptyCatalog": "Published applications will appear here.",
     "mediaLoading": "Loading image",
@@ -200,21 +202,7 @@
       "notice": "Includes applications installed outside the store when their native identity matches. Download size is not the installed storage footprint."
     },
     "actions": {
-      "review": "Review application operation",
-      "planning": "Checking the device and selecting a compatible artifact…",
-      "device": "Device",
-      "nativeId": "Application identity",
-      "current": "Installed",
-      "selected": "Selected release",
-      "installs": "This installs a User application through the device’s normal installation service.",
-      "preservesData": "The application will be replaced through the system update service. Its data container is retained.",
-      "removesData": "Uninstalling removes the application and its data container from this device.",
-      "unknownRequirements": "Some installation prerequisites could not be confirmed. You can try a normal User installation. If the device rejects its signature, check AppSync and signing on the device.",
-      "catalogValid": "Catalog valid until {time}. A verified, complete cache permits offline installation.",
-      "deleteConsent": "I understand that uninstalling deletes this application’s data.",
       "deviceChanged": "The selected device changed. Review a new plan for the intended device.",
-      "starting": "Adding to queue…",
-      "confirm": "Confirm operation",
       "operations": "Application operations",
       "cleanupPending": "The operation’s staging file could not be removed. It is retained when device submission is uncertain.",
       "verify": "Check device state",
@@ -265,10 +253,12 @@
         "applicationTypeUnknown": "The native application type could not be confirmed. Refresh device apps before retrying."
       },
       "working": "Working…",
-      "activity": "{action} {name} · {device}"
+      "activity": "{action} {name} · {device}",
+      "requirementsUnconfirmed": "Some prerequisites are unconfirmed; trying a normal install.",
+      "deleteHint": "Deletes the app and its data"
     },
     "tabs": {
-      "description": "Description",
+      "description": "Overview",
       "previews": "Previews",
       "history": "Version history",
       "steps": "Install steps"
@@ -276,10 +266,16 @@
     "featuredPrevious": "Previous feature",
     "featuredNext": "Next feature",
     "seeAll": "See All",
-    "recentlyPublished": "Recently published",
     "allApps": "All apps",
-    "installQueue": "Install queue",
     "reloadCatalog": "Reload catalog",
-    "summaryUnavailable": "No summary yet"
+    "summaryUnavailable": "No summary yet",
+    "tiles": {
+      "madeFor": "Made for {name}",
+      "madeForAll": "Made for the classics",
+      "compatible": "Installable now",
+      "browse": "Browse",
+      "help": "Help",
+      "device": "Device"
+    }
   }
 }

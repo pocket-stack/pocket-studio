@@ -13,7 +13,6 @@ import StatusPill from "../../shared/ui/StatusPill.vue";
 import StepList from "../../shared/ui/StepList.vue";
 import StudioButton from "../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../shared/ui/StudioCallout.vue";
-import StudioPanel from "../../shared/ui/StudioPanel.vue";
 import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 import PackageArtwork from "./PackageArtwork.vue";
 import StoreMedia from "./StoreMedia.vue";
@@ -23,13 +22,14 @@ import type { PackageView } from "./useStore";
 
 const SCREENSHOT_RATIO = 194 / 290;
 const RELEASE_ROW = 58;
+const DESCRIPTION_LINE = 24;
+const SECTION_TITLE = 30;
 
 const props = defineProps<{ item: PackageView }>();
 const emit = defineEmits<{
   install: [];
   cancel: [];
   prepare: [];
-  close: [];
   dependency: [id: string];
 }>();
 const { t, d, locale, te } = useI18n();
@@ -109,14 +109,17 @@ const errorBody = computed(() => {
     ? t(specific)
     : t(`store.errors.${props.item.operation?.error?.code}.body`);
 });
+const official = computed(
+  () =>
+    props.item.entry.details?.app.publisher.verified ??
+    props.item.entry.developer === "PocketJS",
+);
 // App Store style strip: a label above a large value, with a small detail line.
 const stats = computed(() => [
   {
     label: t("store.detail.developer"),
     value: props.item.entry.developer,
-    sub: props.item.entry.details?.app.publisher.verified
-      ? t("studio.official")
-      : t("studio.community"),
+    sub: official.value ? t("studio.official") : t("studio.community"),
   },
   {
     label: t("store.detail.version"),
@@ -152,6 +155,52 @@ const stats = computed(() => [
     sub: t(`store.category.${props.item.entry.category}`),
   },
 ]);
+// The App Store "Information" grid: everything the strip only hints at.
+const information = computed(() => [
+  {
+    label: t("store.detail.category"),
+    value: t(`store.category.${props.item.entry.category}`),
+  },
+  {
+    label: t("store.detail.policy"),
+    value: t(`store.policy.${props.item.entry.installPolicy}`),
+  },
+  {
+    label: t("store.detail.published"),
+    value: d(props.item.entry.publishedAt, "date"),
+  },
+  {
+    label: t("store.detail.osRange"),
+    value: `${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
+  },
+  {
+    label: t("store.detail.models"),
+    value: props.item.entry.compatibility.models.join(", "),
+  },
+  {
+    label: t("store.detail.dependencies"),
+    value: props.item.entry.dependencies.length
+      ? props.item.entry.dependencies
+          .map((id) => t(`catalog.${id}.name`))
+          .join(", ")
+      : t("store.detail.none"),
+  },
+  {
+    label: t("store.detail.catalogState"),
+    value: props.item.entry.details
+      ? t("store.detail.catalogVerified")
+      : t(
+          props.item.entry.signed
+            ? "store.detail.signed"
+            : "store.detail.unsigned",
+        ),
+  },
+  {
+    label: t("store.detail.checksum"),
+    value: props.item.entry.checksumSha256,
+    mono: true,
+  },
+]);
 
 const tabs = computed(() => [
   { value: "description", label: t("store.tabs.description") },
@@ -174,6 +223,12 @@ watch(
 );
 const body = ref<HTMLElement | null>(null);
 const { width: bodyWidth, height: bodyHeight } = useElementSize(body);
+const descriptionLines = computed(() =>
+  Math.max(
+    2,
+    Math.floor((bodyHeight.value - SECTION_TITLE) / DESCRIPTION_LINE),
+  ),
+);
 const shotHeight = computed(() => Math.max(120, bodyHeight.value));
 const shotsPerPage = computed(() =>
   Math.max(
@@ -209,32 +264,26 @@ const pageReleases = computed(() =>
 </script>
 
 <template>
-  <article class="flex h-full min-h-0 flex-col gap-3">
-    <StudioButton
-      variant="link"
-      size="sm"
-      class="self-start"
-      @click="emit('close')"
-    >
-      <IconPhArrowLeft width="13" height="13" />{{ t("studio.backToStore") }}
-    </StudioButton>
+  <article class="flex h-full min-h-0 flex-col">
     <header class="flex items-start gap-6">
       <PackageArtwork
         :entry="item.entry"
         :package-id="item.entry.id"
-        :size="112"
+        :size="120"
         class="rounded-[22%] shadow-raised"
       />
-      <div class="min-w-0 flex-1 pt-1">
-        <h1 class="truncate text-3xl font-semibold tracking-tight">
+      <div class="min-w-0 flex-1">
+        <h1 class="truncate text-3xl font-bold tracking-tight">
           {{ name }}
         </h1>
-        <p class="mt-0.5 truncate text-base text-muted">{{ summary }}</p>
+        <p class="truncate text-lg text-muted">{{ item.entry.developer }}</p>
+        <p class="mt-0.5 truncate text-sm text-muted">{{ summary }}</p>
         <div class="mt-3.5 flex flex-wrap items-center gap-3">
           <StudioButton
             variant="primary"
-            class="h-8 rounded-full px-5 font-semibold"
+            class="h-8 rounded-full px-6 text-sm font-bold"
             :disabled="!canInstall"
+            :loading="item.pending"
             @click="emit('install')"
           >
             {{ installing ? t("store.state.installing") : installLabel }}
@@ -246,19 +295,13 @@ const pageReleases = computed(() =>
           >
             {{ t("store.detail.prepareDevice") }}
           </StudioButton>
-          <StatusPill
-            :tone="item.verdict === 'compatible' ? 'success' : 'warning'"
-            >{{ t(`store.verdict.${item.verdict}`) }}</StatusPill
+          <span
+            class="text-xs"
+            :class="
+              item.verdict === 'compatible' ? 'text-success' : 'text-warning'
+            "
+            >{{ t(`store.verdict.${item.verdict}`) }}</span
           >
-          <span class="text-xs text-muted">{{
-            item.entry.details
-              ? t("store.detail.catalogVerified")
-              : t(
-                  item.entry.signed
-                    ? "store.detail.signed"
-                    : "store.detail.unsigned",
-                )
-          }}</span>
         </div>
         <p
           v-if="item.missingDependencies.length"
@@ -288,15 +331,21 @@ const pageReleases = computed(() =>
         </p>
       </div>
     </header>
-    <dl class="grid grid-cols-6 gap-3 rounded-panel bg-ink/4 px-4 py-2.5">
+    <div class="mt-4 h-px shrink-0 bg-ink/8" />
+    <dl class="grid shrink-0 grid-cols-6 py-2.5">
       <div
-        v-for="stat in stats"
+        v-for="(stat, index) in stats"
         :key="stat.label"
-        class="min-w-0 text-center"
+        class="relative min-w-0 px-3 text-center"
         :title="stat.sub"
       >
+        <span
+          v-if="index"
+          class="absolute inset-y-1.5 left-0 w-px bg-ink/10"
+          aria-hidden="true"
+        />
         <dt
-          class="truncate text-2xs font-semibold tracking-[0.08em] text-muted uppercase"
+          class="truncate text-2xs font-semibold tracking-[0.06em] text-muted uppercase"
         >
           {{ stat.label }}
         </dt>
@@ -306,10 +355,10 @@ const pageReleases = computed(() =>
         <dd class="truncate text-2xs text-muted">{{ stat.sub }}</dd>
       </div>
     </dl>
-    <StudioPanel
+    <div class="h-px shrink-0 bg-ink/8" />
+    <div
       v-if="item.operation"
-      :padded="false"
-      class="px-4 py-2.5 text-xs"
+      class="mt-3 shrink-0 rounded-panel bg-ink/4 px-4 py-2.5 text-xs"
       aria-live="polite"
     >
       <div class="flex items-center gap-3">
@@ -358,8 +407,8 @@ const pageReleases = computed(() =>
           </StudioButton>
         </template>
       </StudioCallout>
-    </StudioPanel>
-    <div class="flex items-center gap-3">
+    </div>
+    <div class="mt-3 flex shrink-0 items-center gap-3">
       <StudioSegmented v-model="tab" :options="tabs" size="sm" />
       <div
         v-if="tab === 'previews' && previewPages > 1"
@@ -414,79 +463,96 @@ const pageReleases = computed(() =>
         </StudioButton>
       </div>
     </div>
-    <StudioPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div ref="body" class="min-h-0 flex-1 overflow-hidden">
-        <p
-          v-if="tab === 'description'"
-          class="text-sm leading-6 whitespace-pre-line"
-        >
-          {{ description }}
-        </p>
-        <div
-          v-else-if="tab === 'previews'"
-          class="flex h-full gap-3"
-          :aria-label="t('studio.appPreviews')"
-        >
-          <StoreMedia
-            v-for="(media, index) in pageShots"
-            :key="media.blob.sha256"
-            :blob="media.blob"
-            :alt="t('store.screenshot', { name, index: index + 1 })"
-            class="h-full shrink-0 rounded-control shadow-panel"
-            :style="{ width: `${shotHeight * SCREENSHOT_RATIO}px` }"
-          />
-        </div>
-        <template v-else-if="tab === 'history'">
-          <div v-if="history.length" class="flex flex-col gap-2">
-            <article
-              v-for="release in pageReleases"
-              :key="release.id"
-              class="flex flex-col"
-            >
-              <div class="flex flex-wrap items-center gap-2 text-xs">
-                <b class="font-medium"
-                  >{{ release.version }} ·
-                  {{
-                    t("store.detail.revision", { revision: release.revision })
-                  }}</b
-                ><span class="text-muted">{{
-                  d(release.published_at, "date")
-                }}</span
-                ><StatusPill
-                  v-if="release.status === 'yanked'"
-                  tone="warning"
-                  >{{ t("store.state.withdrawn") }}</StatusPill
-                >
-              </div>
-              <p class="mt-0.5 line-clamp-2 text-xs leading-[17px] text-muted">
-                {{ release.notes[locale] ?? release.notes.en }}
-              </p>
-            </article>
-          </div>
-          <p v-else class="text-xs text-muted">
-            {{ item.entry.version }} · {{ d(item.entry.publishedAt, "date") }}
+    <div ref="body" class="mt-3 min-h-0 flex-1">
+      <div
+        v-if="tab === 'description'"
+        class="grid h-full grid-cols-[minmax(0,1fr)_280px] gap-10"
+      >
+        <section class="min-w-0">
+          <h2 class="text-lg font-semibold">{{ t("studio.description") }}</h2>
+          <p
+            class="mt-1.5 line-clamp-[var(--lines)] text-sm leading-6 whitespace-pre-line"
+            :style="{ '--lines': descriptionLines }"
+          >
+            {{ description }}
           </p>
-        </template>
-        <StepList
-          v-else-if="tab === 'steps' && item.operation"
-          :steps="item.operation.steps"
-          label-prefix="store.steps"
+        </section>
+        <section class="min-w-0">
+          <h2 class="text-lg font-semibold">{{ t("studio.information") }}</h2>
+          <dl class="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <div
+              v-for="row in information"
+              :key="row.label"
+              class="min-w-0"
+              :class="row.mono && 'col-span-2'"
+              :title="row.value"
+            >
+              <dt class="text-2xs text-muted">{{ row.label }}</dt>
+              <dd class="truncate" :class="row.mono && 'font-mono'">
+                {{ row.value }}
+              </dd>
+            </div>
+            <div v-if="sourceUrl" class="col-span-2">
+              <a
+                :href="sourceUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 text-signal hover:underline"
+                >{{ t("store.detail.sourceCode")
+                }}<IconPhArrowSquareOut width="11" height="11"
+              /></a>
+            </div>
+          </dl>
+        </section>
+      </div>
+      <div
+        v-else-if="tab === 'previews'"
+        class="flex h-full gap-3"
+        :aria-label="t('studio.appPreviews')"
+      >
+        <StoreMedia
+          v-for="(media, index) in pageShots"
+          :key="media.blob.sha256"
+          :blob="media.blob"
+          :alt="t('store.screenshot', { name, index: index + 1 })"
+          class="h-full shrink-0 rounded-panel shadow-panel"
+          :style="{ width: `${shotHeight * SCREENSHOT_RATIO}px` }"
         />
       </div>
-    </StudioPanel>
-    <footer class="flex items-center gap-3 text-2xs text-muted">
-      <span class="truncate font-mono"
-        >{{ t("store.detail.checksum") }} {{ item.entry.checksumSha256 }}</span
-      >
-      <a
-        v-if="sourceUrl"
-        :href="sourceUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="ml-auto inline-flex shrink-0 items-center gap-1 text-signal hover:underline"
-        >{{ t("store.detail.sourceCode")
-        }}<IconPhArrowSquareOut width="11" height="11"
-      /></a>
-    </footer>
+      <template v-else-if="tab === 'history'">
+        <div v-if="history.length" class="flex flex-col gap-2">
+          <article
+            v-for="release in pageReleases"
+            :key="release.id"
+            class="flex flex-col"
+          >
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+              <b class="font-medium"
+                >{{ release.version }} ·
+                {{
+                  t("store.detail.revision", { revision: release.revision })
+                }}</b
+              ><span class="text-muted">{{
+                d(release.published_at, "date")
+              }}</span
+              ><StatusPill v-if="release.status === 'yanked'" tone="warning">{{
+                t("store.state.withdrawn")
+              }}</StatusPill>
+            </div>
+            <p class="mt-0.5 line-clamp-2 text-xs leading-[17px] text-muted">
+              {{ release.notes[locale] ?? release.notes.en }}
+            </p>
+          </article>
+        </div>
+        <p v-else class="text-xs text-muted">
+          {{ item.entry.version }} · {{ d(item.entry.publishedAt, "date") }}
+        </p>
+      </template>
+      <StepList
+        v-else-if="tab === 'steps' && item.operation"
+        :steps="item.operation.steps"
+        label-prefix="store.steps"
+      />
+    </div>
   </article>
 </template>
