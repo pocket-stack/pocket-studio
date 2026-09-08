@@ -19,6 +19,7 @@ import {
   type PackageAction,
   type PackageJob,
   type PackageCategory,
+  type Platform,
 } from "../../shared/gateway";
 import {
   evaluateCompatibility,
@@ -39,6 +40,8 @@ let installedRequest = 0;
 let installedDeviceId: string | null = null;
 const selectedId = ref<string | null>(null);
 const categoryFilter = ref<PackageCategory | "all">("all");
+/** Storefront platform, like iTunes' iPhone/iPad switch; follows the device. */
+const platformFilter = ref<Platform>("ios");
 const compatibleOnly = ref(false);
 const query = ref("");
 /** package id -> most recent install operation id */
@@ -90,6 +93,12 @@ let watchingSession = false;
 
 const { device, readiness } = useDeviceSession();
 const { get, cancel, active } = useOperations();
+watch(
+  () => device.value?.platform,
+  (platform) => {
+    if (platform) platformFilter.value = platform;
+  },
+);
 const queuedIds = ref<string[]>([]);
 const startingId = ref<string | null>(null);
 watch(
@@ -338,6 +347,7 @@ export function useStore() {
     const needle = query.value.trim().toLowerCase();
     return catalog.value
       .filter((entry) => entry.details?.app.listing !== "unlisted")
+      .filter((entry) => entry.compatibility.platform === platformFilter.value)
       .filter(
         (entry) =>
           !compatibleOnly.value ||
@@ -488,6 +498,7 @@ export function useStore() {
     selected,
     selectedId,
     categoryFilter,
+    platformFilter,
     compatibleOnly,
     query,
     initialize,

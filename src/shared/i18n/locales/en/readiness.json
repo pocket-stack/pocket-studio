@@ -20,14 +20,14 @@
     "checks": {
       "platformSupported": {
         "title": "Platform",
-        "pass": "iOS devices are supported.",
+        "pass": "This platform is supported.",
         "fail": "This platform is not supported.",
         "warn": "Limited support for this platform.",
         "unknown": "Platform could not be determined."
       },
       "modelSupported": {
         "title": "Model",
-        "pass": "iPod touch (4th generation) is on the supported list.",
+        "pass": "This model is on the supported list.",
         "fail": "This model is not supported.",
         "warn": "Limited support for this model.",
         "unknown": "Model could not be identified."
@@ -87,6 +87,34 @@
         "fail": "AppSync is missing. Prepare application installation support first.",
         "warn": "AppSync installation needs attention.",
         "unknown": "Package records are currently unreadable; this does not mean AppSync is absent. Choose Verify AppSync for a read-only check."
+      },
+      "networkReachable": {
+        "title": "Network",
+        "pass": "The console answers on the local network.",
+        "fail": "The console is not reachable on the local network.",
+        "warn": "The network connection is unstable.",
+        "unknown": "Network reachability could not be confirmed."
+      },
+      "cfwInstalled": {
+        "title": "Custom firmware",
+        "pass": "Custom firmware (Luma3DS) is running.",
+        "fail": "No custom firmware was detected. Pocket needs a console with CFW; Studio does not install it.",
+        "warn": "Custom firmware traces were detected but not confirmed.",
+        "unknown": "Custom firmware could not be verified."
+      },
+      "homebrewAccess": {
+        "title": "Homebrew access",
+        "pass": "The Homebrew Launcher and title installation are available.",
+        "fail": "Homebrew access is not available.",
+        "warn": "Homebrew access needs attention.",
+        "unknown": "Homebrew access could not be checked without custom firmware."
+      },
+      "sdCardWritable": {
+        "title": "SD card",
+        "pass": "The SD card is mounted and writable.",
+        "fail": "The SD card is missing or read-only.",
+        "warn": "The SD card is nearly full.",
+        "unknown": "SD card state could not be read."
       }
     },
     "guidance": {

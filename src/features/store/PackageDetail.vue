@@ -114,6 +114,9 @@ const official = computed(
     props.item.entry.details?.app.publisher.verified ??
     props.item.entry.developer === "PocketJS",
 );
+const platformLabel = computed(() =>
+  t(`store.platform.${props.item.entry.compatibility.platform}`),
+);
 // App Store style strip: a label above a large value, with a small detail line.
 const stats = computed(() => [
   {
@@ -137,8 +140,8 @@ const stats = computed(() => [
   },
   {
     label: t("store.detail.compatibility"),
-    value: `iOS ${props.item.entry.compatibility.minOsVersion}+`,
-    sub: `${t("store.platform.ios")} ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
+    value: `${platformLabel.value} ${props.item.entry.compatibility.minOsVersion}+`,
+    sub: `${platformLabel.value} ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
   },
   {
     label: t("store.detail.models"),
@@ -146,7 +149,9 @@ const stats = computed(() => [
     sub: props.item.entry.compatibility.models.join(", "),
   },
   {
-    label: t("store.detail.jailbreak"),
+    label: t(
+      `store.detail.environment.${props.item.entry.compatibility.platform}`,
+    ),
     value: t(
       props.item.entry.compatibility.requiresJailbreak
         ? "common.required"

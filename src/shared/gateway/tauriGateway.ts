@@ -111,6 +111,7 @@ export function createTauriGateway(): StudioGateway {
       setDeviceMode: unavailable,
       setJailbroken: unavailable,
       failNextStep: unavailable,
+      setCfwInstalled: unavailable,
     },
   };
 }

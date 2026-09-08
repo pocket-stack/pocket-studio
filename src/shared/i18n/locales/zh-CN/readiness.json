@@ -20,14 +20,14 @@
     "checks": {
       "platformSupported": {
         "title": "平台",
-        "pass": "iOS 设备受支持。",
+        "pass": "该平台受支持。",
         "fail": "该平台暂不支持。",
         "warn": "平台支持有限。",
         "unknown": "无法确定平台。"
       },
       "modelSupported": {
         "title": "型号",
-        "pass": "iPod touch (4th generation) 在支持列表中。",
+        "pass": "该型号在支持列表中。",
         "fail": "该型号不受支持。",
         "warn": "该型号支持有限。",
         "unknown": "无法识别型号。"
@@ -87,6 +87,34 @@
         "fail": "未安装 AppSync，需要先补齐应用安装环境。",
         "warn": "AppSync 安装状态需要确认。",
         "unknown": "本次无法读取系统包安装记录，不代表未安装。可点击“验证 AppSync”进行只读检查。"
+      },
+      "networkReachable": {
+        "title": "网络",
+        "pass": "主机在局域网内可以访问。",
+        "fail": "无法在局域网内访问主机。",
+        "warn": "网络连接不稳定。",
+        "unknown": "无法确认网络连通性。"
+      },
+      "cfwInstalled": {
+        "title": "自制系统",
+        "pass": "自制系统（Luma3DS）正在运行。",
+        "fail": "未检测到自制系统。Pocket 需要已安装 CFW 的主机，Studio 不会代为安装。",
+        "warn": "检测到自制系统痕迹，但未能确认。",
+        "unknown": "无法验证自制系统。"
+      },
+      "homebrewAccess": {
+        "title": "自制软件访问",
+        "pass": "Homebrew Launcher 与标题安装服务可用。",
+        "fail": "自制软件访问不可用。",
+        "warn": "自制软件访问需要关注。",
+        "unknown": "没有自制系统时无法检查自制软件访问。"
+      },
+      "sdCardWritable": {
+        "title": "SD 卡",
+        "pass": "SD 卡已挂载且可写。",
+        "fail": "SD 卡缺失或只读。",
+        "warn": "SD 卡空间不足。",
+        "unknown": "无法读取 SD 卡状态。"
       }
     },
     "guidance": {

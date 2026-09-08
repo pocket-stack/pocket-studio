@@ -34,7 +34,10 @@
     "markJailbroken": "标记为已越狱",
     "markStock": "标记为未越狱",
     "failNext": "让下一次执行到该步骤时失败",
-    "noFailure": "不注入失败"
+    "noFailure": "不注入失败",
+    "attach3ds": "模拟接入 New 3DS LL",
+    "markCfw": "标记 CFW 已安装",
+    "markNoCfw": "标记 CFW 缺失"
   },
   "notifications": {
     "readinessFailed": "接入条件检测失败，请重新检测。",

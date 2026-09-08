@@ -198,3 +198,51 @@ describe("device simulation", () => {
     expect((await gateway.store.installed(id)).entries).toEqual([]);
   });
 });
+
+describe("New 3DS LL simulation", () => {
+  let gateway: StudioGateway;
+  beforeEach(() => {
+    gateway = createSimulatedGateway();
+  });
+  async function connect(): Promise<string> {
+    await gateway.demo.attachDevice("n3dsll");
+    return (await gateway.devices.list()).devices[0]!.id;
+  }
+  it("arrives over the network with custom firmware verified and no guided preparation", async () => {
+    const id = await connect();
+    const snapshot = await gateway.devices.list();
+    expect(snapshot.devices[0]).toMatchObject({
+      platform: "3ds",
+      transport: "network",
+      modelIdentifier: "RED-001",
+    });
+    const report = snapshot.reports[0]!;
+    expect(report.status).toBe("ready");
+    expect(report.requiredWorkflow).toBeUndefined();
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ id: "cfwInstalled", status: "pass" }),
+    );
+    expect(report.checks.map((check) => check.id)).not.toContain("jailbroken");
+    await expect(gateway.preparation.plan(id)).rejects.toMatchObject({
+      code: "unsupportedDevice",
+    });
+  });
+  it("only reports a missing CFW and refuses installs until it is back", async () => {
+    const id = await connect();
+    await gateway.demo.setCfwInstalled(false);
+    const report = gateway.devices.checkReadiness(id);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(await report).toMatchObject({ status: "needsPreparation" });
+    expect((await report).requiredWorkflow).toBeUndefined();
+    await expect(
+      gateway.store.install(id, "pocket-runtime-ctr"),
+    ).rejects.toMatchObject({ code: "deviceNotReady" });
+    await gateway.demo.setCfwInstalled(true);
+    const handle = await gateway.store.install(id, "pocket-runtime-ctr");
+    expect(handle.subject).toBe("pocket-runtime-ctr");
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(
+      (await gateway.store.installed(id)).entries.map((item) => item.packageId),
+    ).toEqual(["pocket-runtime-ctr"]);
+  });
+});

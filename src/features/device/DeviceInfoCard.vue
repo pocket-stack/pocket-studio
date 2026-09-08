@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { DeviceSummary } from "../../shared/gateway";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import DeviceIllustration from "../../shared/ui/DeviceIllustration.vue";
+import Nintendo3dsIllustration from "../../shared/ui/Nintendo3dsIllustration.vue";
 import StatusPill from "../../shared/ui/StatusPill.vue";
 import StudioPanel from "../../shared/ui/StudioPanel.vue";
 
@@ -27,9 +28,19 @@ const screen = computed(() =>
       ? "recovery"
       : "home",
 );
+const console3ds = computed(() => props.device.platform === "3ds");
+// The 3DS keeps its data on an SD card, has no UDID, and is reached over the
+// network; its system version carries the region suffix ("11.17.0-50J").
+const osVersion = computed(() => {
+  const { osVersion, buildNumber, platform } = props.device;
+  if (!osVersion) return t("connection.unknownValue");
+  if (platform === "3ds")
+    return buildNumber ? `${osVersion}-${buildNumber}` : osVersion;
+  return `${t("device.platform.ios")} ${osVersion}${buildNumber ? ` (${buildNumber})` : ""}`;
+});
 const rows = computed(() => [
   {
-    key: "storage",
+    key: console3ds.value ? "sdCard" : "storage",
     value:
       props.device.storageTotalBytes == null
         ? t("connection.unknownValue")
@@ -42,12 +53,7 @@ const rows = computed(() => [
         ? t("connection.unknownValue")
         : `${props.device.batteryPercent}%`,
   },
-  {
-    key: "os",
-    value: props.device.osVersion
-      ? `iOS ${props.device.osVersion}${props.device.buildNumber ? ` (${props.device.buildNumber})` : ""}`
-      : t("connection.unknownValue"),
-  },
+  { key: "os", value: osVersion.value },
   {
     key: "model",
     value:
@@ -60,16 +66,34 @@ const rows = computed(() => [
     value: props.device.serialMasked ?? t("connection.unknownValue"),
     mono: true,
   },
-  {
-    key: "udid",
-    value: props.device.udidMasked ?? t("connection.unknownValue"),
-    mono: true,
-  },
+  console3ds.value
+    ? {
+        key: "transport",
+        value: t(`device.transport.${props.device.transport}`),
+      }
+    : {
+        key: "udid",
+        value: props.device.udidMasked ?? t("connection.unknownValue"),
+        mono: true,
+      },
 ]);
 </script>
 <template>
   <StudioPanel class="flex items-center gap-6 px-5 py-3">
-    <DeviceIllustration class="shrink-0" :width="92" :screen="screen" shadow />
+    <Nintendo3dsIllustration
+      v-if="console3ds"
+      class="shrink-0"
+      :width="124"
+      :screen="screen === 'home' ? 'home' : 'off'"
+      shadow
+    />
+    <DeviceIllustration
+      v-else
+      class="shrink-0"
+      :width="92"
+      :screen="screen"
+      shadow
+    />
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center gap-3">
         <h1 class="truncate text-2xl font-semibold tracking-tight">

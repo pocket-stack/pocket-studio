@@ -4,6 +4,7 @@ import {
   buildJailbreakPlan,
   demoCatalog,
   demoDevice,
+  demoDevice3ds,
   installSteps,
   preparationFailureCodes,
 } from "./fixtures";
@@ -95,6 +96,8 @@ export function createSimulatedGateway(): StudioGateway {
   let device: DeviceSummary | null = null;
   let jailbroken = false;
   let appsyncInstalled = false;
+  // The 3DS ships with custom firmware already installed in the demo.
+  let cfwInstalled = true;
   let planSequence = 0;
   let operationSequence = 0;
   let logSequence = 0;
@@ -156,7 +159,13 @@ export function createSimulatedGateway(): StudioGateway {
     return device;
   }
 
+  /** Whether the environment a package needs (jailbreak or CFW) is present. */
+  function environmentReady(current: DeviceSummary): boolean {
+    return current.platform === "3ds" ? cfwInstalled : jailbroken;
+  }
+
   function readiness(current: DeviceSummary): ReadinessReport {
+    if (current.platform === "3ds") return readiness3ds(current);
     const checks: ReadinessCheck[] = [
       { id: "platformSupported", status: "pass", value: "iOS" },
       {
@@ -189,6 +198,47 @@ export function createSimulatedGateway(): StudioGateway {
         : appsyncInstalled
           ? undefined
           : "appSync",
+      checkedAt: Date.now(),
+    };
+  }
+
+  // No guided preparation exists for the 3DS: custom firmware is assumed and
+  // only verified, so a missing CFW reports without a workflow.
+  function readiness3ds(current: DeviceSummary): ReadinessReport {
+    const checks: ReadinessCheck[] = [
+      { id: "platformSupported", status: "pass", value: "Nintendo 3DS" },
+      {
+        id: "modelSupported",
+        status: "pass",
+        value: current.modelIdentifier ?? undefined,
+      },
+      {
+        id: "osVersionSupported",
+        status: "pass",
+        value: `${current.osVersion}-${current.buildNumber}`,
+      },
+      { id: "networkReachable", status: "pass", value: "Wi-Fi" },
+      {
+        id: "cfwInstalled",
+        status: cfwInstalled ? "pass" : "fail",
+        value: cfwInstalled ? "Luma3DS 13.0.2" : undefined,
+      },
+      {
+        id: "homebrewAccess",
+        status: cfwInstalled ? "pass" : "unknown",
+        value: cfwInstalled ? "hbmenu 2.4.0" : undefined,
+      },
+      { id: "sdCardWritable", status: "pass", value: "32 GB" },
+      {
+        id: "batteryLevel",
+        status: (current.batteryPercent ?? 0) >= 50 ? "pass" : "warn",
+        value: `${current.batteryPercent}%`,
+      },
+    ];
+    return {
+      deviceId: current.id,
+      status: cfwInstalled ? "ready" : "needsPreparation",
+      checks,
       checkedAt: Date.now(),
     };
   }
@@ -535,6 +585,11 @@ export function createSimulatedGateway(): StudioGateway {
     preparation: {
       async plan(deviceId) {
         const current = requireDevice(deviceId);
+        if (current.platform !== "ios")
+          throw new GatewayError(
+            "unsupportedDevice",
+            "Guided preparation exists for iOS devices only",
+          );
         planSequence += 1;
         const plan = buildJailbreakPlan(
           deviceId,
@@ -726,10 +781,13 @@ export function createSimulatedGateway(): StudioGateway {
         );
         if (!entry)
           throw new GatewayError("unknownPackage", "package not found");
-        if (entry.compatibility.requiresJailbreak && !jailbroken) {
+        if (
+          entry.compatibility.requiresJailbreak &&
+          !environmentReady(current)
+        ) {
           throw new GatewayError(
             "deviceNotReady",
-            "package requires a jailbroken device",
+            "package requires a prepared device environment",
           );
         }
         if (current.mode !== "normal")
@@ -817,16 +875,16 @@ export function createSimulatedGateway(): StudioGateway {
       onEntry: (handler) => logEvents.subscribe(handler),
     },
     demo: {
-      async attachDevice() {
+      async attachDevice(model = "ipod4") {
         if (device) return;
-        device = { ...demoDevice };
+        device = { ...(model === "n3dsll" ? demoDevice3ds : demoDevice) };
         deviceEvents.emit({ type: "attached", device });
         log(
           "info",
           "device",
           "log.device.attached",
-          "device attached over USB",
-          { model: demoDevice.modelIdentifier },
+          `device attached over ${device.transport}`,
+          { model: device.modelIdentifier ?? model },
         );
       },
       async detachDevice() {
@@ -861,6 +919,16 @@ export function createSimulatedGateway(): StudioGateway {
           "system",
           "log.demo.jailbrokenSet",
           `demo: jailbroken=${value}`,
+          { value: String(value) },
+        );
+      },
+      async setCfwInstalled(value) {
+        cfwInstalled = value;
+        log(
+          "debug",
+          "system",
+          "log.demo.cfwSet",
+          `demo: cfwInstalled=${value}`,
           { value: String(value) },
         );
       },

@@ -46,18 +46,26 @@ const canCheckAppSync = computed(
 const appSyncUnconfirmed = computed(
   () => appSync.value?.status === "unknown" || appSync.value?.status === "warn",
 );
+const compactChecks =
+  props.device?.platform === "3ds"
+    ? [
+        "osVersionSupported",
+        "networkReachable",
+        "cfwInstalled",
+        "homebrewAccess",
+        "sdCardWritable",
+      ]
+    : [
+        "osVersionSupported",
+        "pairingTrusted",
+        "jailbroken",
+        "appSyncInstalled",
+        "sshAvailable",
+      ];
 const checks = computed(
   () =>
     props.report?.checks.filter(
-      (check) =>
-        !props.compact ||
-        [
-          "osVersionSupported",
-          "pairingTrusted",
-          "jailbroken",
-          "appSyncInstalled",
-          "sshAvailable",
-        ].includes(check.id),
+      (check) => !props.compact || compactChecks.includes(check.id),
     ) ?? [],
 );
 const passCount = computed(

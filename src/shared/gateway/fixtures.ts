@@ -31,6 +31,30 @@ export const demoDevice = {
   transport: "usb",
 } satisfies DeviceSummary;
 
+/**
+ * New Nintendo 3DS LL reached over the local network. Custom firmware is
+ * assumed to be installed already; Studio only verifies it.
+ */
+export const demoDevice3ds = {
+  id: "net-n3dsll-demo",
+  platform: "3ds",
+  modelIdentifier: "RED-001",
+  marketingName: "New Nintendo 3DS LL",
+  chip: "ARM11 MPCore ×4 · 804 MHz",
+  boardConfig: null,
+  osVersion: "11.17.0",
+  buildNumber: "50J",
+  udidMasked: null,
+  ecidMasked: null,
+  serialMasked: "QJF…42",
+  storageGb: 32,
+  storageTotalBytes: 32_000_000_000,
+  storageFreeBytes: 21_300_000_000,
+  batteryPercent: 64,
+  mode: "normal",
+  transport: "network",
+} satisfies DeviceSummary;
+
 export const jailbreakRisks: Risk[] = [
   { id: "bootloop", severity: "high" },
   { id: "dataLossOnRecovery", severity: "high" },
@@ -372,5 +396,57 @@ for (const [id, category, dependencies] of [
     compatibility: { ...ios6Compat, requiresJailbreak: true },
     dependencies: [...dependencies],
     publishedAt: Date.UTC(2026, 8, 1),
+  });
+}
+
+// New 3DS family titles; `requiresJailbreak` means custom firmware here.
+const ctrCompat = {
+  platform: "3ds" as const,
+  models: ["RED-001", "KTR-001", "JAN-001"],
+  minOsVersion: "11.0.0",
+  maxOsVersion: "11.17.0",
+  requiresJailbreak: true,
+};
+for (const [id, category, policy, sizeBytes, dependencies, published] of [
+  ["pocket-runtime-ctr", "runtime", "cia", 5_900_000, [], Date.UTC(2026, 8, 3)],
+  [
+    "pocket-agent-ctr",
+    "tool",
+    "cia",
+    1_400_000,
+    ["pocket-runtime-ctr"],
+    Date.UTC(2026, 8, 5),
+  ],
+  [
+    "ctr-pixel-arcade",
+    "game",
+    "cia",
+    24_000_000,
+    ["pocket-runtime-ctr"],
+    Date.UTC(2026, 7, 18),
+  ],
+  [
+    "ctr-dual-notebook",
+    "app",
+    "cia",
+    7_600_000,
+    ["pocket-runtime-ctr"],
+    Date.UTC(2026, 7, 26),
+  ],
+  ["ctr-pocket-sync", "tool", "3dsx", 900_000, [], Date.UTC(2026, 6, 30)],
+  ["ctr-theme-forge", "app", "cia", 11_200_000, [], Date.UTC(2026, 8, 1)],
+] as const) {
+  demoCatalog.push({
+    id,
+    category,
+    version: "0.3.0",
+    developer: id.startsWith("pocket-") ? "PocketJS" : "Pocket Labs",
+    sizeBytes,
+    installPolicy: policy,
+    checksumSha256: "ctr0…0000",
+    signed: true,
+    compatibility: ctrCompat,
+    dependencies: [...dependencies],
+    publishedAt: published,
   });
 }

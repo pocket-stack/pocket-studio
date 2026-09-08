@@ -5,7 +5,7 @@
  * use camelCase on the wire. Keep the two sides in sync when changing a shape.
  */
 
-export type Platform = "ios";
+export type Platform = "ios" | "3ds";
 export type DeviceMode = "normal" | "recovery" | "dfu" | "wtf" | "kis";
 export type Transport = "usb" | "network";
 
@@ -66,7 +66,11 @@ export type ReadinessCheckId =
   | "sshAvailable"
   | "batteryLevel"
   | "physicalButtons"
-  | "normalMode";
+  | "normalMode"
+  | "networkReachable"
+  | "cfwInstalled"
+  | "homebrewAccess"
+  | "sdCardWritable";
 
 export type CheckStatus = "pass" | "fail" | "warn" | "unknown";
 
@@ -253,7 +257,8 @@ export type OperationEvent =
   | { type: "cancelled"; operationId: string; stepId: StepId };
 
 export type PackageCategory = "runtime" | "tool" | "app" | "game";
-export type InstallPolicy = "deb" | "ipa" | "bootstrap" | "unsupported";
+export type InstallPolicy =
+  "deb" | "ipa" | "bootstrap" | "cia" | "3dsx" | "unsupported";
 export type SignedCatalog = import("./storeProtocol.generated").SignedCatalog;
 export type StoreApplication = SignedCatalog["apps"][number];
 export type StoreRelease = SignedCatalog["releases"][number];
@@ -424,11 +429,15 @@ export class GatewayError extends Error {
 
 export type Unsubscribe = () => void;
 
+export type DemoDeviceModel = "ipod4" | "n3dsll";
 export interface DemoControls {
-  attachDevice(): Promise<void>;
+  /** One simulated device at a time; the iPod touch is the default. */
+  attachDevice(model?: DemoDeviceModel): Promise<void>;
   detachDevice(): Promise<void>;
   setDeviceMode(mode: DeviceMode): Promise<void>;
   setJailbroken(jailbroken: boolean): Promise<void>;
+  /** 3DS: whether custom firmware (Luma3DS) is detected. */
+  setCfwInstalled(installed: boolean): Promise<void>;
   /** Make the next run of `stepId` fail; `null` clears the injection. */
   failNextStep(stepId: StepId | null): Promise<void>;
 }

@@ -242,7 +242,13 @@
     "logParams": "参数",
     "logEvent": "事件编号",
     "logOperationId": "任务编号",
-    "exportLines": "共 {count} 行，已生成完整日志文本。"
+    "exportLines": "共 {count} 行，已生成完整日志文本。",
+    "cfw": {
+      "title": "自制系统环境",
+      "missing": "未检测到 CFW",
+      "description": "首版适配 New Nintendo 3DS LL。Pocket 运行时需要 Luma3DS 等自制系统；Studio 只检测环境，不会修改系统或写入 NAND。",
+      "notice": "请按照 3ds.hacks.guide 等社区指南自行安装自制系统，完成后重新检测。"
+    }
   },
   "log": {
     "store": {

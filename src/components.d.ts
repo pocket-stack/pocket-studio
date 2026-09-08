@@ -43,6 +43,7 @@ declare module 'vue' {
     IconPhUsb: typeof import('~icons/ph/usb')['default']
     IconPhWarning: typeof import('~icons/ph/warning')['default']
     IconPhWarningFill: typeof import('~icons/ph/warning-fill')['default']
+    IconPhWifiHigh: typeof import('~icons/ph/wifi-high')['default']
     IconPhX: typeof import('~icons/ph/x')['default']
     IconPhXCircleFill: typeof import('~icons/ph/x-circle-fill')['default']
     IconSvgSpinners90Ring: typeof import('~icons/svg-spinners/90-ring')['default']

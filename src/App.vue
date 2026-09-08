@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import IconPhDeviceMobile from "~icons/ph/device-mobile-fill";
+import IconPhGameController from "~icons/ph/game-controller-fill";
 import IconPhStorefront from "~icons/ph/storefront-fill";
 import IconPhCaretDown from "~icons/ph/caret-down";
 import IconPhCaretUp from "~icons/ph/caret-up";
@@ -37,6 +38,8 @@ import StudioInput from "./shared/ui/StudioInput.vue";
 
 const { t, d, locale } = useI18n();
 const renderLog = useLogMessage();
+const platformIcon = (platform?: string): Component =>
+  platform === "3ds" ? IconPhGameController : IconPhDeviceMobile;
 const lastDeviceSection = ref<DeviceSection>("summary");
 const mainContent = ref<HTMLElement | null>(null);
 const demoOpen = ref(false);
@@ -350,7 +353,11 @@ onMounted(async () => {
           <summary
             class="flex h-7 list-none items-center gap-1.5 rounded-control bg-raised px-2.5 text-muted shadow-control transition-colors hover:bg-track group-open/device-menu:bg-track [&::-webkit-details-marker]:hidden"
           >
-            <IconPhDeviceMobile width="16" height="16" /><span
+            <component
+              :is="platformIcon(session.device.value?.platform)"
+              width="16"
+              height="16"
+            /><span
               class="max-w-[150px] truncate text-sm font-semibold whitespace-nowrap text-ink max-[1100px]:hidden"
               >{{
                 session.device.value
@@ -381,7 +388,11 @@ onMounted(async () => {
               :aria-pressed="session.device.value?.id === connected.id"
               @click="session.select(connected.id)"
             >
-              <IconPhDeviceMobile width="16" height="16" />
+              <component
+                :is="platformIcon(connected.platform)"
+                width="16"
+                height="16"
+              />
               <span class="min-w-0 flex-1 truncate">{{
                 connected.marketingName
               }}</span>

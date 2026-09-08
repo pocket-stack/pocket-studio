@@ -23,7 +23,9 @@
       "udid": "UDID",
       "ecid": "ECID",
       "serial": "Serial",
-      "battery": "Battery"
+      "battery": "Battery",
+      "sdCard": "SD card",
+      "transport": "Connection"
     },
     "empty": {
       "title": "Waiting for a device",
@@ -37,6 +39,10 @@
       "title": "The device is ready for Pocket",
       "body": "You can now install the Pocket runtime and compatible software from the App Store.",
       "action": "Open the App Store"
+    },
+    "platform": {
+      "ios": "iOS",
+      "3ds": "Nintendo 3DS"
     }
   }
 }

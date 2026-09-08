@@ -69,6 +69,36 @@
       "name": "Font Patch",
       "summary": "为小屏幕调整文字显示",
       "description": "为小屏幕调整文字显示。此软件包是本地演示数据，用于体验详情、兼容性判断与安装进度。"
+    },
+    "pocket-runtime-ctr": {
+      "name": "Pocket Runtime",
+      "summary": "面向 New 3DS 系列的 Pocket 运行时。",
+      "description": "把 Pocket 的 JavaScript 运行时与系统桥接带到 New Nintendo 3DS。以 CIA 标题形式安装在已有自制系统的主机上，驱动双屏并与生态内其他设备同步数据。"
+    },
+    "pocket-agent-ctr": {
+      "name": "Pocket Agent",
+      "summary": "通过 Wi-Fi 保持主机与 Pocket Studio 的连接。",
+      "description": "常驻标题，通过局域网接收 Pocket Studio 的安装指令、上报主机状态并保持运行时更新。依赖 Pocket 运行时（3DS）。"
+    },
+    "ctr-pixel-arcade": {
+      "name": "Pixel Arcade",
+      "summary": "为双屏调校的开源复古游戏合集。",
+      "description": "精选的开源复古游戏合集：上屏显示画面，触摸屏承担操作或地图。存档通过 Pocket 运行时同步。"
+    },
+    "ctr-dual-notebook": {
+      "name": "Dual Notebook",
+      "summary": "下屏手写，上屏看页。",
+      "description": "用触控笔在触摸屏上手写或输入笔记，上屏同步显示正在编辑的页面。笔记本会与其他 Pocket 设备同步。"
+    },
+    "ctr-pocket-sync": {
+      "name": "Pocket Sync",
+      "summary": "把 Pocket 数据镜像到 SD 卡的自制小工具。",
+      "description": "从 Homebrew Launcher 启动的轻量 3DSX 自制软件，在 SD 卡与 Pocket 之间镜像数据，无需安装 CIA。"
+    },
+    "ctr-theme-forge": {
+      "name": "Theme Forge",
+      "summary": "用 Pocket 素材生成 HOME 菜单主题。",
+      "description": "把 Pocket 库中的插画与配色转换为 3DS 的 HOME 菜单主题。以 CIA 标题安装，主题只写入 SD 卡。"
     }
   }
 }

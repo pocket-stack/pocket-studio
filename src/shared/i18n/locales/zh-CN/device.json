@@ -23,7 +23,9 @@
       "udid": "UDID",
       "ecid": "ECID",
       "serial": "序列号",
-      "battery": "电量"
+      "battery": "电量",
+      "sdCard": "SD 卡",
+      "transport": "连接方式"
     },
     "empty": {
       "title": "等待设备接入",
@@ -37,6 +39,10 @@
       "title": "设备已满足接入条件",
       "body": "现在可以从应用商店安装 Pocket 运行时与兼容软件。",
       "action": "前往应用商店"
+    },
+    "platform": {
+      "ios": "iOS",
+      "3ds": "Nintendo 3DS"
     }
   }
 }

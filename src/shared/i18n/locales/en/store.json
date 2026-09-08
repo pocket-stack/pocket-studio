@@ -23,7 +23,7 @@
       "installing": "Installing",
       "installed": "Installed",
       "compatible": "Installable",
-      "requiresPreparation": "Needs jailbreak",
+      "requiresPreparation": "Needs preparation",
       "noDevice": "No device",
       "incompatible": "Incompatible",
       "unavailable": "Unavailable",
@@ -33,7 +33,9 @@
       "deb": "Debian package (Cydia)",
       "ipa": "IPA user application",
       "bootstrap": "System bootstrap",
-      "unsupported": "Unsupported installation format"
+      "unsupported": "Unsupported installation format",
+      "cia": "CIA title (custom firmware)",
+      "3dsx": "3DSX homebrew app"
     },
     "verdict": {
       "compatible": "Compatible with the connected device.",
@@ -78,7 +80,11 @@
       "sourceCode": "Source code",
       "category": "Category",
       "none": "None",
-      "catalogState": "Catalog"
+      "catalogState": "Catalog",
+      "environment": {
+        "ios": "Jailbreak",
+        "3ds": "Custom firmware"
+      }
     },
     "steps": {
       "resolve": {
@@ -185,7 +191,8 @@
       "checksumMismatch": "Downloaded content did not match its expected digest."
     },
     "platform": {
-      "ios": "iOS"
+      "ios": "iOS",
+      "3ds": "3DS"
     },
     "installed": {
       "refresh": "Refresh device apps",

@@ -242,7 +242,13 @@
     "logParams": "Parameters",
     "logEvent": "Event id",
     "logOperationId": "Operation id",
-    "exportLines": "{count} lines generated as the full log text."
+    "exportLines": "{count} lines generated as the full log text.",
+    "cfw": {
+      "title": "Custom firmware environment",
+      "missing": "CFW not detected",
+      "description": "The first supported console is the New Nintendo 3DS LL. The Pocket runtime needs custom firmware such as Luma3DS; Studio only verifies the environment and never modifies the system or writes to NAND.",
+      "notice": "Install custom firmware yourself by following a community guide such as 3ds.hacks.guide, then check again."
+    }
   },
   "log": {
     "store": {

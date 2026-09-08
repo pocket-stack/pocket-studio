@@ -142,6 +142,13 @@ function startPreparation(): void {
           t(gateway.capabilities.demo ? "demo.attach" : "studio.detectDevice")
         }}
       </StudioButton>
+      <StudioButton
+        v-if="gateway.capabilities.demo"
+        :disabled="checking"
+        @click="gateway.demo.attachDevice('n3dsll')"
+      >
+        <IconPhWifiHigh width="15" height="15" />{{ t("demo.attach3ds") }}
+      </StudioButton>
       <StudioButton @click="emit('openStore')">
         {{ t("studio.browseStore") }}
       </StudioButton>
@@ -205,6 +212,35 @@ function startPreparation(): void {
         :checking="checking"
         @recheck="checkReadiness"
       />
+      <!-- The 3DS arrives with custom firmware already installed; Studio only
+           verifies it and points at the community guide otherwise. -->
+      <StudioPanel v-else-if="device.platform === '3ds'" class="max-w-[620px]">
+        <div class="flex items-center gap-3">
+          <h2 class="text-lg font-semibold">{{ t("studio.cfw.title") }}</h2>
+          <StatusPill :tone="isReady ? 'success' : 'warning'" dot>{{
+            t(isReady ? "studio.allReady" : "studio.cfw.missing")
+          }}</StatusPill>
+        </div>
+        <p class="mt-2 text-sm text-muted">{{ t("studio.cfw.description") }}</p>
+        <StudioCallout v-if="!isReady" tone="warning" class="mt-3">
+          {{ t("studio.cfw.notice") }}
+        </StudioCallout>
+        <div class="mt-4 flex justify-end gap-2">
+          <StudioButton :disabled="checking" @click="checkReadiness">
+            <IconSvgSpinners90Ring v-if="checking" width="13" height="13" />
+            <IconPhArrowsClockwise v-else width="13" height="13" />{{
+              t("readiness.recheck")
+            }}
+          </StudioButton>
+          <StudioButton
+            v-if="isReady"
+            variant="primary"
+            @click="emit('openStore')"
+          >
+            {{ t("device.next.action") }}
+          </StudioButton>
+        </div>
+      </StudioPanel>
       <StudioPanel v-else class="max-w-[620px]">
         <div class="flex items-center gap-3">
           <h2 class="text-lg font-semibold">

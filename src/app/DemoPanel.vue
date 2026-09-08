@@ -18,6 +18,10 @@ async function setJailbroken(value: boolean): Promise<void> {
   await gateway.demo.setJailbroken(value);
   await checkReadiness();
 }
+async function setCfw(value: boolean): Promise<void> {
+  await gateway.demo.setCfwInstalled(value);
+  await checkReadiness();
+}
 
 const failStep = ref<StepId | "">("");
 const failureSteps: StepId[] = [
@@ -46,7 +50,17 @@ async function armFailure(): Promise<void> {
       <StudioButton :disabled="!!device" @click="gateway.demo.attachDevice()">
         {{ t("demo.attach") }}
       </StudioButton>
-      <StudioButton :disabled="!device" @click="gateway.demo.detachDevice()">
+      <StudioButton
+        :disabled="!!device"
+        @click="gateway.demo.attachDevice('n3dsll')"
+      >
+        {{ t("demo.attach3ds") }}
+      </StudioButton>
+      <StudioButton
+        class="col-span-2"
+        :disabled="!device"
+        @click="gateway.demo.detachDevice()"
+      >
         {{ t("demo.detach") }}
       </StudioButton>
       <StudioButton
@@ -60,6 +74,12 @@ async function armFailure(): Promise<void> {
       </StudioButton>
       <StudioButton @click="setJailbroken(false)">
         {{ t("demo.markStock") }}
+      </StudioButton>
+      <StudioButton @click="setCfw(true)">
+        {{ t("demo.markCfw") }}
+      </StudioButton>
+      <StudioButton @click="setCfw(false)">
+        {{ t("demo.markNoCfw") }}
       </StudioButton>
     </div>
     <label class="flex flex-col gap-1">

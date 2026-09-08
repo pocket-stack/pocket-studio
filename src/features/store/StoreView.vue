@@ -15,11 +15,16 @@ import {
   type Component,
 } from "vue";
 import { useI18n } from "vue-i18n";
-import { useGateway, type PackageCategory } from "../../shared/gateway";
+import {
+  useGateway,
+  type PackageCategory,
+  type Platform,
+} from "../../shared/gateway";
 import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import { useElementSize } from "../../shared/composables/useElementSize";
 import StudioButton from "../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../shared/ui/StudioCallout.vue";
+import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 import PackageCard from "./PackageCard.vue";
 import PackageDetail from "./PackageDetail.vue";
 import PackageArtwork from "./PackageArtwork.vue";
@@ -290,6 +295,17 @@ const tileCount = computed(() =>
   ),
 );
 
+// iTunes' iPhone/iPad switch: one storefront per platform.
+const platforms: Platform[] = ["ios", "3ds"];
+const platformOptions = computed(() =>
+  platforms.map((value) => ({ value, label: t(`store.platform.${value}`) })),
+);
+const platformModel = computed({
+  get: () => store.platformFilter.value as string,
+  set: (value) => {
+    store.platformFilter.value = value as Platform;
+  },
+});
 const categories: Array<PackageCategory | "all"> = [
   "all",
   "app",
@@ -593,6 +609,13 @@ onMounted(() => void store.initialize());
         <h2 class="truncate text-xl font-semibold tracking-tight">
           {{ device?.marketingName ?? t("store.title") }}
         </h2>
+        <StudioSegmented
+          v-model="platformModel"
+          :options="platformOptions"
+          :label="t('store.detail.compatibility')"
+          size="sm"
+          class="mt-2 w-full [&>button]:flex-1"
+        />
         <p
           class="mt-3 mb-1 text-2xs font-semibold tracking-[0.08em] text-muted uppercase"
         >

@@ -34,7 +34,10 @@
     "markJailbroken": "Mark as jailbroken",
     "markStock": "Mark as stock",
     "failNext": "Fail the next run of this step",
-    "noFailure": "No failure injected"
+    "noFailure": "No failure injected",
+    "attach3ds": "Attach demo New 3DS LL",
+    "markCfw": "Mark CFW as installed",
+    "markNoCfw": "Mark CFW as missing"
   },
   "notifications": {
     "readinessFailed": "Readiness check failed. Please try again.",

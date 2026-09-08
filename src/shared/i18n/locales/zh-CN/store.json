@@ -23,7 +23,7 @@
       "installing": "安装中",
       "installed": "已安装",
       "compatible": "可安装",
-      "requiresPreparation": "需先越狱",
+      "requiresPreparation": "需要前置环境",
       "noDevice": "未连接设备",
       "incompatible": "不兼容",
       "unavailable": "暂不可用",
@@ -33,7 +33,9 @@
       "deb": "Debian 软件包（Cydia）",
       "ipa": "IPA 用户应用",
       "bootstrap": "系统引导包",
-      "unsupported": "暂不支持的安装格式"
+      "unsupported": "暂不支持的安装格式",
+      "cia": "CIA 标题（自制系统）",
+      "3dsx": "3DSX 自制软件"
     },
     "verdict": {
       "compatible": "与当前设备兼容，可以安装。",
@@ -78,7 +80,11 @@
       "sourceCode": "源代码",
       "category": "类别",
       "none": "无",
-      "catalogState": "目录状态"
+      "catalogState": "目录状态",
+      "environment": {
+        "ios": "越狱环境",
+        "3ds": "自制系统"
+      }
     },
     "steps": {
       "resolve": {
@@ -185,7 +191,8 @@
       "checksumMismatch": "下载内容与预期摘要不一致。"
     },
     "platform": {
-      "ios": "iOS"
+      "ios": "iOS",
+      "3ds": "3DS"
     },
     "installed": {
       "refresh": "刷新设备应用",
