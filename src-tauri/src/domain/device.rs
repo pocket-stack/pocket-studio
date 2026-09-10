@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub enum Platform {
     Ios,
+    #[serde(rename = "3ds")]
+    ThreeDs,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +47,7 @@ pub struct DeviceSummary {
     pub battery_percent: Option<u8>,
     pub mode: DeviceMode,
     pub transport: Transport,
+    pub three_ds: Option<super::three_ds::ThreeDsDetails>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +60,7 @@ pub struct AppSyncObservation {
 /// Facts about the device that only a read-only probe can reveal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DeviceFacts {
+    pub cfw: Option<bool>,
     pub jailbroken: Option<bool>,
     pub appsync_installed: Option<bool>,
     pub appsync_last_observation: Option<AppSyncObservation>,

@@ -550,6 +550,7 @@ fn empty_summary(id: String, mode: DeviceMode) -> DeviceSummary {
         battery_percent: None,
         mode,
         transport: Transport::Usb,
+        three_ds: None,
     }
 }
 
@@ -630,6 +631,7 @@ mod tests {
         let complete = DeviceRecord {
             summary: observed.clone(),
             facts: DeviceFacts {
+                cfw: None,
                 appsync_installed: Some(true),
                 appsync_last_observation: None,
                 jailbroken: Some(true),

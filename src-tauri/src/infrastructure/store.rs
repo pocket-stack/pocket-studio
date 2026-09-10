@@ -1,6 +1,7 @@
 //! HTTP and disk implementations of the static catalog port. Cloud credentials
 //! are never accepted here; the only configured key material is public.
 mod installed;
+mod migrations;
 mod packages;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -88,7 +89,8 @@ impl StoreCache {
     pub fn open(root: PathBuf) -> Result<Self, StoreError> {
         std::fs::create_dir_all(root.join("blobs")).map_err(|_| StoreError::Storage)?;
         std::fs::create_dir_all(root.join("partial")).map_err(|_| StoreError::Storage)?;
-        let db = Connection::open(root.join("store.sqlite")).map_err(|_| StoreError::Storage)?;
+        let mut db =
+            Connection::open(root.join("store.sqlite")).map_err(|_| StoreError::Storage)?;
         db.busy_timeout(Duration::from_secs(5))
             .map_err(|_| StoreError::Storage)?;
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -96,6 +98,7 @@ impl StoreCache {
             CREATE TABLE IF NOT EXISTS package_jobs(operation_id TEXT PRIMARY KEY,record_json TEXT NOT NULL,updated_at INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS installed_observations(device_key TEXT NOT NULL,repository_id TEXT NOT NULL,observation_json TEXT NOT NULL,PRIMARY KEY(device_key,repository_id));
             CREATE TABLE IF NOT EXISTS downloads(sha256 TEXT PRIMARY KEY,expected_size INTEGER NOT NULL,etag TEXT,downloaded_bytes INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL,updated_at INTEGER NOT NULL);").map_err(|_|StoreError::Storage)?;
+        migrations::migrate(&mut db)?;
         Ok(Self {
             root,
             db: Mutex::new(db),

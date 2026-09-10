@@ -10,6 +10,7 @@ pub mod packages;
 pub mod preparation;
 pub mod readiness;
 pub mod store;
+pub mod three_ds;
 
 /// Milliseconds since the Unix epoch, the timestamp representation shared
 /// with the webview.

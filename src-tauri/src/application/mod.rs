@@ -1,11 +1,13 @@
 //! Use cases that coordinate domain rules with the transport and tool ports.
 //! This layer knows nothing about Tauri or any platform.
 
+pub mod device_setup;
 pub mod discovery;
 pub mod installed;
 pub mod packages;
 pub mod preparation;
 pub mod store;
+pub mod three_ds_packages;
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -86,6 +88,8 @@ impl OperationLog {
 #[derive(Debug, thiserror::Error)]
 pub enum StudioError {
     #[error(transparent)]
+    Setup(#[from] device_setup::SetupError),
+    #[error(transparent)]
     AppSyncCheck(#[from] discovery::AppSyncCheckError),
     #[error(transparent)]
     Package(#[from] packages::PackageError),
@@ -104,6 +108,7 @@ pub enum StudioError {
 impl StudioError {
     pub fn code(&self) -> &'static str {
         match self {
+            Self::Setup(error) => error.code(),
             Self::AppSyncCheck(error) => error.code(),
             Self::Store(error) => error.code(),
             Self::Installed(error) => error.code(),

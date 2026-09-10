@@ -18,6 +18,7 @@ anyhow = "1.0.100"
 base64 = "0.22"
 ed25519-dalek = "2"
 fs2 = "0.4"
+getrandom = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 semver = "1"
@@ -36,9 +37,10 @@ legacy-ios-core = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git", 
 legacy-ios-services = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git", branch = "main", features = ["legacy-tls"] }
 legacy-ios-transport = { git = "https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git", branch = "main" }
 serde = { version = "1.0.228", features = ["derive"] }
+suppaftp = { version = "11.0.0", default-features = false, features = ["tokio"] }
 tauri = { version = "2.11.5", features = ["protocol-asset"] }
 thiserror = "2.0.17"
-tokio = { version = "1.47.1", features = ["rt", "time", "sync", "macros", "io-util", "fs"] }
+tokio = { version = "1.47.1", features = ["rt", "time", "sync", "macros", "io-util", "fs", "net"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }

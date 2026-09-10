@@ -81,7 +81,8 @@ pub struct Application {
 #[serde(deny_unknown_fields)]
 pub struct OsRequirement {
     pub min: String,
-    pub max: String,
+    #[serde(deserialize_with = "required_option")]
+    pub max: Option<String>,
     pub builds: Vec<String>,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -90,11 +91,56 @@ pub enum RuntimeDelivery {
     Bundled,
     Shared,
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "kind", deny_unknown_fields)]
+pub enum Requirements {
+    #[serde(rename = "ios")]
+    Ios { jailbreak: bool, appsync: bool },
+    #[serde(rename = "3ds")]
+    ThreeDs { cfw: bool },
+}
+impl Requirements {
+    pub fn jailbreak(self) -> bool {
+        matches!(
+            self,
+            Self::Ios {
+                jailbreak: true,
+                ..
+            }
+        )
+    }
+    pub fn appsync(self) -> bool {
+        matches!(self, Self::Ios { appsync: true, .. })
+    }
+    pub fn platform(self) -> &'static str {
+        match self {
+            Self::Ios { .. } => "ios",
+            Self::ThreeDs { .. } => "3ds",
+        }
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct Requirements {
-    pub jailbreak: bool,
-    pub appsync: bool,
+pub struct RuntimeRequirement {
+    pub id: String,
+    pub min_version: String,
+    #[serde(deserialize_with = "required_option")]
+    pub bootstrap_app_id: Option<String>,
+}
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RuntimeCapability {
+    GuestUpdate,
+    AppLibrary,
+    CiaManagement,
+    FileManagement,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RuntimeProvides {
+    pub id: String,
+    pub version: String,
+    pub capabilities: Vec<RuntimeCapability>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -106,16 +152,74 @@ pub struct ArtifactTarget {
     pub os: OsRequirement,
     #[serde(deserialize_with = "required_option")]
     pub host_abi: Option<u64>,
-    pub runtime_delivery: RuntimeDelivery,
+    pub runtime_deliveries: Vec<RuntimeDelivery>,
     pub installer_id: String,
     pub requires: Requirements,
+    #[serde(deserialize_with = "required_option")]
+    pub runtime_requirement: Option<RuntimeRequirement>,
+    #[serde(deserialize_with = "required_option")]
+    pub runtime_provides: Option<RuntimeProvides>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct NativeIdentity {
+pub struct IosIdentity {
     pub bundle_id: String,
     pub version: String,
     pub build_number: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "kind", deny_unknown_fields)]
+pub enum NativeIdentity {
+    #[serde(rename = "ios_bundle")]
+    IosBundle(IosIdentity),
+    #[serde(rename = "3ds_title")]
+    ThreeDsTitle {
+        title_id: String,
+        title_version: u16,
+    },
+    #[serde(rename = "homebrew_file")]
+    HomebrewFile { entrypoint: String },
+}
+impl NativeIdentity {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::IosBundle(_) => "ios_bundle",
+            Self::ThreeDsTitle { .. } => "3ds_title",
+            Self::HomebrewFile { .. } => "homebrew_file",
+        }
+    }
+    pub fn value(&self) -> &str {
+        match self {
+            Self::IosBundle(v) => &v.bundle_id,
+            Self::ThreeDsTitle { title_id, .. } => title_id,
+            Self::HomebrewFile { entrypoint } => entrypoint,
+        }
+    }
+    pub fn ios(&self) -> Option<&IosIdentity> {
+        if let Self::IosBundle(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+    pub fn valid(&self) -> bool {
+        match self {
+            Self::IosBundle(v) => {
+                is_id(&v.bundle_id) && !v.version.is_empty() && !v.build_number.is_empty()
+            }
+            Self::ThreeDsTitle { title_id, .. } => {
+                title_id.len() == 16
+                    && title_id.starts_with("00040000")
+                    && title_id
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            }
+            Self::HomebrewFile { entrypoint } => entrypoint
+                .strip_prefix("3ds/")
+                .and_then(|v| v.strip_suffix("/boot.3dsx"))
+                .is_some_and(is_id),
+        }
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -132,9 +236,22 @@ pub struct Artifact {
     pub format: String,
     pub blob: BlobRef,
     pub build_id: String,
-    pub native_identity: NativeIdentity,
+    #[serde(deserialize_with = "required_option")]
+    pub native_identity: Option<NativeIdentity>,
     pub provenance: Provenance,
     pub targets: Vec<ArtifactTarget>,
+}
+impl Artifact {
+    pub fn ios_identity(&self) -> Option<&IosIdentity> {
+        self.native_identity.as_ref().and_then(NativeIdentity::ios)
+    }
+    #[cfg(test)]
+    pub fn ios_identity_mut(&mut self) -> Option<&mut IosIdentity> {
+        match self.native_identity.as_mut() {
+            Some(NativeIdentity::IosBundle(v)) => Some(v),
+            _ => None,
+        }
+    }
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -310,10 +427,12 @@ impl VerifiedCatalog {
                     developer: app.publisher.name.clone(),
                     category: app.category,
                     size_bytes: artifact.blob.size_bytes,
-                    install_policy: if artifact.format == "ipa" {
-                        InstallPolicy::Ipa
-                    } else {
-                        InstallPolicy::Unsupported
+                    install_policy: match artifact.format.as_str() {
+                        "ipa" => InstallPolicy::Ipa,
+                        "cia" => InstallPolicy::Cia,
+                        "3dsx" => InstallPolicy::ThreeDsx,
+                        "pocket" => InstallPolicy::Pocket,
+                        _ => InstallPolicy::Unsupported,
                     },
                     checksum_sha256: artifact.blob.sha256.clone(),
                     signed: true,
@@ -322,11 +441,12 @@ impl VerifiedCatalog {
                         models: target.models.clone(),
                         min_os_version: target.os.min.clone(),
                         max_os_version: target.os.max.clone(),
-                        requires_jailbreak: target.requires.jailbreak,
+                        requires_jailbreak: target.requires.jailbreak(),
                     },
                     dependencies: vec![],
                     published_at: release.published_at,
                     details: Some(CatalogDetails {
+                        candidates: self.candidates(&app.id, device, facts, now),
                         app: app.clone(),
                         release_id: release.id.clone(),
                         artifact_id: artifact.id.clone(),
@@ -345,6 +465,62 @@ impl VerifiedCatalog {
                 })
             })
             .collect()
+    }
+    pub fn candidates(
+        &self,
+        app_id: &str,
+        device: Option<&DeviceSummary>,
+        facts: DeviceFacts,
+        now: u64,
+    ) -> Vec<super::catalog::CatalogCandidate> {
+        let mut result = vec![];
+        let listed = self
+            .catalog
+            .apps
+            .iter()
+            .any(|app| app.id == app_id && app.listing == Listing::Listed);
+        for release in self.catalog.releases.iter().filter(|r| r.app_id == app_id) {
+            for artifact in &release.artifacts {
+                for target in &artifact.targets {
+                    if device.is_some_and(|d| match d.platform {
+                        crate::domain::device::Platform::Ios => target.platform != "ios",
+                        crate::domain::device::Platform::ThreeDs => target.platform != "3ds",
+                    }) {
+                        continue;
+                    }
+                    let verdict = if self.expired_at(now) {
+                        StoreVerdict::CatalogExpired
+                    } else if !listed || release.status != ReleaseStatus::Published {
+                        StoreVerdict::Withdrawn
+                    } else {
+                        evaluate_target(artifact, target, device, facts)
+                    };
+                    for delivery in &target.runtime_deliveries {
+                        result.push(super::catalog::CatalogCandidate {
+                            delivery: *delivery,
+                            format: artifact.format.clone(),
+                            version: release.version.clone(),
+                            revision: release.revision,
+                            release_id: release.id.clone(),
+                            artifact_id: artifact.id.clone(),
+                            target_id: target.target_id.clone(),
+                            verdict,
+                            requires_existing_host: *delivery == RuntimeDelivery::Bundled
+                                && artifact.format == "pocket",
+                            runtime_requirement: target.runtime_requirement.clone(),
+                            host_abi: target.host_abi,
+                        });
+                    }
+                }
+            }
+        }
+        result.sort_by(|a, b| {
+            semver::Version::parse(&b.version)
+                .unwrap()
+                .cmp(&semver::Version::parse(&a.version).unwrap())
+                .then(b.revision.cmp(&a.revision))
+        });
+        result
     }
     pub fn select(
         &self,
@@ -432,10 +608,13 @@ pub fn evaluate_target(
     device: Option<&DeviceSummary>,
     facts: DeviceFacts,
 ) -> StoreVerdict {
+    if target.platform == "3ds" {
+        return super::three_ds::evaluate_target(artifact, target, device, facts);
+    }
     if artifact.format != "ipa"
         || artifact.blob.size_bytes > MAX_BLOB_BYTES
         || target.installer_id != "ios-user-ipa"
-        || target.runtime_delivery != RuntimeDelivery::Bundled
+        || target.runtime_deliveries != [RuntimeDelivery::Bundled]
         || target.platform != "ios"
         || target.arch != "armv7"
     {
@@ -454,7 +633,11 @@ pub fn evaluate_target(
         return StoreVerdict::UnknownDevice;
     };
     if os < os_version(&target.os.min).expect("validated version")
-        || os > os_version(&target.os.max).expect("validated version")
+        || target
+            .os
+            .max
+            .as_deref()
+            .is_some_and(|max| os > os_version(max).expect("validated version"))
     {
         return StoreVerdict::UnsupportedOs;
     }
@@ -469,10 +652,10 @@ pub fn evaluate_target(
     if device.mode != DeviceMode::Normal || facts.pairing_trusted != Some(true) {
         return StoreVerdict::RequiresPreparation;
     }
-    if target.requires.appsync && facts.appsync_installed == Some(false) {
+    if target.requires.appsync() && facts.appsync_installed == Some(false) {
         return StoreVerdict::RequiresPreparation;
     }
-    if target.requires.jailbreak && facts.jailbroken == Some(false) {
+    if target.requires.jailbreak() && facts.jailbroken == Some(false) {
         return StoreVerdict::RequiresPreparation;
     }
     StoreVerdict::Compatible
@@ -538,7 +721,23 @@ impl Catalog {
                 if uuid::Uuid::parse_str(&artifact.id).is_err()
                     || !artifacts.insert(&artifact.id)
                     || !is_id(&artifact.format)
-                    || !is_id(&artifact.native_identity.bundle_id)
+                    || artifact
+                        .native_identity
+                        .as_ref()
+                        .is_some_and(|id| !id.valid())
+                    || match artifact.format.as_str() {
+                        "ipa" => artifact.ios_identity().is_none(),
+                        "cia" => !matches!(
+                            artifact.native_identity,
+                            Some(NativeIdentity::ThreeDsTitle { .. })
+                        ),
+                        "3dsx" => !matches!(
+                            artifact.native_identity,
+                            Some(NativeIdentity::HomebrewFile { .. })
+                        ),
+                        "pocket" => artifact.native_identity.is_some(),
+                        _ => false,
+                    }
                     || artifact.build_id.is_empty()
                     || artifact.targets.is_empty()
                     || !is_digest(&artifact.provenance.manifest_sha256)
@@ -547,27 +746,60 @@ impl Catalog {
                 }
                 let mut targets = HashSet::new();
                 for target in &artifact.targets {
-                    let (Some(min), Some(max)) =
-                        (os_version(&target.os.min), os_version(&target.os.max))
-                    else {
+                    let Some(min) = os_version(&target.os.min) else {
                         return Err(CatalogError::InvalidCatalog);
                     };
-                    if min > max
+                    if target
+                        .os
+                        .max
+                        .as_deref()
+                        .is_some_and(|max| os_version(max).is_none_or(|max| min > max))
                         || !is_id(&target.target_id)
                         || !targets.insert(&target.target_id)
                         || target.models.is_empty()
                         || !is_id(&target.platform)
                         || !is_id(&target.arch)
                         || !is_id(&target.installer_id)
+                        || target.requires.platform() != target.platform
+                        || target.runtime_deliveries.is_empty()
+                        || target
+                            .runtime_deliveries
+                            .iter()
+                            .enumerate()
+                            .any(|(index, v)| target.runtime_deliveries[..index].contains(v))
+                        || ((target.runtime_requirement.is_some()
+                            || target.runtime_provides.is_some())
+                            && target.host_abi.is_none())
+                        || target.runtime_requirement.as_ref().is_some_and(|r| {
+                            !is_id(&r.id)
+                                || semver::Version::parse(&r.min_version).is_err()
+                                || r.bootstrap_app_id.as_deref().is_some_and(|id| !is_id(id))
+                        })
+                        || target.runtime_provides.as_ref().is_some_and(|r| {
+                            !is_id(&r.id) || semver::Version::parse(&r.version).is_err()
+                        })
+                        || (artifact.format == "pocket"
+                            && (target.runtime_requirement.is_none()
+                                || target.runtime_provides.is_some()
+                                || target.installer_id != "pocket-runtime"))
+                        || (matches!(artifact.format.as_str(), "ipa" | "cia" | "3dsx")
+                            && target.runtime_deliveries != [RuntimeDelivery::Bundled])
                     {
                         return Err(CatalogError::InvalidCatalog);
                     }
-                    let key = (&target.platform, &artifact.native_identity.bundle_id);
-                    if owners
-                        .insert(key, &release.app_id)
-                        .is_some_and(|owner| owner != &release.app_id)
-                    {
-                        return Err(CatalogError::InvalidCatalog);
+                    if let Some(identity) = &artifact.native_identity {
+                        if (identity.ios().is_some() && target.platform != "ios")
+                            || (identity.ios().is_none() && target.platform != "3ds")
+                        {
+                            return Err(CatalogError::InvalidCatalog);
+                        }
+                        let key = (&target.platform, identity.kind(), identity.value());
+                        if owners
+                            .insert(key, &release.app_id)
+                            .is_some_and(|owner| owner != &release.app_id)
+                        {
+                            return Err(CatalogError::InvalidCatalog);
+                        }
                     }
                 }
             }
@@ -653,7 +885,8 @@ mod tests {
         assert_ne!(
             verified.catalog().apps[0].id,
             verified.catalog().releases[0].artifacts[0]
-                .native_identity
+                .ios_identity()
+                .unwrap()
                 .bundle_id
         );
         assert!(matches!(
@@ -703,12 +936,73 @@ mod tests {
     fn unsupported_formats_are_readable_without_claiming_an_installer() {
         let f = fixture();
         let mut c: Catalog = serde_json::from_str(&f.catalog_utf8).unwrap();
-        c.releases[0].artifacts[0].format = "pocket".into();
+        c.releases[0].artifacts[0].format = "future-format".into();
         c.validate().unwrap();
         let a = &c.releases[0].artifacts[0];
         assert_eq!(
             evaluate_target(a, &a.targets[0], None, DeviceFacts::default()),
             StoreVerdict::UnsupportedInstaller
+        );
+    }
+    #[test]
+    fn runtime_guests_have_no_native_identity_and_keep_both_delivery_modes() {
+        let verified = signed_catalog(|catalog| {
+            let artifact = &mut catalog.releases[0].artifacts[0];
+            artifact.format = "pocket".into();
+            artifact.native_identity = None;
+            let target = &mut artifact.targets[0];
+            target.platform = "3ds".into();
+            target.arch = "armv6k".into();
+            target.models = vec!["RED".into()];
+            target.os = OsRequirement {
+                min: "11.17.0".into(),
+                max: None,
+                builds: vec![],
+            };
+            target.requires = Requirements::ThreeDs { cfw: true };
+            target.installer_id = "pocket-runtime".into();
+            target.runtime_deliveries = vec![RuntimeDelivery::Shared, RuntimeDelivery::Bundled];
+            target.runtime_requirement = Some(RuntimeRequirement {
+                id: "pocketjs-3ds".into(),
+                min_version: "0.11.0".into(),
+                bootstrap_app_id: Some("dev.pocket-stack.launcher".into()),
+            });
+        });
+        let mut catalog = verified.catalog().clone();
+        assert!(catalog.releases[0].artifacts[0].native_identity.is_none());
+        catalog.releases[0].artifacts[0].native_identity = Some(NativeIdentity::ThreeDsTitle {
+            title_id: "000400000ff00000".into(),
+            title_version: 1,
+        });
+        assert_eq!(catalog.validate(), Err(CatalogError::InvalidCatalog));
+    }
+    #[test]
+    fn cia_metadata_rejects_system_titles_and_homebrew_paths_are_bounded() {
+        assert!(
+            !NativeIdentity::ThreeDsTitle {
+                title_id: "0004013000001502".into(),
+                title_version: 1
+            }
+            .valid()
+        );
+        assert!(
+            NativeIdentity::ThreeDsTitle {
+                title_id: "000400000ff00000".into(),
+                title_version: 65535
+            }
+            .valid()
+        );
+        assert!(
+            !NativeIdentity::HomebrewFile {
+                entrypoint: "3ds/../../boot.firm".into()
+            }
+            .valid()
+        );
+        assert!(
+            NativeIdentity::HomebrewFile {
+                entrypoint: "3ds/dev.example.notes/boot.3dsx".into()
+            }
+            .valid()
         );
     }
     fn signed_catalog(edit: impl FnOnce(&mut Catalog)) -> VerifiedCatalog {
@@ -741,10 +1035,12 @@ mod tests {
             battery_percent: None,
             mode: DeviceMode::Normal,
             transport: super::super::device::Transport::Usb,
+            three_ds: None,
         }
     }
     fn ready() -> DeviceFacts {
         DeviceFacts {
+            cfw: None,
             appsync_installed: Some(true),
             appsync_last_observation: None,
             pairing_trusted: Some(true),
@@ -761,7 +1057,7 @@ mod tests {
             newer.artifacts[0].id = uuid::Uuid::new_v4().to_string();
             newer.artifacts[0].targets[0].os = OsRequirement {
                 min: "7.0.0".into(),
-                max: "7.1.2".into(),
+                max: Some("7.1.2".into()),
                 builds: vec![],
             };
             catalog.releases.push(newer);
@@ -791,6 +1087,7 @@ mod tests {
         );
         device.build_number = Some("10B500".into());
         let stock = DeviceFacts {
+            cfw: None,
             appsync_installed: Some(true),
             appsync_last_observation: None,
             jailbroken: Some(false),

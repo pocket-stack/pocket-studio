@@ -6,6 +6,8 @@ use super::now_millis;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ReadinessCheckId {
+    CfwInstalled,
+    RuntimeAvailable,
     PlatformSupported,
     ModelSupported,
     OsVersionSupported,
@@ -81,6 +83,53 @@ fn supported_range(model: &str) -> Option<(&'static str, &'static str)> {
 /// Pure readiness rule: decides whether a device can join the Pocket
 /// ecosystem as-is, needs preparation, or is not supported.
 pub fn evaluate(device: &DeviceSummary, facts: DeviceFacts) -> ReadinessReport {
+    if device.platform == Platform::ThreeDs {
+        let supported = device
+            .model_identifier
+            .as_deref()
+            .map(super::three_ds::supported_model);
+        let available = device
+            .three_ds
+            .as_ref()
+            .map(|v| !v.runtime.capabilities.is_empty());
+        let status = if supported == Some(false) {
+            ReadinessStatus::Unsupported
+        } else if supported != Some(true)
+            || facts.pairing_trusted != Some(true)
+            || facts.cfw.is_none()
+        {
+            ReadinessStatus::NeedsAttention
+        } else if facts.cfw != Some(true) || available != Some(true) {
+            ReadinessStatus::NeedsPreparation
+        } else {
+            ReadinessStatus::Ready
+        };
+        return ReadinessReport {
+            device_id: device.id.clone(),
+            status,
+            required_workflow: None,
+            checked_at: now_millis(),
+            checks: vec![
+                check(
+                    ReadinessCheckId::PlatformSupported,
+                    Some(true),
+                    Some("Nintendo 3DS".into()),
+                ),
+                check(
+                    ReadinessCheckId::ModelSupported,
+                    supported,
+                    device.model_identifier.clone(),
+                ),
+                check(
+                    ReadinessCheckId::PairingTrusted,
+                    facts.pairing_trusted,
+                    None,
+                ),
+                check(ReadinessCheckId::CfwInstalled, facts.cfw, None),
+                check(ReadinessCheckId::RuntimeAvailable, available, None),
+            ],
+        };
+    }
     let range = device.model_identifier.as_deref().and_then(supported_range);
     let model_supported = device.model_identifier.as_ref().map(|_| range.is_some());
     let os_supported = device.os_version.as_deref().and_then(|version| {
@@ -211,6 +260,7 @@ mod tests {
             storage_free_bytes: None,
             mode: DeviceMode::Normal,
             transport: Transport::Usb,
+            three_ds: None,
         }
     }
 
@@ -219,6 +269,7 @@ mod tests {
         let report = evaluate(
             &ipod4("6.1.6"),
             DeviceFacts {
+                cfw: None,
                 appsync_installed: Some(true),
                 appsync_last_observation: None,
                 pairing_trusted: Some(true),
@@ -233,6 +284,7 @@ mod tests {
     #[test]
     fn jailbroken_device_is_ready() {
         let facts = DeviceFacts {
+            cfw: None,
             appsync_installed: Some(true),
             appsync_last_observation: None,
             jailbroken: Some(true),
@@ -253,6 +305,7 @@ mod tests {
             let report = evaluate(
                 &ipod4("6.1.6"),
                 DeviceFacts {
+                    cfw: None,
                     appsync_installed,
                     appsync_last_observation: None,
                     pairing_trusted: Some(true),
@@ -281,6 +334,7 @@ mod tests {
     #[test]
     fn remembered_installation_is_not_a_current_pass_and_live_absence_overrides_it() {
         let mut facts = DeviceFacts {
+            cfw: None,
             pairing_trusted: Some(true),
             jailbroken: Some(true),
             ssh_available: Some(true),
@@ -330,6 +384,7 @@ mod tests {
     #[test]
     fn unknown_jailbreak_does_not_request_a_destructive_workflow() {
         let facts = DeviceFacts {
+            cfw: None,
             appsync_installed: Some(true),
             appsync_last_observation: None,
             pairing_trusted: Some(true),
@@ -354,6 +409,7 @@ mod tests {
     fn ready_requires_both_paired_access_and_ssh() {
         for facts in [
             DeviceFacts {
+                cfw: None,
                 appsync_installed: Some(true),
                 appsync_last_observation: None,
                 jailbroken: Some(true),
@@ -361,6 +417,7 @@ mod tests {
                 pairing_trusted: None,
             },
             DeviceFacts {
+                cfw: None,
                 appsync_installed: Some(true),
                 appsync_last_observation: None,
                 jailbroken: Some(true),

@@ -56,9 +56,11 @@ async fn main() -> anyhow::Result<()> {
                 let package = IpaPackage::open(downloaded.path()).await?;
                 let native = package.metadata();
                 ensure!(
-                    native.bundle_id().as_str() == artifact.native_identity.bundle_id
-                        && native.product_version() == Some(&artifact.native_identity.version)
-                        && native.build_version() == Some(&artifact.native_identity.build_number),
+                    native.bundle_id().as_str() == artifact.ios_identity().unwrap().bundle_id
+                        && native.product_version()
+                            == Some(&artifact.ios_identity().unwrap().version)
+                        && native.build_version()
+                            == Some(&artifact.ios_identity().unwrap().build_number),
                     "IPA native identity mismatch"
                 );
             }

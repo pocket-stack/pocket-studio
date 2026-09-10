@@ -293,25 +293,80 @@
                   "maxLength": 4096
                 },
                 "native_identity": {
-                  "type": "object",
-                  "properties": {
-                    "bundle_id": {
-                      "type": "string",
-                      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$"
+                  "anyOf": [
+                    {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "ios_bundle"
+                            },
+                            "bundle_id": {
+                              "type": "string",
+                              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$"
+                            },
+                            "version": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 4096
+                            },
+                            "build_number": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 4096
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "bundle_id",
+                            "version",
+                            "build_number"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "3ds_title"
+                            },
+                            "title_id": {
+                              "type": "string",
+                              "pattern": "^00040000[0-9a-f]{8}$"
+                            },
+                            "title_version": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 65535
+                            }
+                          },
+                          "required": ["kind", "title_id", "title_version"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "homebrew_file"
+                            },
+                            "entrypoint": {
+                              "type": "string",
+                              "pattern": "^3ds\\/[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}\\/boot\\.3dsx$"
+                            }
+                          },
+                          "required": ["kind", "entrypoint"],
+                          "additionalProperties": false
+                        }
+                      ]
                     },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 4096
-                    },
-                    "build_number": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 4096
+                    {
+                      "type": "null"
                     }
-                  },
-                  "required": ["bundle_id", "version", "build_number"],
-                  "additionalProperties": false
+                  ]
                 },
                 "provenance": {
                   "type": "object",
@@ -379,8 +434,15 @@
                             "pattern": "^\\d+(?:\\.\\d+){0,2}$"
                           },
                           "max": {
-                            "type": "string",
-                            "pattern": "^\\d+(?:\\.\\d+){0,2}$"
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^\\d+(?:\\.\\d+){0,2}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
                           "builds": {
                             "type": "array",
@@ -406,26 +468,123 @@
                           }
                         ]
                       },
-                      "runtime_delivery": {
-                        "type": "string",
-                        "enum": ["bundled", "shared"]
+                      "runtime_deliveries": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["bundled", "shared"]
+                        }
                       },
                       "installer_id": {
                         "type": "string",
                         "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$"
                       },
                       "requires": {
-                        "type": "object",
-                        "properties": {
-                          "jailbreak": {
-                            "type": "boolean"
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "ios"
+                              },
+                              "jailbreak": {
+                                "type": "boolean"
+                              },
+                              "appsync": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": ["kind", "jailbreak", "appsync"],
+                            "additionalProperties": false
                           },
-                          "appsync": {
-                            "type": "boolean"
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "3ds"
+                              },
+                              "cfw": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": ["kind", "cfw"],
+                            "additionalProperties": false
                           }
-                        },
-                        "required": ["jailbreak", "appsync"],
-                        "additionalProperties": false
+                        ]
+                      },
+                      "runtime_requirement": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$"
+                              },
+                              "min_version": {
+                                "type": "string",
+                                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+                              },
+                              "bootstrap_app_id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "min_version",
+                              "bootstrap_app_id"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "runtime_provides": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$"
+                              },
+                              "version": {
+                                "type": "string",
+                                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+                              },
+                              "capabilities": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "guest-update",
+                                    "app-library",
+                                    "cia-management",
+                                    "file-management"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": ["id", "version", "capabilities"],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     },
                     "required": [
@@ -435,9 +594,11 @@
                       "models",
                       "os",
                       "host_abi",
-                      "runtime_delivery",
+                      "runtime_deliveries",
                       "installer_id",
-                      "requires"
+                      "requires",
+                      "runtime_requirement",
+                      "runtime_provides"
                     ],
                     "additionalProperties": false
                   }

@@ -28,6 +28,7 @@ impl InstalledError {
 pub type InstalledFuture<'a, T> =
     Pin<Box<dyn Future<Output = Result<T, InstalledError>> + Send + 'a>>;
 pub trait InstalledReader: Send + Sync {
+    fn platform(&self, device_id: &str) -> Result<crate::domain::device::Platform, InstalledError>;
     /// Stable opaque cache key; native identifiers remain inside infrastructure.
     fn binding(&self, device_id: &str) -> Result<String, InstalledError>;
     fn read<'a>(
@@ -83,9 +84,17 @@ impl InstalledService {
             .flat_map(|r| {
                 r.artifacts
                     .iter()
-                    .map(|a| a.native_identity.bundle_id.clone())
+                    .filter_map(|a| a.ios_identity().map(|id| id.bundle_id.clone()))
             })
             .collect();
+        if self.reader.platform(device_id)? == crate::domain::device::Platform::ThreeDs {
+            ids = catalog
+                .catalog()
+                .apps
+                .iter()
+                .map(|app| app.id.clone())
+                .collect();
+        }
         ids.sort();
         ids.dedup();
         let (observation, state, issue) = match self.reader.read(device_id, &ids).await {
@@ -164,6 +173,9 @@ mod tests {
         empty: AtomicBool,
     }
     impl InstalledReader for Reader {
+        fn platform(&self, _: &str) -> Result<crate::domain::device::Platform, InstalledError> {
+            Ok(crate::domain::device::Platform::Ios)
+        }
         fn binding(&self, id: &str) -> Result<String, InstalledError> {
             Ok(id.to_owned())
         }
@@ -178,6 +190,7 @@ mod tests {
                     return Err(InstalledError::ReadFailed);
                 }
                 Ok(InstallationObservation {
+                    managed: vec![],
                     observed_at: 123,
                     applications: if self.empty.load(Ordering::SeqCst) {
                         vec![]

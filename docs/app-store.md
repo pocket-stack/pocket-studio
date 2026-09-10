@@ -30,7 +30,7 @@ A failed refresh preserves the most recent verified catalog and reports the reas
 
 Native tests cover the publisher's signature fixture, compatibility selection, expiry, rollback and equivocation rejection, persistent cache recovery, partial downloads, invalid bytes and cancellation. HTTP tests use loopback servers and synthetic blobs, not physical devices. Frontend tests cover metadata-driven localization and target-specific media selection. Physical installation tests must be started explicitly and reported separately.
 
-The installed page queries only native bundle IDs present in the trusted catalog,
+For iOS, the installed page queries only native bundle IDs present in the trusted catalog,
 including withdrawn releases. It reads separate product versions, build numbers
 and bounded build receipts through the native library. Sideloaded apps are mapped
 by native identity; a revision is known only when version, build and receipt all
@@ -46,7 +46,7 @@ plan and consent described below.
 ## Native application operations
 
 `plan_package` resolves a device-bound install, update, reinstall or uninstall
-plan. `start_package` consumes that plan once; uninstall requires explicit data
+plan. `start_package` consumes that plan once; iOS uninstall requires explicit data
 removal consent. Updates require a recognized store receipt, and native product
 versions and build numbers prevent downgrades. Unknown revisions use explicit
 reinstall through the system Upgrade command. System applications are rejected.
@@ -107,3 +107,7 @@ integration check; device installation acceptance remains user-initiated.
 ## AppSync preparation
 
 Device preparation now includes AppSync and its required system packages. An already jailbroken device gets a separate USB SSH plan, with no DFU or jailbreak steps. The user reviews package changes and supplies the device root password before explicitly starting. Missing AppSync blocks installation; an unreadable status remains unknown. Device signature rejection links to the environment page and explains AppSync instead of guessing that disk space is low. See [native preparation](native-preparation.md) for pinned package sources, credential handling, cancellation and remaining hardware validation.
+
+3DS uses the same catalog and queue with platform-specific installation evidence.
+See [3DS support](3ds-support.md) for delivery selection, pairing, native management,
+and hardware acceptance boundaries.

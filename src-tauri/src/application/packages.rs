@@ -29,6 +29,8 @@ pub enum PackageError {
     Withdrawn,
     #[error("this artifact is incompatible with the device")]
     Incompatible,
+    #[error("open or prepare a compatible Pocket runtime on the device")]
+    RuntimeRequired,
     #[error("the bound device is unavailable or has changed")]
     DeviceChanged,
     #[error("the observed installation changed; review a new plan")]
@@ -81,6 +83,7 @@ impl PackageError {
             Self::CatalogExpired => "catalogExpired",
             Self::Withdrawn => "packageWithdrawn",
             Self::Incompatible => "incompatiblePackage",
+            Self::RuntimeRequired => "runtimeRequired",
             Self::DeviceChanged => "deviceChanged",
             Self::StateChanged => "installedStateChanged",
             Self::Downgrade => "packageDowngrade",
@@ -126,8 +129,12 @@ impl PackageError {
 }
 pub type PackageFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, PackageError>> + Send + 'a>>;
 pub trait PackageTarget: Send + Sync {
+    fn platform(&self) -> crate::domain::device::Platform;
     fn binding(&self) -> &str;
     fn inspect<'a>(&'a self, bundle_ids: &'a [String]) -> PackageFuture<'a, PackageObservation>;
+    fn verify_operation<'a>(&'a self, _plan: &'a PackagePlan) -> PackageFuture<'a, ()> {
+        Box::pin(async { Ok(()) })
+    }
     fn write<'a>(
         &'a self,
         plan: &'a PackagePlan,
@@ -239,12 +246,19 @@ impl PackageService {
             .flat_map(|r| {
                 r.artifacts
                     .iter()
-                    .map(|a| a.native_identity.bundle_id.clone())
+                    .filter_map(|a| a.ios_identity().map(|id| id.bundle_id.clone()))
             })
             .collect();
+        if target.platform() == crate::domain::device::Platform::ThreeDs {
+            bundle_ids = vec![app.id.clone()];
+        }
         bundle_ids.sort();
         bundle_ids.dedup();
         let observation = target.inspect(&bundle_ids).await?;
+        if target.platform() == crate::domain::device::Platform::ThreeDs {
+            let plan = super::three_ds_packages::plan(&catalog, &request, &observation)?;
+            return self.remember(plan, catalog.catalog().repository_id.clone(), target);
+        }
         let selection = if request.action == PackageAction::Uninstall {
             None
         } else {
@@ -259,7 +273,8 @@ impl PackageService {
                     now_millis(),
                 )
                 .ok_or(PackageError::InvalidAction)?;
-            if selected.target.requires.appsync && observation.appsync == RequirementState::Missing
+            if selected.target.requires.appsync()
+                && observation.appsync == RequirementState::Missing
             {
                 return Err(PackageError::NeedsAppSync);
             }
@@ -274,8 +289,17 @@ impl PackageService {
             Some(selected)
         };
         let bundle = if let Some(selected) = selection {
-            selected.artifact.native_identity.bundle_id.clone()
-        } else if let Some(bundle) = request.bundle_id {
+            selected
+                .artifact
+                .ios_identity()
+                .ok_or(PackageError::Incompatible)?
+                .bundle_id
+                .clone()
+        } else if let Some(installation) = request.installation_id {
+            let bundle = installation
+                .strip_prefix("ios:")
+                .ok_or(PackageError::InvalidAction)?
+                .to_owned();
             if !bundle_ids.contains(&bundle) {
                 return Err(PackageError::InvalidAction);
             }
@@ -309,12 +333,7 @@ impl PackageService {
                 .iter()
                 .filter(|r| r.app_id == app.id)
                 .flat_map(|r| &r.artifacts)
-                .any(|a| {
-                    a.native_identity.bundle_id == previous.bundle_id
-                        && previous.product_version.as_deref() == Some(&a.native_identity.version)
-                        && previous.build_number.as_deref() == Some(&a.native_identity.build_number)
-                        && previous.receipt_build_id.as_deref() == Some(&a.build_id)
-                });
+                .any(|a| previous.matches_artifact(a));
             if !known {
                 return Err(PackageError::InvalidAction);
             }
@@ -331,8 +350,17 @@ impl PackageService {
                 .map(|(language, text)| (language.clone(), text.name.clone()))
                 .collect::<BTreeMap<_, _>>(),
             action: request.action,
-            bundle_id: bundle,
-            previous,
+            installation: PackageInstallation::Ios {
+                bundle_id: bundle,
+                previous,
+                appsync: observation.appsync,
+                jailbreak: match observation.facts.jailbroken {
+                    Some(true) => RequirementState::Satisfied,
+                    Some(false) => RequirementState::Missing,
+                    None => RequirementState::Unknown,
+                },
+            },
+            delete_data: request.action == PackageAction::Uninstall,
             release_id: selection.map(|s| s.release.id.clone()),
             artifact: selection.map(|s| s.artifact.clone()),
             target: selection.map(|s| s.target.clone()),
@@ -342,14 +370,16 @@ impl PackageService {
             sequence: catalog.catalog().sequence,
             catalog_expires_at: catalog.catalog().expires_at,
             expires_at: now_millis() + 15 * 60 * 1000,
-            appsync: observation.appsync,
-            jailbreak: match observation.facts.jailbroken {
-                Some(true) => RequirementState::Satisfied,
-                Some(false) => RequirementState::Missing,
-                None => RequirementState::Unknown,
-            },
             steps: package_steps(request.action),
         };
+        self.remember(plan, catalog.catalog().repository_id.clone(), target)
+    }
+    fn remember(
+        &self,
+        plan: PackagePlan,
+        repository_id: String,
+        target: Arc<dyn PackageTarget>,
+    ) -> Result<PackagePlan, PackageError> {
         let mut state = self.state.lock().map_err(|_| PackageError::Storage)?;
         state
             .plans
@@ -361,7 +391,7 @@ impl PackageService {
             plan.id.clone(),
             PendingPlan {
                 plan: plan.clone(),
-                repository_id: catalog.catalog().repository_id.clone(),
+                repository_id,
                 target,
             },
         );
@@ -380,12 +410,12 @@ impl PackageService {
             if pending.plan.expires_at <= now_millis() {
                 return Err(PackageError::PlanExpired);
             }
-            if consent.delete_data != (pending.plan.action == PackageAction::Uninstall) {
+            if consent.delete_data != pending.plan.delete_data {
                 return Err(PackageError::InvalidConsent);
             }
             if state.jobs.values().any(|stored| {
                 stored.binding == pending.target.binding()
-                    && stored.job.plan.bundle_id == pending.plan.bundle_id
+                    && stored.job.plan.installation_key() == pending.plan.installation_key()
                     && stored.job.phase.active()
             }) {
                 return Err(PackageError::Busy);
@@ -717,13 +747,15 @@ impl PackageService {
     async fn validate_pending(&self, pending: &PendingPlan) -> Result<u64, PackageError> {
         let observation = pending
             .target
-            .inspect(std::slice::from_ref(&pending.plan.bundle_id))
+            .inspect(&pending.plan.inspection_keys())
             .await?;
         let actual = observation
             .applications
             .iter()
-            .find(|a| a.bundle_id == pending.plan.bundle_id);
-        if !same_installation(pending.plan.previous.as_ref(), actual) {
+            .find(|a| Some(a.bundle_id.as_str()) == pending.plan.bundle_id());
+        if pending.plan.managed().is_some() {
+            super::three_ds_packages::validate_state(&pending.plan, &observation)?;
+        } else if !same_installation(pending.plan.previous_ios(), actual) {
             return Err(PackageError::StateChanged);
         }
         if pending.plan.action == PackageAction::Uninstall {
@@ -767,19 +799,32 @@ impl PackageService {
             .target
             .as_ref()
             .ok_or(PackageError::InvalidAction)?;
-        if evaluate_target(
-            current,
-            target,
-            Some(&observation.device),
-            observation.facts,
-        ) != StoreVerdict::Compatible
-        {
+        // A `.pocket` guest bound to a standalone app is judged against that
+        // app's own runtime, exactly as when the plan was made.
+        let verdict = match pending.plan.managed() {
+            Some(managed) => crate::domain::three_ds::evaluate_target_for(
+                current,
+                target,
+                Some(&observation.device),
+                observation.facts,
+                managed.standalone_host(),
+            ),
+            None => evaluate_target(
+                current,
+                target,
+                Some(&observation.device),
+                observation.facts,
+            ),
+        };
+        if verdict != StoreVerdict::Compatible {
             return Err(PackageError::Incompatible);
         }
-        if target.requires.appsync && observation.appsync == RequirementState::Missing {
+        if target.requires.appsync() && observation.appsync == RequirementState::Missing {
             return Err(PackageError::NeedsAppSync);
         }
-        validate_action(pending.plan.action, actual, Some(current))?;
+        if pending.plan.managed().is_none() {
+            validate_action(pending.plan.action, actual, Some(current))?;
+        }
         Ok(catalog.catalog().expires_at)
     }
     fn finish(&self, id: &str, result: Result<(), PackageError>) {
@@ -1008,15 +1053,16 @@ pub fn validate_action(
         return Ok(());
     }
     let artifact = artifact.ok_or(PackageError::InvalidAction)?;
+    let identity = artifact.ios_identity().ok_or(PackageError::Incompatible)?;
     if let Some(previous) = previous {
         let version = previous
             .product_version
             .as_deref()
-            .and_then(|v| compare_native(v, &artifact.native_identity.version));
+            .and_then(|v| compare_native(v, &identity.version));
         let build = previous
             .build_number
             .as_deref()
-            .and_then(|v| compare_native(v, &artifact.native_identity.build_number));
+            .and_then(|v| compare_native(v, &identity.build_number));
         if version.is_some_and(|v| v.is_gt()) || build.is_some_and(|v| v.is_gt()) {
             return Err(PackageError::Downgrade);
         }
@@ -1030,14 +1076,18 @@ pub fn validate_action(
     Ok(())
 }
 async fn verify_target(target: &dyn PackageTarget, plan: &PackagePlan) -> Result<(), PackageError> {
+    target.verify_operation(plan).await?;
     let observation = target
-        .inspect(std::slice::from_ref(&plan.bundle_id))
+        .inspect(&plan.inspection_keys())
         .await
         .map_err(|_| PackageError::VerificationUnavailable)?;
+    if plan.managed().is_some() {
+        return super::three_ds_packages::verify(plan, &observation);
+    }
     let registered = observation
         .applications
         .iter()
-        .find(|a| a.bundle_id == plan.bundle_id);
+        .find(|a| Some(a.bundle_id.as_str()) == plan.bundle_id());
     if plan.action == PackageAction::Uninstall {
         return if registered.is_none() {
             Ok(())
@@ -1047,6 +1097,7 @@ async fn verify_target(target: &dyn PackageTarget, plan: &PackagePlan) -> Result
     }
     let registered = registered.ok_or(PackageError::VerificationFailed)?;
     let artifact = plan.artifact.as_ref().ok_or(PackageError::InvalidAction)?;
+    let identity = artifact.ios_identity().ok_or(PackageError::Incompatible)?;
     if registered.application_type.is_none()
         || registered.product_version.is_none()
         || registered.build_number.is_none()
@@ -1054,8 +1105,8 @@ async fn verify_target(target: &dyn PackageTarget, plan: &PackagePlan) -> Result
         return Err(PackageError::VerificationUnavailable);
     }
     if registered.application_type.as_deref() != Some("User")
-        || registered.product_version.as_deref() != Some(&artifact.native_identity.version)
-        || registered.build_number.as_deref() != Some(&artifact.native_identity.build_number)
+        || registered.product_version.as_deref() != Some(&identity.version)
+        || registered.build_number.as_deref() != Some(&identity.build_number)
     {
         return Err(PackageError::VerificationFailed);
     }

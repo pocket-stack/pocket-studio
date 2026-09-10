@@ -16,6 +16,9 @@ pub enum InstallPolicy {
     Ipa,
     Bootstrap,
     Unsupported,
+    Cia,
+    ThreeDsx,
+    Pocket,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,7 +27,7 @@ pub struct PackageCompatibility {
     pub platform: String,
     pub models: Vec<String>,
     pub min_os_version: String,
-    pub max_os_version: String,
+    pub max_os_version: Option<String>,
     pub requires_jailbreak: bool,
 }
 
@@ -53,12 +56,13 @@ pub struct CatalogEntry {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogDetails {
+    pub candidates: Vec<CatalogCandidate>,
     pub app: super::store::Application,
     pub release_id: String,
     pub artifact_id: String,
     pub target_id: String,
     pub revision: u64,
-    pub native_identity: super::store::NativeIdentity,
+    pub native_identity: Option<super::store::NativeIdentity>,
     pub verdict: super::store::StoreVerdict,
     pub history: Vec<super::store::Release>,
 }
@@ -66,6 +70,8 @@ pub struct CatalogDetails {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledPackage {
+    pub installation_id: String,
+    pub managed: Option<super::three_ds::ThreeDsInstallation>,
     pub package_id: String,
     pub version: String,
     pub installed_at: Option<u64>,
@@ -73,4 +79,20 @@ pub struct InstalledPackage {
     pub release_id: Option<String>,
     pub artifact_id: Option<String>,
     pub revision: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogCandidate {
+    pub delivery: super::store::RuntimeDelivery,
+    pub format: String,
+    pub version: String,
+    pub revision: u64,
+    pub release_id: String,
+    pub artifact_id: String,
+    pub target_id: String,
+    pub verdict: super::store::StoreVerdict,
+    pub requires_existing_host: bool,
+    pub runtime_requirement: Option<super::store::RuntimeRequirement>,
+    pub host_abi: Option<u64>,
 }

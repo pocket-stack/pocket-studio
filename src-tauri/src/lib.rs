@@ -26,8 +26,8 @@ pub fn run() -> anyhow::Result<()> {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "pocket_studio_lib=info".into()),
         )
-        // The dependency prints entire protocol payloads at debug level,
-        // including pairing records. Never let RUST_LOG expose that material.
+        // Dependencies can print protocol payloads, pairing records and FTP
+        // credentials. Never let RUST_LOG expose their wire-level logs.
         .with(
             tracing_subscriber::fmt::layer().with_filter(tracing_subscriber::filter::filter_fn(
                 |metadata| metadata.target().starts_with("pocket_studio"),
@@ -38,88 +38,22 @@ pub fn run() -> anyhow::Result<()> {
 
     tracing::info!("starting Pocket Studio");
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event
                 && window
                     .app_handle()
-                    .state::<AppState>()
-                    .studio
-                    .warn_before_close()
+                    .try_state::<AppState>()
+                    .is_some_and(|state| state.studio.warn_before_close())
             {
                 api.prevent_close();
             }
         })
-        .setup(|app| {
-            let sink = Arc::new(TauriSink(app.handle().clone()));
-            let log = Arc::new(OperationLog::new(sink.clone()));
-            let environment_dir = app.path().app_data_dir()?;
-            std::fs::create_dir_all(&environment_dir)?;
-            let probe = Arc::new(LegacyIosProbe::with_observation_path(
-                &environment_dir.join("environment.sqlite"),
-            )?);
-            let discovery = Arc::new(DeviceDiscovery::new(
-                probe.clone(),
-                sink.clone(),
-                log.clone(),
-            ));
-            let gate = Arc::new(tokio::sync::Semaphore::new(1));
-            let preparation = Arc::new(PreparationService::new(
-                Arc::new(LegacyPreparationDriver::new(
-                    probe.clone(),
-                    app.path().app_cache_dir()?.join("preparation"),
-                )),
-                gate.clone(),
-                sink.clone(),
-                log.clone(),
-            ));
-            let cache = Arc::new(StoreCache::open(app.path().app_cache_dir()?.join("store"))?);
-            let catalog = Arc::new(StaticCatalogRepository::new(
-                cache.clone(),
-                Some(SourceConfig::from_environment()?),
-            )?);
-            let installed = Arc::new(application::installed::InstalledService::new(
-                Arc::new(
-                    infrastructure::legacy_ios::installed::LegacyInstalledReader::new(
-                        probe.clone(),
-                    ),
-                ),
-                cache.clone(),
-                catalog.clone(),
-            ));
-            let packages = Arc::new(application::packages::PackageService::new(
-                Arc::new(infrastructure::legacy_ios::packages::LegacyPackageDriver::new(probe)),
-                catalog.clone(),
-                cache,
-                sink,
-                log.clone(),
-                gate,
-            )?);
-            let store = Arc::new(StoreService::new(catalog, discovery.clone()));
-            let studio = Studio::new(
-                discovery.clone(),
-                preparation,
-                store,
-                installed,
-                packages,
-                log.clone(),
-            );
-            app.manage(AppState {
-                studio: Arc::new(studio),
-            });
-            tauri::async_runtime::spawn(async move { discovery.monitor().await });
-            log.record(
-                LogLevel::Info,
-                LogSource::System,
-                "log.system.started",
-                "Pocket Studio started",
-                None,
-                None,
-            );
-            Ok(())
-        })
         .invoke_handler(tauri::generate_handler![
             commands::list_devices,
+            commands::plan_device_setup,
+            commands::execute_device_setup,
+            commands::connect_three_ds,
             commands::check_readiness,
             commands::check_appsync,
             commands::plan_preparation,
@@ -136,13 +70,105 @@ pub fn run() -> anyhow::Result<()> {
             commands::export_logs,
         ])
         .build(tauri::generate_context!())
-        .context("failed to build Tauri application")?
-        .run(|app, event| {
-            if let tauri::RunEvent::ExitRequested { api, .. } = event
-                && app.state::<AppState>().studio.warn_before_close()
-            {
-                api.prevent_exit();
-            }
-        });
+        .context("failed to build Tauri application")?;
+    // Tauri runs setup hooks from a native event callback. Returning an error
+    // there panics across the Objective-C boundary on macOS and aborts. Load
+    // fallible application state before entering the event loop instead.
+    initialize_services(&app).context("failed to initialize Pocket Studio services")?;
+    app.run(|app, event| {
+        if let tauri::RunEvent::ExitRequested { api, .. } = event
+            && app.state::<AppState>().studio.warn_before_close()
+        {
+            api.prevent_exit();
+        }
+    });
+    Ok(())
+}
+
+fn initialize_services(app: &tauri::App) -> anyhow::Result<()> {
+    let sink = Arc::new(TauriSink(app.handle().clone()));
+    let log = Arc::new(OperationLog::new(sink.clone()));
+    let environment_dir = app.path().app_data_dir()?;
+    std::fs::create_dir_all(&environment_dir)?;
+    let probe = Arc::new(LegacyIosProbe::with_observation_path(
+        &environment_dir.join("environment.sqlite"),
+    )?);
+    let three_ds = Arc::new(infrastructure::three_ds::ThreeDsBridge::new(
+        environment_dir.join("3ds-pairings.json"),
+    )?);
+    let discovery = Arc::new(DeviceDiscovery::new(
+        Arc::new(infrastructure::platforms::PlatformProbe {
+            ios: probe.clone(),
+            three_ds: three_ds.clone(),
+        }),
+        sink.clone(),
+        log.clone(),
+    ));
+    let gate = Arc::new(tokio::sync::Semaphore::new(1));
+    let preparation = Arc::new(PreparationService::new(
+        Arc::new(LegacyPreparationDriver::new(
+            probe.clone(),
+            app.path().app_cache_dir()?.join("preparation"),
+        )),
+        gate.clone(),
+        sink.clone(),
+        log.clone(),
+    ));
+    let cache = Arc::new(StoreCache::open(app.path().app_cache_dir()?.join("store"))?);
+    let catalog = Arc::new(StaticCatalogRepository::new(
+        cache.clone(),
+        Some(SourceConfig::from_environment()?),
+    )?);
+    let installed = Arc::new(application::installed::InstalledService::new(
+        Arc::new(infrastructure::platforms::PlatformInstalled {
+            ios: Arc::new(
+                infrastructure::legacy_ios::installed::LegacyInstalledReader::new(probe.clone()),
+            ),
+            three_ds: three_ds.clone(),
+        }),
+        cache.clone(),
+        catalog.clone(),
+    ));
+    let packages = Arc::new(application::packages::PackageService::new(
+        Arc::new(infrastructure::platforms::PlatformPackages {
+            ios: Arc::new(infrastructure::legacy_ios::packages::LegacyPackageDriver::new(probe)),
+            three_ds: three_ds.clone(),
+        }),
+        catalog.clone(),
+        cache,
+        sink,
+        log.clone(),
+        gate.clone(),
+    )?);
+    let setup = Arc::new(application::device_setup::SetupService::new(
+        Arc::new(infrastructure::three_ds::provisioning::NativeSetup(
+            three_ds,
+        )),
+        catalog.clone(),
+        gate,
+        log.clone(),
+    ));
+    let store = Arc::new(StoreService::new(catalog, discovery.clone()));
+    let studio = Studio::new(
+        discovery.clone(),
+        preparation,
+        store,
+        installed,
+        packages,
+        log.clone(),
+    );
+    app.manage(AppState {
+        studio: Arc::new(studio),
+        setup,
+    });
+    tauri::async_runtime::spawn(async move { discovery.monitor().await });
+    log.record(
+        LogLevel::Info,
+        LogSource::System,
+        "log.system.started",
+        "Pocket Studio started",
+        None,
+        None,
+    );
     Ok(())
 }

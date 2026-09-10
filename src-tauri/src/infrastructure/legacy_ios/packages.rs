@@ -101,6 +101,7 @@ impl Target {
             None => RequirementState::Unknown,
         };
         Ok(PackageObservation {
+            managed: vec![],
             device: record.summary,
             facts: record.facts,
             appsync,
@@ -109,6 +110,9 @@ impl Target {
     }
 }
 impl PackageTarget for Target {
+    fn platform(&self) -> crate::domain::device::Platform {
+        crate::domain::device::Platform::Ios
+    }
     fn binding(&self) -> &str {
         &self.binding
     }
@@ -140,11 +144,12 @@ impl PackageTarget for Target {
                     .map(|b| format!("{b:02x}"))
                     .collect::<String>();
                 let metadata = package.metadata();
+                let identity = artifact.ios_identity().ok_or(PackageError::Incompatible)?;
                 if digest != artifact.blob.sha256
                     || package.size_bytes() != artifact.blob.size_bytes
-                    || metadata.bundle_id().as_str() != artifact.native_identity.bundle_id
-                    || metadata.product_version() != Some(&artifact.native_identity.version)
-                    || metadata.build_version() != Some(&artifact.native_identity.build_number)
+                    || metadata.bundle_id().as_str() != identity.bundle_id
+                    || metadata.product_version() != Some(&identity.version)
+                    || metadata.build_version() != Some(&identity.build_number)
                 {
                     return Err(PackageError::ChecksumMismatch);
                 }
@@ -159,14 +164,12 @@ impl PackageTarget for Target {
                 return Err(PackageError::Cancelled);
             }
             let device = self.device().await?;
-            let observed = self
-                .observe(&device, std::slice::from_ref(&plan.bundle_id))
-                .await?;
+            let observed = self.observe(&device, &plan.inspection_keys()).await?;
             let actual = observed
                 .applications
                 .iter()
-                .find(|a| a.bundle_id == plan.bundle_id);
-            if !same_installation(plan.previous.as_ref(), actual) {
+                .find(|a| Some(a.bundle_id.as_str()) == plan.bundle_id());
+            if !same_installation(plan.previous_ios(), actual) {
                 return Err(PackageError::StateChanged);
             }
             validate_action(plan.action, actual, plan.artifact.as_ref())?;
@@ -176,7 +179,7 @@ impl PackageTarget for Target {
                 {
                     return Err(PackageError::Incompatible);
                 }
-                if target.requires.appsync && observed.appsync == RequirementState::Missing {
+                if target.requires.appsync() && observed.appsync == RequirementState::Missing {
                     return Err(PackageError::NeedsAppSync);
                 }
             }
@@ -189,8 +192,10 @@ impl PackageTarget for Target {
                 if plan.action == PackageAction::Uninstall {
                     device
                         .uninstall_user_app(
-                            &AppIdentifier::parse(&plan.bundle_id)
-                                .map_err(|_| PackageError::InvalidAction)?,
+                            &AppIdentifier::parse(
+                                plan.bundle_id().ok_or(PackageError::InvalidAction)?,
+                            )
+                            .map_err(|_| PackageError::InvalidAction)?,
                             &control,
                             &observer,
                             AppOperationTimeouts::default(),

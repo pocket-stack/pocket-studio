@@ -1,0 +1,102 @@
+{
+  "binding": "private-test-binding",
+  "repository_id": "test-repository",
+  "job": {
+    "queueOrder": 1,
+    "handle": {
+      "operationId": "old-operation",
+      "kind": "install",
+      "steps": [],
+      "subject": "dev.example.notes"
+    },
+    "plan": {
+      "id": "old-plan",
+      "deviceId": "old-device-session",
+      "deviceName": "Test iPod",
+      "appId": "dev.example.notes",
+      "names": {
+        "en": "Notes"
+      },
+      "action": "install",
+      "bundleId": "dev.example.notes.ios",
+      "previous": null,
+      "releaseId": "old-release",
+      "artifact": {
+        "id": "44444444-4444-4444-8444-444444444444",
+        "format": "ipa",
+        "blob": {
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "size_bytes": 8,
+          "content_type": "application/octet-stream"
+        },
+        "build_id": "fixture-build-1",
+        "native_identity": {
+          "bundle_id": "dev.example.notes.ios",
+          "version": "1.2.0",
+          "build_number": "42"
+        },
+        "provenance": {
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "runtime_commit": null,
+          "manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "targets": [
+          {
+            "target_id": "ios-legacy",
+            "platform": "ios",
+            "arch": "armv7",
+            "models": ["iPod4,1"],
+            "os": {
+              "min": "6.1.6",
+              "max": "6.1.6",
+              "builds": ["10B500"]
+            },
+            "host_abi": 1,
+            "runtime_delivery": "bundled",
+            "installer_id": "ios-user-ipa",
+            "requires": {
+              "jailbreak": true,
+              "appsync": true
+            }
+          }
+        ]
+      },
+      "target": {
+        "target_id": "ios-legacy",
+        "platform": "ios",
+        "arch": "armv7",
+        "models": ["iPod4,1"],
+        "os": {
+          "min": "6.1.6",
+          "max": "6.1.6",
+          "builds": ["10B500"]
+        },
+        "host_abi": 1,
+        "runtime_delivery": "bundled",
+        "installer_id": "ios-user-ipa",
+        "requires": {
+          "jailbreak": true,
+          "appsync": true
+        }
+      },
+      "version": "1.2.0",
+      "revision": 1,
+      "publicationId": "old-publication",
+      "sequence": 3,
+      "catalogExpiresAt": 10000,
+      "expiresAt": 1000,
+      "appsync": "unknown",
+      "jailbreak": "satisfied",
+      "steps": []
+    },
+    "phase": "running",
+    "step": "install",
+    "completedSteps": ["download", "verify", "transfer"],
+    "percent": 70,
+    "submitted": true,
+    "cleanupComplete": null,
+    "stagingPath": "PublicStaging/example.ipa",
+    "error": null,
+    "updatedAt": 123
+  }
+}

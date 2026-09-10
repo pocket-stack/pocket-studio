@@ -10,9 +10,21 @@ pub struct NativeApplication {
     pub application_type: Option<String>,
     pub receipt_build_id: Option<String>,
 }
+impl NativeApplication {
+    pub fn matches_artifact(&self, artifact: &super::store::Artifact) -> bool {
+        artifact.ios_identity().is_some_and(|identity| {
+            identity.bundle_id == self.bundle_id
+                && self.product_version.as_deref() == Some(&identity.version)
+                && self.build_number.as_deref() == Some(&identity.build_number)
+                && self.receipt_build_id.as_deref() == Some(&artifact.build_id)
+        })
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallationObservation {
+    #[serde(default)]
+    pub managed: Vec<super::three_ds::ThreeDsInstallation>,
     pub applications: Vec<NativeApplication>,
     pub observed_at: u64,
 }
@@ -37,7 +49,7 @@ pub fn map_installed(
     catalog: &Catalog,
     observation: &InstallationObservation,
 ) -> Vec<InstalledPackage> {
-    observation
+    let mut entries: Vec<InstalledPackage> = observation
         .applications
         .iter()
         .filter_map(|native| {
@@ -47,10 +59,11 @@ pub fn map_installed(
                     .iter()
                     .filter(|release| release.app_id == app.id)
                     .any(|release| {
-                        release
-                            .artifacts
-                            .iter()
-                            .any(|artifact| artifact.native_identity.bundle_id == native.bundle_id)
+                        release.artifacts.iter().any(|artifact| {
+                            artifact
+                                .ios_identity()
+                                .is_some_and(|id| id.bundle_id == native.bundle_id)
+                        })
                     })
             })?;
             let releases: Vec<_> = catalog
@@ -62,17 +75,12 @@ pub fn map_installed(
                 release
                     .artifacts
                     .iter()
-                    .find(|artifact| {
-                        artifact.native_identity.bundle_id == native.bundle_id
-                            && native.product_version.as_deref()
-                                == Some(&artifact.native_identity.version)
-                            && native.build_number.as_deref()
-                                == Some(&artifact.native_identity.build_number)
-                            && native.receipt_build_id.as_deref() == Some(&artifact.build_id)
-                    })
+                    .find(|artifact| native.matches_artifact(artifact))
                     .map(|artifact| (*release, artifact))
             });
             Some(InstalledPackage {
+                installation_id: format!("ios:{}", native.bundle_id),
+                managed: None,
                 package_id: app.id.clone(),
                 version: native
                     .product_version
@@ -86,7 +94,47 @@ pub fn map_installed(
                 revision: exact.map(|(release, _)| release.revision),
             })
         })
-        .collect()
+        .collect();
+    for managed in observation.managed.iter().filter(|value| value.installed) {
+        if !catalog.apps.iter().any(|app| app.id == managed.app_id) {
+            continue;
+        }
+        let matches: Vec<_> = catalog
+            .releases
+            .iter()
+            .filter(|release| {
+                release.app_id == managed.app_id
+                    && release.version == managed.version
+                    && managed
+                        .revision
+                        .is_none_or(|revision| release.revision == revision)
+            })
+            .flat_map(|release| {
+                release
+                    .artifacts
+                    .iter()
+                    .filter(move |artifact| managed.matches_application_artifact(artifact))
+                    .map(move |artifact| (release, artifact))
+            })
+            .collect();
+        let exact = if matches.len() == 1 {
+            Some(matches[0])
+        } else {
+            None
+        };
+        entries.push(InstalledPackage {
+            installation_id: managed.installation_id.clone(),
+            managed: Some(managed.clone()),
+            package_id: managed.app_id.clone(),
+            version: managed.version.clone(),
+            installed_at: None,
+            native: None,
+            release_id: exact.map(|(r, _)| r.id.clone()),
+            artifact_id: exact.map(|(_, a)| a.id.clone()),
+            revision: exact.map(|(r, _)| r.revision),
+        });
+    }
+    entries
 }
 
 #[cfg(test)]
@@ -110,7 +158,7 @@ mod tests {
         let mut release = catalog.releases[0].clone();
         release.id = "second-release".into();
         release.app_id = "dev.another.clock".into();
-        release.artifacts[0].native_identity.bundle_id = "native.clock".into();
+        release.artifacts[0].ios_identity_mut().unwrap().bundle_id = "native.clock".into();
         catalog.releases.push(release);
         let notes = NativeApplication {
             bundle_id: "dev.example.notes.ios".into(),
@@ -129,6 +177,7 @@ mod tests {
             ..notes.clone()
         };
         let observation = InstallationObservation {
+            managed: vec![],
             applications: vec![notes, clock, unrelated],
             observed_at: 123,
         };
@@ -146,6 +195,7 @@ mod tests {
             map_installed(
                 &catalog,
                 &InstallationObservation {
+                    managed: vec![],
                     applications: vec![],
                     observed_at: 456
                 }

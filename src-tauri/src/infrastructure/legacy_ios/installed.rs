@@ -35,6 +35,9 @@ impl LegacyIosProbe {
     }
 }
 impl InstalledReader for LegacyInstalledReader {
+    fn platform(&self, _: &str) -> Result<crate::domain::device::Platform, InstalledError> {
+        Ok(crate::domain::device::Platform::Ios)
+    }
     fn binding(&self, device_id: &str) -> Result<String, InstalledError> {
         Ok(sha256_hex(
             self.probe.application_session_key(device_id)?.as_bytes(),
@@ -52,6 +55,7 @@ impl InstalledReader for LegacyInstalledReader {
                 .map_err(|_| InstalledError::ReadFailed)?;
             if bundle_ids.is_empty() {
                 return Ok(InstallationObservation {
+                    managed: vec![],
                     applications: vec![],
                     observed_at: now_millis(),
                 });
@@ -68,6 +72,7 @@ impl InstalledReader for LegacyInstalledReader {
                 return Err(InstalledError::DeviceUnavailable);
             }
             Ok(InstallationObservation {
+                managed: vec![],
                 applications,
                 observed_at: now_millis(),
             })

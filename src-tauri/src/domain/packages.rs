@@ -28,7 +28,10 @@ pub struct PackageRequest {
     pub device_id: String,
     pub app_id: String,
     pub action: PackageAction,
-    pub bundle_id: Option<String>,
+    pub installation_id: Option<String>,
+    pub delivery: Option<super::store::RuntimeDelivery>,
+    pub format: Option<String>,
+    pub delete_data: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -45,8 +48,8 @@ pub struct PackagePlan {
     pub app_id: String,
     pub names: BTreeMap<String, String>,
     pub action: PackageAction,
-    pub bundle_id: String,
-    pub previous: Option<NativeApplication>,
+    pub installation: PackageInstallation,
+    pub delete_data: bool,
     pub release_id: Option<String>,
     pub artifact: Option<Artifact>,
     pub target: Option<ArtifactTarget>,
@@ -56,9 +59,55 @@ pub struct PackagePlan {
     pub sequence: u64,
     pub catalog_expires_at: u64,
     pub expires_at: u64,
-    pub appsync: RequirementState,
-    pub jailbreak: RequirementState,
     pub steps: Vec<PlanStep>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "platform",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum PackageInstallation {
+    Ios {
+        bundle_id: String,
+        previous: Option<NativeApplication>,
+        appsync: RequirementState,
+        jailbreak: RequirementState,
+    },
+    #[serde(rename = "3ds")]
+    ThreeDs(Box<super::three_ds::ThreeDsPackagePlan>),
+}
+impl PackagePlan {
+    pub fn bundle_id(&self) -> Option<&str> {
+        match &self.installation {
+            PackageInstallation::Ios { bundle_id, .. } => Some(bundle_id),
+            _ => None,
+        }
+    }
+    pub fn previous_ios(&self) -> Option<&NativeApplication> {
+        match &self.installation {
+            PackageInstallation::Ios { previous, .. } => previous.as_ref(),
+            _ => None,
+        }
+    }
+    pub fn managed(&self) -> Option<&super::three_ds::ThreeDsPackagePlan> {
+        match &self.installation {
+            PackageInstallation::ThreeDs(plan) => Some(plan),
+            _ => None,
+        }
+    }
+    pub fn installation_key(&self) -> String {
+        match &self.installation {
+            PackageInstallation::Ios { bundle_id, .. } => format!("ios:{bundle_id}"),
+            PackageInstallation::ThreeDs(plan) => plan.installation_id.clone(),
+        }
+    }
+    pub fn inspection_keys(&self) -> Vec<String> {
+        match self.bundle_id() {
+            Some(id) => vec![id.into()],
+            None => vec![self.app_id.clone()],
+        }
+    }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,11 +142,13 @@ pub struct PackageJob {
     pub error: Option<OperationError>,
     pub updated_at: u64,
 }
+#[derive(Clone)]
 pub struct PackageObservation {
     pub device: DeviceSummary,
     pub facts: DeviceFacts,
     pub appsync: RequirementState,
     pub applications: Vec<NativeApplication>,
+    pub managed: Vec<super::three_ds::ThreeDsInstallation>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StoredPackageJob {

@@ -22,6 +22,7 @@ pub const LOG_EVENT: &str = "studio://log";
 
 pub struct AppState {
     pub studio: Arc<Studio>,
+    pub setup: Arc<crate::application::device_setup::SetupService>,
 }
 
 #[derive(Debug, Serialize)]
@@ -213,4 +214,40 @@ pub async fn list_logs(state: State<'_, AppState>) -> CommandResult<Vec<LogEntry
 #[tauri::command]
 pub async fn export_logs(state: State<'_, AppState>) -> CommandResult<String> {
     Ok(state.studio.export_logs())
+}
+
+#[tauri::command]
+pub async fn plan_device_setup(
+    state: State<'_, AppState>,
+    request: crate::application::device_setup::SetupRequest,
+) -> CommandResult<crate::application::device_setup::SetupPlan> {
+    state
+        .setup
+        .plan(request)
+        .await
+        .map_err(|e| StudioError::from(e).into())
+}
+#[tauri::command]
+pub async fn execute_device_setup(
+    state: State<'_, AppState>,
+    plan_id: String,
+) -> CommandResult<crate::application::device_setup::SetupResult> {
+    state
+        .setup
+        .execute(&plan_id)
+        .await
+        .map_err(|e| StudioError::from(e).into())
+}
+#[tauri::command]
+pub async fn connect_three_ds(
+    state: State<'_, AppState>,
+    pairing_id: String,
+    address: Option<String>,
+) -> CommandResult<DiscoverySnapshot> {
+    state
+        .setup
+        .connect(&pairing_id, address.as_deref())
+        .await
+        .map_err(StudioError::from)?;
+    Ok(state.studio.list_devices().await)
 }
