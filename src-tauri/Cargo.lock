@@ -2920,7 +2920,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -3427,7 +3427,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-assets"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "legacy-ios-core",
  "serde",
@@ -3438,7 +3438,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-core"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "serde",
  "thiserror 2.0.20",
@@ -3447,7 +3447,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-exploits"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "legacy-ios-core",
  "legacy-ios-image",
@@ -3461,7 +3461,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-firmware"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "crc32fast",
  "flate2",
@@ -3487,7 +3487,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-image"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "aes 0.8.4",
  "bzip2-rs",
@@ -3508,7 +3508,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-restore"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "legacy-ios-core",
  "legacy-ios-firmware",
@@ -3526,7 +3526,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-services"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "aes 0.8.4",
  "aes-gcm 0.10.3",
@@ -3568,7 +3568,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-transport"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "futures-core",
  "futures-util",
@@ -3583,7 +3583,7 @@ dependencies = [
 [[package]]
 name = "legacy-ios-workflows"
 version = "0.1.0"
-source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#8e7da85eee087aa903adc27df22a8b9be32ab8b8"
+source = "git+https://github.com/HalfSweet/Legacy-iOS-Kit-rs.git?branch=main#b945c5abe3af19c68700c57e864046a7a7f5b86e"
 dependencies = [
  "hex",
  "legacy-ios-assets",
@@ -6339,7 +6339,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -6944,7 +6944,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
