@@ -106,6 +106,20 @@ pnpm build
 
 lefthook 会在提交前执行前端检查、`cargo fmt --check` 和 Clippy。提交信息遵循 Conventional Commits。
 
+## 自动构建安装包
+
+[Build desktop packages](.github/workflows/build.yml) 会在任意分支或标签的 `push` 后触发，也支持在 GitHub Actions 页面手动运行。同一分支或标签再次触发时，会取消尚未完成的旧构建。
+
+| 平台    | 架构                                 | 安装包                |
+| ------- | ------------------------------------ | --------------------- |
+| Windows | x64                                  | NSIS（`*-setup.exe`） |
+| macOS   | Apple Silicon（arm64）、Intel（x64） | 分别生成 DMG          |
+| Linux   | x64                                  | AppImage、deb、rpm    |
+
+构建使用 `package.json` 指定的 pnpm 版本，并锁定 `pnpm-lock.yaml` 和 `src-tauri/Cargo.lock` 中的依赖。Windows 在构建命令中明确指定 `--bundles nsis`，只生成 NSIS 安装包。Linux 使用 Ubuntu 22.04 构建；工作流配置了 WebKitGTK 和原生编译依赖，以及 Windows 静态编译 OpenSSL 所需的 Perl、MSVC 工具链。
+
+构建成功后，在对应 Actions 运行页面的 **Artifacts** 下载 `pocket-studio-<Rust target>`，产物保留 14 天。工作流只上传构建产物，不创建 GitHub Release，也不需要额外配置签名密钥。macOS 使用 [Tauri 的 ad-hoc 签名](https://v2.tauri.app/distribute/sign/macos/#ad-hoc-signing)，未做 Apple 公证；Windows 安装包未做代码签名。
+
 ## 目录
 
 ```text
