@@ -35,7 +35,8 @@
       "bootstrap": "系统引导包",
       "unsupported": "暂不支持的安装格式",
       "cia": "CIA 标题（自制系统）",
-      "3dsx": "3DSX 自制软件"
+      "threeDsx": "3DSX 自制软件",
+      "pocket": ".pocket 应用（Pocket 启动器）"
     },
     "verdict": {
       "compatible": "与当前设备兼容，可以安装。",
@@ -257,7 +258,8 @@
         "cancelled": "操作已在提交系统请求前取消。",
         "unknown": "无法完成应用操作，请刷新状态后重试。",
         "systemApplication": "该原生身份已注册为系统应用。商店操作仅支持 User 应用，请手动处理现有的系统安装。",
-        "applicationTypeUnknown": "无法确认原生应用类型，请刷新设备应用后重试。"
+        "applicationTypeUnknown": "无法确认原生应用类型，请刷新设备应用后重试。",
+        "runtimeRequired": "主机上的 Pocket 启动器或原生宿主版本过旧：Runtime 版本或宿主 ABI 不满足此版本的要求。请先准备启动器或升级原生宿主。"
       },
       "working": "处理中…",
       "activity": "{action} {name} · {device}",

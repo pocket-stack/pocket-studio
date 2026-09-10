@@ -68,11 +68,25 @@ export interface SignedCatalog {
           content_type: string;
         };
         build_id: string;
-        native_identity: {
-          bundle_id: string;
-          version: string;
-          build_number: string;
-        };
+        native_identity:
+          | (
+              | {
+                  kind: "ios_bundle";
+                  bundle_id: string;
+                  version: string;
+                  build_number: string;
+                }
+              | {
+                  kind: "3ds_title";
+                  title_id: string;
+                  title_version: number;
+                }
+              | {
+                  kind: "homebrew_file";
+                  entrypoint: string;
+                }
+            )
+          | null;
         provenance: {
           source_commit: string;
           runtime_commit: string | null;
@@ -92,16 +106,43 @@ export interface SignedCatalog {
             models: [string, ...string[]];
             os: {
               min: string;
-              max: string;
+              max: string | null;
               builds: string[];
             };
             host_abi: number | null;
-            runtime_delivery: "bundled" | "shared";
+            /**
+             * @minItems 1
+             */
+            runtime_deliveries: [
+              "bundled" | "shared",
+              ...("bundled" | "shared")[],
+            ];
             installer_id: string;
-            requires: {
-              jailbreak: boolean;
-              appsync: boolean;
-            };
+            requires:
+              | {
+                  kind: "ios";
+                  jailbreak: boolean;
+                  appsync: boolean;
+                }
+              | {
+                  kind: "3ds";
+                  cfw: boolean;
+                };
+            runtime_requirement: {
+              id: string;
+              min_version: string;
+              bootstrap_app_id: string | null;
+            } | null;
+            runtime_provides: {
+              id: string;
+              version: string;
+              capabilities: (
+                | "guest-update"
+                | "app-library"
+                | "cia-management"
+                | "file-management"
+              )[];
+            } | null;
           },
           ...{
             target_id: string;
@@ -113,16 +154,43 @@ export interface SignedCatalog {
             models: [string, ...string[]];
             os: {
               min: string;
-              max: string;
+              max: string | null;
               builds: string[];
             };
             host_abi: number | null;
-            runtime_delivery: "bundled" | "shared";
+            /**
+             * @minItems 1
+             */
+            runtime_deliveries: [
+              "bundled" | "shared",
+              ...("bundled" | "shared")[],
+            ];
             installer_id: string;
-            requires: {
-              jailbreak: boolean;
-              appsync: boolean;
-            };
+            requires:
+              | {
+                  kind: "ios";
+                  jailbreak: boolean;
+                  appsync: boolean;
+                }
+              | {
+                  kind: "3ds";
+                  cfw: boolean;
+                };
+            runtime_requirement: {
+              id: string;
+              min_version: string;
+              bootstrap_app_id: string | null;
+            } | null;
+            runtime_provides: {
+              id: string;
+              version: string;
+              capabilities: (
+                | "guest-update"
+                | "app-library"
+                | "cia-management"
+                | "file-management"
+              )[];
+            } | null;
           }[],
         ];
       },
@@ -135,11 +203,25 @@ export interface SignedCatalog {
           content_type: string;
         };
         build_id: string;
-        native_identity: {
-          bundle_id: string;
-          version: string;
-          build_number: string;
-        };
+        native_identity:
+          | (
+              | {
+                  kind: "ios_bundle";
+                  bundle_id: string;
+                  version: string;
+                  build_number: string;
+                }
+              | {
+                  kind: "3ds_title";
+                  title_id: string;
+                  title_version: number;
+                }
+              | {
+                  kind: "homebrew_file";
+                  entrypoint: string;
+                }
+            )
+          | null;
         provenance: {
           source_commit: string;
           runtime_commit: string | null;
@@ -159,16 +241,43 @@ export interface SignedCatalog {
             models: [string, ...string[]];
             os: {
               min: string;
-              max: string;
+              max: string | null;
               builds: string[];
             };
             host_abi: number | null;
-            runtime_delivery: "bundled" | "shared";
+            /**
+             * @minItems 1
+             */
+            runtime_deliveries: [
+              "bundled" | "shared",
+              ...("bundled" | "shared")[],
+            ];
             installer_id: string;
-            requires: {
-              jailbreak: boolean;
-              appsync: boolean;
-            };
+            requires:
+              | {
+                  kind: "ios";
+                  jailbreak: boolean;
+                  appsync: boolean;
+                }
+              | {
+                  kind: "3ds";
+                  cfw: boolean;
+                };
+            runtime_requirement: {
+              id: string;
+              min_version: string;
+              bootstrap_app_id: string | null;
+            } | null;
+            runtime_provides: {
+              id: string;
+              version: string;
+              capabilities: (
+                | "guest-update"
+                | "app-library"
+                | "cia-management"
+                | "file-management"
+              )[];
+            } | null;
           },
           ...{
             target_id: string;
@@ -180,16 +289,43 @@ export interface SignedCatalog {
             models: [string, ...string[]];
             os: {
               min: string;
-              max: string;
+              max: string | null;
               builds: string[];
             };
             host_abi: number | null;
-            runtime_delivery: "bundled" | "shared";
+            /**
+             * @minItems 1
+             */
+            runtime_deliveries: [
+              "bundled" | "shared",
+              ...("bundled" | "shared")[],
+            ];
             installer_id: string;
-            requires: {
-              jailbreak: boolean;
-              appsync: boolean;
-            };
+            requires:
+              | {
+                  kind: "ios";
+                  jailbreak: boolean;
+                  appsync: boolean;
+                }
+              | {
+                  kind: "3ds";
+                  cfw: boolean;
+                };
+            runtime_requirement: {
+              id: string;
+              min_version: string;
+              bootstrap_app_id: string | null;
+            } | null;
+            runtime_provides: {
+              id: string;
+              version: string;
+              capabilities: (
+                | "guest-update"
+                | "app-library"
+                | "cia-management"
+                | "file-management"
+              )[];
+            } | null;
           }[],
         ];
       }[],

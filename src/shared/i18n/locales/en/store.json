@@ -35,7 +35,8 @@
       "bootstrap": "System bootstrap",
       "unsupported": "Unsupported installation format",
       "cia": "CIA title (custom firmware)",
-      "3dsx": "3DSX homebrew app"
+      "threeDsx": "3DSX homebrew app",
+      "pocket": ".pocket app (Pocket Launcher)"
     },
     "verdict": {
       "compatible": "Compatible with the connected device.",
@@ -257,7 +258,8 @@
         "cancelled": "The operation was cancelled before system submission.",
         "unknown": "The application operation could not be completed. Refresh its state and try again.",
         "systemApplication": "The matching app is registered as a System application. Store operations require a User application; handle the existing system installation manually.",
-        "applicationTypeUnknown": "The native application type could not be confirmed. Refresh device apps before retrying."
+        "applicationTypeUnknown": "The native application type could not be confirmed. Refresh device apps before retrying.",
+        "runtimeRequired": "The Pocket Launcher or native host on the console is too old for this release: its Runtime version or host ABI does not meet the requirement. Prepare the launcher or update the native host first."
       },
       "working": "Working…",
       "activity": "{action} {name} · {device}",

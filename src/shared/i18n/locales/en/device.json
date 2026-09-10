@@ -25,7 +25,8 @@
       "serial": "Serial",
       "battery": "Battery",
       "sdCard": "SD card",
-      "transport": "Connection"
+      "transport": "Connection",
+      "runtime": "Runtime"
     },
     "empty": {
       "title": "Waiting for a device",

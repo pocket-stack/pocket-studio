@@ -12,7 +12,7 @@
       "needsAttention": "Needs attention"
     },
     "summary": {
-      "ready": "Pairing, jailbreak, SSH and AppSync installation checks passed.",
+      "ready": "Device installation requirements passed.",
       "needsPreparation": "Some prerequisites need preparation. Review the checks below.",
       "unsupported": "This device or OS version is not supported yet.",
       "needsAttention": "Some readiness conditions are still unknown. Review the checks and connection diagnostics."
@@ -88,13 +88,6 @@
         "warn": "AppSync installation needs attention.",
         "unknown": "Package records are currently unreadable; this does not mean AppSync is absent. Choose Verify AppSync for a read-only check."
       },
-      "networkReachable": {
-        "title": "Network",
-        "pass": "The console answers on the local network.",
-        "fail": "The console is not reachable on the local network.",
-        "warn": "The network connection is unstable.",
-        "unknown": "Network reachability could not be confirmed."
-      },
       "cfwInstalled": {
         "title": "Custom firmware",
         "pass": "Custom firmware (Luma3DS) is running.",
@@ -102,19 +95,12 @@
         "warn": "Custom firmware traces were detected but not confirmed.",
         "unknown": "Custom firmware could not be verified."
       },
-      "homebrewAccess": {
-        "title": "Homebrew access",
-        "pass": "The Homebrew Launcher and title installation are available.",
-        "fail": "Homebrew access is not available.",
-        "warn": "Homebrew access needs attention.",
-        "unknown": "Homebrew access could not be checked without custom firmware."
-      },
-      "sdCardWritable": {
-        "title": "SD card",
-        "pass": "The SD card is mounted and writable.",
-        "fail": "The SD card is missing or read-only.",
-        "warn": "The SD card is nearly full.",
-        "unknown": "SD card state could not be read."
+      "runtimeAvailable": {
+        "title": "Pocket Launcher",
+        "pass": "Pocket Launcher is paired and answering.",
+        "fail": "Pocket Launcher was not found. Prepare and pair the console first.",
+        "warn": "Pocket Launcher is not fully verified.",
+        "unknown": "Pocket Launcher state could not be confirmed."
       }
     },
     "guidance": {

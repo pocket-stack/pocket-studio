@@ -68,8 +68,14 @@ it("hydrates submitted jobs as read-only follow-up state and preserves their bou
     appId: "app",
     names: { en: "Notes" },
     action: "uninstall",
-    bundleId: "native.notes",
-    previous: null,
+    installation: {
+      platform: "ios",
+      bundleId: "native.notes",
+      previous: null,
+      appsync: "unknown",
+      jailbreak: "unknown",
+    },
+    deleteData: false,
     releaseId: null,
     artifact: null,
     target: null,
@@ -79,8 +85,6 @@ it("hydrates submitted jobs as read-only follow-up state and preserves their bou
     sequence: 1,
     catalogExpiresAt: 100,
     expiresAt: 100,
-    appsync: "unknown",
-    jailbreak: "unknown",
     steps: [
       {
         id: "uninstall",

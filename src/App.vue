@@ -15,6 +15,9 @@ import DemoPanel from "./app/DemoPanel.vue";
 import NotificationStack from "./app/NotificationStack.vue";
 import DeviceView from "./features/device/DeviceView.vue";
 import LogsView from "./features/logs/LogsView.vue";
+import ThreeDsSetupDialog from "./features/device/ThreeDsSetupDialog.vue";
+import DeliveryDialog from "./features/store/DeliveryDialog.vue";
+import { useThreeDsSetup } from "./features/device/useThreeDsSetup";
 import PreparationWizard from "./features/preparation/PreparationWizard.vue";
 import { usePreparation } from "./features/preparation/usePreparation";
 import SettingsView from "./features/settings/SettingsView.vue";
@@ -403,6 +406,12 @@ onMounted(async () => {
                 height="14"
               />
             </button>
+            <button
+              class="w-full rounded-control px-3 py-2 text-left text-xs text-signal hover:bg-ink/4"
+              @click="useThreeDsSetup().show()"
+            >
+              {{ t("threeDs.addDevice") }}
+            </button>
             <p
               v-if="!session.devices.value.length"
               class="px-2 py-1.5 text-sm text-muted"
@@ -628,6 +637,8 @@ onMounted(async () => {
     @close="demoOpen = false"
     ><DemoPanel
   /></StudioDialog>
+  <ThreeDsSetupDialog />
+  <DeliveryDialog />
   <PreparationWizard />
   <NotificationStack />
 </template>

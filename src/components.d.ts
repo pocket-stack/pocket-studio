@@ -29,6 +29,7 @@ declare module 'vue' {
     IconPhEyeSlash: typeof import('~icons/ph/eye-slash')['default']
     IconPhFileText: typeof import('~icons/ph/file-text')['default']
     IconPhFlask: typeof import('~icons/ph/flask')['default']
+    IconPhGameController: typeof import('~icons/ph/game-controller')['default']
     IconPhGear: typeof import('~icons/ph/gear')['default']
     IconPhInfo: typeof import('~icons/ph/info')['default']
     IconPhLightning: typeof import('~icons/ph/lightning')['default']

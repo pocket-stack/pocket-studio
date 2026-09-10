@@ -18,11 +18,14 @@ import {
   type InstalledSnapshot,
   type PackageAction,
   type PackageJob,
+  type PackageRequest,
+  type RuntimeDelivery,
   type PackageCategory,
   type Platform,
 } from "../../shared/gateway";
 import {
   evaluateCompatibility,
+  installationForms,
   type CompatibilityVerdict,
 } from "./compatibility";
 import { packageText } from "./packageContent";
@@ -49,12 +52,13 @@ const installOperations = ref(new Map<string, string>());
 const packageJobs = ref<PackageJob[]>([]);
 /** Packages whose native plan is being resolved and submitted. */
 const pendingIds = ref<string[]>([]);
+/** 3DS package waiting for the user to pick an installation form. */
+const deliveryAppId = ref<string | null>(null);
 let jobsRequest = 0;
 let nativeSubscribed = false;
 let jobsQueued = false;
 
 async function refreshJobs(): Promise<void> {
-  if (useGateway().flavor !== "tauri") return;
   const request = ++jobsRequest;
   try {
     const jobs = await useGateway().store.jobs();
@@ -164,7 +168,7 @@ async function refreshCatalog(refresh = true): Promise<void> {
 async function initialize(): Promise<void> {
   if (initialized) return;
   initialized = true;
-  if (useGateway().flavor === "tauri" && !nativeSubscribed) {
+  if (!nativeSubscribed) {
     await useGateway().operations.onEvent((event) => {
       if (event.type !== "progress") scheduleJobs();
       if (["finished", "failed", "cancelled"].includes(event.type))
@@ -192,7 +196,7 @@ async function initialize(): Promise<void> {
           queuedIds.value = [];
           compatibleOnly.value = false;
         }
-        if (useGateway().flavor === "tauri") void refreshCatalog(false);
+        void refreshCatalog(false);
         void refreshInstalled();
       },
     );
@@ -215,36 +219,36 @@ function view(entry: CatalogEntry): PackageView {
     (job) =>
       job.plan.appId === entry.id && job.plan.deviceId === device.value?.id,
   );
-  const operationId =
-    useGateway().flavor === "tauri"
-      ? nativeJob?.handle.operationId
-      : installOperations.value.get(entry.id);
+  // 3DS instances are planned natively even in the browser demo.
+  const planned =
+    useGateway().flavor === "tauri" || device.value?.platform === "3ds";
+  const operationId = planned
+    ? nativeJob?.handle.operationId
+    : installOperations.value.get(entry.id);
   const installedIds = new Set(installed.value.map((item) => item.packageId));
   return {
     entry,
-    queuePosition:
-      useGateway().flavor === "tauri"
-        ? nativeJob?.phase === "queued"
-          ? packageJobs.value
-              .filter((job) => job.phase === "queued")
-              .sort((a, b) => a.queueOrder - b.queueOrder)
-              .findIndex(
-                (job) =>
-                  job.handle.operationId === nativeJob.handle.operationId,
-              ) + 1
-          : undefined
-        : queuedIds.value.includes(entry.id)
-          ? queuedIds.value.indexOf(entry.id) + 1
-          : startingId.value === entry.id
-            ? 1
-            : undefined,
+    queuePosition: planned
+      ? nativeJob?.phase === "queued"
+        ? packageJobs.value
+            .filter((job) => job.phase === "queued")
+            .sort((a, b) => a.queueOrder - b.queueOrder)
+            .findIndex(
+              (job) => job.handle.operationId === nativeJob.handle.operationId,
+            ) + 1
+        : undefined
+      : queuedIds.value.includes(entry.id)
+        ? queuedIds.value.indexOf(entry.id) + 1
+        : startingId.value === entry.id
+          ? 1
+          : undefined,
     verdict: evaluateCompatibility(entry, device.value, readiness.value),
     installed: installed.value.find(
       (item) =>
         item.packageId === entry.id &&
         (useGateway().flavor !== "tauri" ||
           !item.native ||
-          item.native.bundleId === entry.details?.nativeIdentity.bundle_id),
+          item.native.bundleId === catalogBundleId(entry)),
     ),
     operation: operationId ? get(operationId) : undefined,
     missingDependencies: entry.dependencies.filter(
@@ -382,12 +386,13 @@ export function useStore() {
   /**
    * Native application operations resolve a device-bound plan and submit it
    * in one go; the plan's uncertainties surface as notices instead of a
-   * confirmation dialog. Uninstall is the one action that carries consent.
+   * confirmation dialog. Consent mirrors the plan: removing an iOS app takes
+   * its data with it, a 3DS instance keeps its data unless asked otherwise.
    */
   async function runAction(
     appId: string,
     action: PackageAction,
-    bundleId: string | null,
+    options: Omit<PackageRequest, "deviceId" | "appId" | "action"> = {},
   ): Promise<void> {
     const current = device.value;
     if (!current || pendingIds.value.includes(appId)) return;
@@ -397,23 +402,27 @@ export function useStore() {
         deviceId: current.id,
         appId,
         action,
-        bundleId,
+        ...options,
       });
       if (plan.deviceId !== device.value?.id)
         throw new GatewayError("deviceChanged", "device changed");
+      const installation = plan.installation;
       if (
         action !== "uninstall" &&
-        (plan.appsync === "unknown" || plan.jailbreak === "unknown")
+        installation.platform === "ios" &&
+        (installation.appsync === "unknown" ||
+          installation.jailbreak === "unknown")
       )
         notify("warning", "store.actions.requirementsUnconfirmed");
       await useOperations().ready();
       const handle = await useGateway().store.start({
         planId: plan.id,
-        deleteData: action === "uninstall",
+        deleteData: plan.deleteData,
       });
       const operation = trackOperation(handle);
       operation.packagePlan = plan;
       await refreshJobs();
+      await refreshInstalled();
     } catch (error) {
       const code = error instanceof GatewayError ? error.code : "unknown";
       const key = `store.actions.errors.${code}`;
@@ -423,15 +432,63 @@ export function useStore() {
     }
   }
 
-  async function install(packageId: string): Promise<void> {
+  // Same version with an unknown or equal revision is a reinstall: the native
+  // layer never treats an unknown installed revision as older than the catalog.
+  function nextAction(
+    previous: InstalledPackage,
+    entry: CatalogEntry | undefined,
+  ): PackageAction {
+    const revision = previous.managed?.revision ?? previous.revision;
+    return previous.version === entry?.version &&
+      (revision == null || revision === entry?.details?.revision)
+      ? "reinstall"
+      : "update";
+  }
+
+  /**
+   * A 3DS title may live in the launcher and as a standalone app at once.
+   * With an instance id the operation targets that instance; otherwise a
+   * single published form installs directly and several forms ask the user.
+   */
+  async function install(
+    packageId: string,
+    installationId?: string,
+  ): Promise<void> {
+    const entry = catalog.value.find((item) => item.id === packageId);
+    if (device.value?.platform === "3ds") {
+      const forms = installationForms(entry);
+      const previous = installationId
+        ? installed.value.find(
+            (record) =>
+              record.installationId === installationId &&
+              record.packageId === packageId,
+          )
+        : forms.length === 1
+          ? installed.value.find(
+              (record) =>
+                record.packageId === packageId &&
+                record.managed?.delivery === forms[0]!.delivery &&
+                record.managed.format === forms[0]!.format,
+            )
+          : undefined;
+      if (installationId && !previous) return;
+      if (previous)
+        return runAction(packageId, nextAction(previous, entry), {
+          installationId: previous.installationId,
+        });
+      if (forms.length === 1)
+        return runAction(packageId, "install", {
+          delivery: forms[0]!.delivery,
+          format: forms[0]!.format,
+        });
+      deliveryAppId.value = packageId;
+      return;
+    }
     if (useGateway().flavor === "tauri") {
-      const entry = catalog.value.find((entry) => entry.id === packageId);
       const previous = installed.value.find(
         (record) =>
           record.packageId === packageId &&
-          (!record.native ||
-            record.native.bundleId ===
-              entry?.details?.nativeIdentity.bundle_id),
+          (!record.native || record.native.bundleId === catalogBundleId(entry)),
       );
       const action: PackageAction = !previous
         ? "install"
@@ -439,7 +496,9 @@ export function useStore() {
             previous.artifactId === entry?.details?.artifactId
           ? "reinstall"
           : "update";
-      return runAction(packageId, action, null);
+      return runAction(packageId, action, {
+        installationId: previous?.installationId ?? null,
+      });
     }
     if (
       !device.value ||
@@ -455,11 +514,12 @@ export function useStore() {
 
   async function uninstall(
     packageId: string,
-    bundleId: string | null = null,
+    installationId: string | null = null,
+    deleteData = false,
   ): Promise<void> {
     if (!device.value) return;
-    if (useGateway().flavor === "tauri")
-      return runAction(packageId, "uninstall", bundleId);
+    if (useGateway().flavor === "tauri" || device.value.platform === "3ds")
+      return runAction(packageId, "uninstall", { installationId, deleteData });
     try {
       await useGateway().store.uninstall(device.value.id, packageId);
       await refreshInstalled();
@@ -476,6 +536,19 @@ export function useStore() {
   return {
     packageJobs: readonly(packageJobs),
     pendingIds: readonly(pendingIds),
+    deliveryAppId: readonly(deliveryAppId),
+    deliveryEntry: computed(() =>
+      catalog.value.find((entry) => entry.id === deliveryAppId.value),
+    ),
+    closeDelivery: () => {
+      deliveryAppId.value = null;
+    },
+    chooseDelivery: async (delivery: RuntimeDelivery, format: string) => {
+      const appId = deliveryAppId.value;
+      if (!appId) return;
+      deliveryAppId.value = null;
+      await runAction(appId, "install", { delivery, format });
+    },
     verifyJob,
     cancelJob,
     refreshJobs,
@@ -509,4 +582,9 @@ export function useStore() {
       selectedId.value = id;
     },
   };
+}
+
+function catalogBundleId(entry: CatalogEntry | undefined): string | null {
+  const identity = entry?.details?.nativeIdentity;
+  return identity?.kind === "ios_bundle" ? identity.bundle_id : null;
 }

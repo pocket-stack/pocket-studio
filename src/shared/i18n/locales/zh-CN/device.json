@@ -25,7 +25,8 @@
       "serial": "序列号",
       "battery": "电量",
       "sdCard": "SD 卡",
-      "transport": "连接方式"
+      "transport": "连接方式",
+      "runtime": "Runtime"
     },
     "empty": {
       "title": "等待设备接入",

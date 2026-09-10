@@ -28,7 +28,8 @@
     "tauri": "tauri",
     "prepare": "lefthook install",
     "test": "vitest run",
-    "test:ui": "node scripts/check-viewport.mjs"
+    "test:ui": "node scripts/check-viewport.mjs",
+    "test:ui:3ds": "node scripts/check-three-ds-ui.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

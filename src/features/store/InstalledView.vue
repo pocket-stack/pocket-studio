@@ -34,7 +34,13 @@ const page = ref(0);
 const table = ref<HTMLElement | null>(null);
 const { height } = useElementSize(table);
 const rowsPerPage = computed(() =>
-  Math.max(3, Math.floor((height.value - HEAD_HEIGHT) / ROW_HEIGHT)),
+  Math.max(
+    1,
+    Math.floor(
+      (height.value - HEAD_HEIGHT) /
+        (device.value?.platform === "3ds" ? 92 : ROW_HEIGHT),
+    ),
+  ),
 );
 const installed = computed(() =>
   store.installed.value
@@ -233,10 +239,14 @@ const tasks = computed(() =>
           <table class="w-full table-fixed border-collapse text-left text-sm">
             <colgroup>
               <col />
-              <col class="w-[150px]" />
-              <col class="w-[90px]" />
-              <col class="w-[110px]" />
-              <col class="w-[300px]" />
+              <col
+                :class="device?.platform === '3ds' ? 'w-[220px]' : 'w-[150px]'"
+              />
+              <col v-if="device?.platform !== '3ds'" class="w-[90px]" />
+              <col v-if="device?.platform !== '3ds'" class="w-[110px]" />
+              <col
+                :class="device?.platform === '3ds' ? 'w-[240px]' : 'w-[300px]'"
+              />
             </colgroup>
             <thead>
               <tr class="h-7 bg-ink/4 text-2xs font-medium text-muted">
@@ -244,10 +254,10 @@ const tasks = computed(() =>
                 <th class="px-2 font-medium">
                   {{ t("store.detail.version") }}
                 </th>
-                <th class="px-2 font-medium">
+                <th v-if="device?.platform !== '3ds'" class="px-2 font-medium">
                   {{ t("store.installed.packageSize") }}
                 </th>
-                <th class="px-2 font-medium">
+                <th v-if="device?.platform !== '3ds'" class="px-2 font-medium">
                   {{ t("store.installed.revision") }}
                 </th>
                 <th class="px-2 font-medium">
@@ -258,8 +268,9 @@ const tasks = computed(() =>
             <tbody>
               <tr
                 v-for="item in pageRows"
-                :key="item.installed.native?.bundleId ?? item.entry.id"
-                class="h-11 even:bg-ink/3 hover:bg-ink/6"
+                :key="item.installed.installationId"
+                class="even:bg-ink/3 hover:bg-ink/6"
+                :class="item.installed.managed ? 'h-[92px]' : 'h-11'"
               >
                 <td class="px-4">
                   <button
@@ -281,7 +292,7 @@ const tasks = computed(() =>
                     >
                   </button>
                 </td>
-                <td class="truncate px-2 text-xs">
+                <td class="px-2 text-xs">
                   {{
                     item.installed?.version ||
                     t("store.installed.unknownVersion")
@@ -294,20 +305,39 @@ const tasks = computed(() =>
                       })
                     }}</small
                   >
+                  <div
+                    v-if="item.installed.managed"
+                    class="mt-1 text-2xs text-muted"
+                  >
+                    {{
+                      t(`threeDs.delivery.${item.installed.managed.delivery}`)
+                    }}
+                    · {{ item.installed.managed.format.toUpperCase() }} <br />{{
+                      t("threeDs.nativeVersion")
+                    }}: {{ item.installed.managed.nativeVersion ?? "—" }} ·
+                    Runtime {{ item.installed.managed.runtimeVersion ?? "—" }}
+                    <br />{{
+                      t(
+                        item.installed.managed.unavailable
+                          ? "threeDs.unavailable"
+                          : `threeDs.health.${item.installed.managed.health}`,
+                      )
+                    }}
+                  </div>
                 </td>
-                <td class="px-2 text-xs">
+                <td v-if="device?.platform !== '3ds'" class="px-2 text-xs">
                   {{ formatBytes(item.entry.sizeBytes) }}
                 </td>
-                <td class="px-2 text-xs">
+                <td v-if="device?.platform !== '3ds'" class="px-2 text-xs">
                   {{
                     item.installed?.revision ??
                     t("store.installed.unknownRevision")
                   }}
                 </td>
                 <td class="px-2">
-                  <div class="flex items-center justify-end gap-1.5">
+                  <div class="flex flex-wrap items-center justify-end gap-1.5">
                     <StudioButton
-                      v-if="removingId !== item.entry.id"
+                      v-if="removingId !== item.installed.installationId"
                       size="sm"
                       variant="link"
                       @click="emit('detail', item.entry.id)"
@@ -316,9 +346,10 @@ const tasks = computed(() =>
                     </StudioButton>
                     <StudioButton
                       v-if="
-                        removingId !== item.entry.id &&
+                        removingId !== item.installed.installationId &&
                         gateway.capabilities.packages &&
                         (gateway.flavor === 'tauri' ||
+                          device?.platform === '3ds' ||
                           item.installed?.version !== item.entry.version)
                       "
                       size="sm"
@@ -328,23 +359,33 @@ const tasks = computed(() =>
                         item.pending
                       "
                       :loading="item.pending"
-                      @click="store.install(item.entry.id)"
+                      @click="
+                        store.install(
+                          item.entry.id,
+                          item.installed.installationId,
+                        )
+                      "
                     >
                       {{
                         t(
-                          gateway.flavor === "tauri" &&
-                            (!item.installed.revision ||
-                              item.installed.artifactId ===
-                                item.entry.details?.artifactId)
-                            ? "store.detail.reinstall"
-                            : "store.detail.update",
+                          item.installed.managed
+                            ? item.installed.releaseId ===
+                              item.entry.details?.releaseId
+                              ? "store.detail.reinstall"
+                              : "store.detail.update"
+                            : gateway.flavor === "tauri" &&
+                                (!item.installed.revision ||
+                                  item.installed.artifactId ===
+                                    item.entry.details?.artifactId)
+                              ? "store.detail.reinstall"
+                              : "store.detail.update",
                         )
                       }}
                     </StudioButton>
                     <StudioButton
                       v-if="
                         gateway.capabilities.packages &&
-                        removingId !== item.entry.id
+                        removingId !== item.installed.installationId
                       "
                       size="sm"
                       variant="ghost"
@@ -353,26 +394,51 @@ const tasks = computed(() =>
                         !!store.queuedIds.value.length ||
                         item.pending
                       "
-                      @click="removingId = item.entry.id"
+                      @click="removingId = item.installed.installationId"
                     >
                       {{ t("studio.uninstall") }}
                     </StudioButton>
                     <template v-else-if="gateway.capabilities.packages">
-                      <span class="text-2xs text-danger">{{
-                        t("store.actions.deleteHint")
-                      }}</span>
+                      <span
+                        class="text-2xs"
+                        :class="
+                          item.installed.managed ? 'text-muted' : 'text-danger'
+                        "
+                        >{{
+                          t(
+                            item.installed.managed
+                              ? "threeDs.keepsData"
+                              : "store.actions.deleteHint",
+                          )
+                        }}</span
+                      >
                       <StudioButton
                         size="sm"
                         variant="danger"
                         @click="
                           store.uninstall(
                             item.entry.id,
-                            item.installed.native?.bundleId ?? null,
+                            item.installed.installationId,
                           );
                           removingId = null;
                         "
                       >
                         {{ t("studio.confirmUninstall") }}
+                      </StudioButton>
+                      <StudioButton
+                        v-if="item.installed.managed"
+                        size="sm"
+                        variant="danger"
+                        @click="
+                          store.uninstall(
+                            item.entry.id,
+                            item.installed.installationId,
+                            true,
+                          );
+                          removingId = null;
+                        "
+                      >
+                        {{ t("threeDs.removeWithData") }}
                       </StudioButton>
                       <StudioButton
                         size="sm"

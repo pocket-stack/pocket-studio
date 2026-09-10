@@ -8,6 +8,7 @@ import StatusPill from "../../shared/ui/StatusPill.vue";
 import StudioButton from "../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../shared/ui/StudioCallout.vue";
 import StudioPanel from "../../shared/ui/StudioPanel.vue";
+import { useThreeDsSetup } from "./useThreeDsSetup";
 import { usePreparation } from "../preparation/usePreparation";
 import { useStore } from "../store/useStore";
 import PreparationWorkspace from "../preparation/PreparationWorkspace.vue";
@@ -74,6 +75,12 @@ const storage = computed(() => {
   }
   return undefined;
 });
+const cfwVerified = computed(
+  () =>
+    readiness.value?.checks.some(
+      (check) => check.id === "cfwInstalled" && check.status === "pass",
+    ) ?? false,
+);
 const diagnostics = computed(() =>
   issues.value.filter(
     (item) =>
@@ -81,6 +88,10 @@ const diagnostics = computed(() =>
   ),
 );
 function startPreparation(): void {
+  if (device.value?.platform === "3ds") {
+    useThreeDsSetup().show();
+    return;
+  }
   if (device.value && gateway.capabilities.preparation)
     void preparation.open(device.value.id);
 }
@@ -149,6 +160,11 @@ function startPreparation(): void {
       >
         <IconPhWifiHigh width="15" height="15" />{{ t("demo.attach3ds") }}
       </StudioButton>
+      <StudioButton @click="useThreeDsSetup().show()">
+        <IconPhGameController width="15" height="15" />{{
+          t("threeDs.addDevice")
+        }}
+      </StudioButton>
       <StudioButton @click="emit('openStore')">
         {{ t("studio.browseStore") }}
       </StudioButton>
@@ -205,32 +221,38 @@ function startPreparation(): void {
         </h1>
         <p class="text-xs text-muted">{{ t("studio.environmentIntro") }}</p>
       </header>
-      <ReadinessPanel
-        v-if="!gateway.capabilities.preparation"
-        :report="readiness"
-        :device="device"
-        :checking="checking"
-        @recheck="checkReadiness"
-      />
       <!-- The 3DS arrives with custom firmware already installed; Studio only
-           verifies it and points at the community guide otherwise. -->
-      <StudioPanel v-else-if="device.platform === '3ds'" class="max-w-[620px]">
+           verifies it and points at the community guide otherwise. The Pocket
+           launcher and pairing key are prepared through the setup dialog. -->
+      <StudioPanel v-if="device.platform === '3ds'" class="max-w-[620px]">
         <div class="flex items-center gap-3">
           <h2 class="text-lg font-semibold">{{ t("studio.cfw.title") }}</h2>
           <StatusPill :tone="isReady ? 'success' : 'warning'" dot>{{
-            t(isReady ? "studio.allReady" : "studio.cfw.missing")
+            t(
+              isReady
+                ? "studio.allReady"
+                : cfwVerified
+                  ? "threeDs.runtimeMissing"
+                  : "studio.cfw.missing",
+            )
           }}</StatusPill>
         </div>
         <p class="mt-2 text-sm text-muted">{{ t("studio.cfw.description") }}</p>
-        <StudioCallout v-if="!isReady" tone="warning" class="mt-3">
+        <StudioCallout v-if="!cfwVerified" tone="warning" class="mt-3">
           {{ t("studio.cfw.notice") }}
         </StudioCallout>
+        <p class="mt-3 text-xs text-muted">
+          {{ t("threeDs.nativeSelfUpgrade") }}
+        </p>
         <div class="mt-4 flex justify-end gap-2">
           <StudioButton :disabled="checking" @click="checkReadiness">
             <IconSvgSpinners90Ring v-if="checking" width="13" height="13" />
             <IconPhArrowsClockwise v-else width="13" height="13" />{{
               t("readiness.recheck")
             }}
+          </StudioButton>
+          <StudioButton @click="useThreeDsSetup().show()">
+            {{ t("threeDs.setupTitle") }}
           </StudioButton>
           <StudioButton
             v-if="isReady"
@@ -241,6 +263,13 @@ function startPreparation(): void {
           </StudioButton>
         </div>
       </StudioPanel>
+      <ReadinessPanel
+        v-else-if="!gateway.capabilities.preparation"
+        :report="readiness"
+        :device="device"
+        :checking="checking"
+        @recheck="checkReadiness"
+      />
       <StudioPanel v-else class="max-w-[620px]">
         <div class="flex items-center gap-3">
           <h2 class="text-lg font-semibold">

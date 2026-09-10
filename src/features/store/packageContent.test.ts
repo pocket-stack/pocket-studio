@@ -13,6 +13,7 @@ function entry(): CatalogEntry {
     ...demoCatalog[0]!,
     id: app.id,
     details: {
+      candidates: [],
       app,
       releaseId: release.id,
       artifactId: artifact.id,

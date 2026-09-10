@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useDeviceSession } from "../../shared/composables/useDeviceSession";
 import { useGateway } from "../../shared/gateway";
 import { useElementSize } from "../../shared/composables/useElementSize";
 import {
@@ -16,7 +17,7 @@ import StudioCallout from "../../shared/ui/StudioCallout.vue";
 import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 import PackageArtwork from "./PackageArtwork.vue";
 import StoreMedia from "./StoreMedia.vue";
-import { formatBytes } from "./compatibility";
+import { formatBytes, installationForms } from "./compatibility";
 import { packageText, packageMedia } from "./packageContent";
 import type { PackageView } from "./useStore";
 
@@ -34,6 +35,7 @@ const emit = defineEmits<{
 }>();
 const { t, d, locale, te } = useI18n();
 const gateway = useGateway();
+const { device } = useDeviceSession();
 const { active } = useOperations();
 const name = computed(() =>
   packageText(props.item.entry, "name", locale.value, t),
@@ -69,18 +71,26 @@ const canInstall = computed(
     !props.item.missingDependencies.length &&
     !active.value.some((op) => op.kind === "preparation"),
 );
+// A 3DS title with several installation forms always offers "install": the
+// form is chosen in a dialog and updates happen from the Installed page.
 const installLabel = computed(() =>
-  props.item.installed
-    ? (
-        gateway.flavor === "tauri"
-          ? !props.item.installed.revision ||
-            props.item.installed.artifactId ===
-              props.item.entry.details?.artifactId
-          : props.item.installed.version === props.item.entry.version
-      )
-      ? t("store.detail.reinstall")
-      : t("store.detail.update")
-    : t("store.detail.install"),
+  device.value?.platform === "3ds"
+    ? props.item.installed && installationForms(props.item.entry).length <= 1
+      ? props.item.installed.releaseId === props.item.entry.details?.releaseId
+        ? t("store.detail.reinstall")
+        : t("store.detail.update")
+      : t("store.detail.install")
+    : props.item.installed
+      ? (
+          gateway.flavor === "tauri"
+            ? !props.item.installed.revision ||
+              props.item.installed.artifactId ===
+                props.item.entry.details?.artifactId
+            : props.item.installed.version === props.item.entry.version
+        )
+        ? t("store.detail.reinstall")
+        : t("store.detail.update")
+      : t("store.detail.install"),
 );
 const sourceUrl = computed(() => {
   const source = props.item.entry.details?.app.source.repository;
@@ -141,7 +151,9 @@ const stats = computed(() => [
   {
     label: t("store.detail.compatibility"),
     value: `${platformLabel.value} ${props.item.entry.compatibility.minOsVersion}+`,
-    sub: `${platformLabel.value} ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`,
+    sub: props.item.entry.compatibility.maxOsVersion
+      ? `${platformLabel.value} ${props.item.entry.compatibility.minOsVersion} – ${props.item.entry.compatibility.maxOsVersion}`
+      : `${platformLabel.value} ${props.item.entry.compatibility.minOsVersion}+`,
   },
   {
     label: t("store.detail.models"),

@@ -46,15 +46,11 @@ const canCheckAppSync = computed(
 const appSyncUnconfirmed = computed(
   () => appSync.value?.status === "unknown" || appSync.value?.status === "warn",
 );
+// The native layer reports five checks for a paired 3DS; the compact card
+// leaves out the platform line that is always green.
 const compactChecks =
   props.device?.platform === "3ds"
-    ? [
-        "osVersionSupported",
-        "networkReachable",
-        "cfwInstalled",
-        "homebrewAccess",
-        "sdCardWritable",
-      ]
+    ? ["modelSupported", "pairingTrusted", "cfwInstalled", "runtimeAvailable"]
     : [
         "osVersionSupported",
         "pairingTrusted",
@@ -73,6 +69,7 @@ const passCount = computed(
 );
 const canReviewPreparation = computed(() => {
   if (!gateway.capabilities.preparation || !props.report) return false;
+  if (props.device?.platform === "3ds") return props.report.status !== "ready";
   if (
     props.device?.id === props.report.deviceId &&
     props.device.mode === "dfu" &&
@@ -233,9 +230,11 @@ const statusClass = {
         >
           {{
             t(
-              report?.requiredWorkflow === "appSync"
-                ? "preparation.appSync.action"
-                : "preparation.reviewPlan",
+              device?.platform === "3ds"
+                ? "threeDs.setupTitle"
+                : report?.requiredWorkflow === "appSync"
+                  ? "preparation.appSync.action"
+                  : "preparation.reviewPlan",
             )
           }}<IconPhArrowRight width="14" height="14" />
         </StudioButton>

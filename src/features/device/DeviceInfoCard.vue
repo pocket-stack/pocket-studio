@@ -30,12 +30,15 @@ const screen = computed(() =>
 );
 const console3ds = computed(() => props.device.platform === "3ds");
 // The 3DS keeps its data on an SD card, has no UDID, and is reached over the
-// network; its system version carries the region suffix ("11.17.0-50J").
+// network; its firmware string carries the region suffix ("11.17.0-50J").
 const osVersion = computed(() => {
-  const { osVersion, buildNumber, platform } = props.device;
-  if (!osVersion) return t("connection.unknownValue");
-  if (platform === "3ds")
+  const { osVersion, buildNumber, platform, threeDs } = props.device;
+  if (platform === "3ds") {
+    if (threeDs?.firmware) return threeDs.firmware;
+    if (!osVersion) return t("connection.unknownValue");
     return buildNumber ? `${osVersion}-${buildNumber}` : osVersion;
+  }
+  if (!osVersion) return t("connection.unknownValue");
   return `${t("device.platform.ios")} ${osVersion}${buildNumber ? ` (${buildNumber})` : ""}`;
 });
 const rows = computed(() => [
@@ -57,25 +60,40 @@ const rows = computed(() => [
   {
     key: "model",
     value:
-      [props.device.modelIdentifier, props.device.boardConfig]
+      [
+        props.device.modelIdentifier,
+        props.device.boardConfig,
+        props.device.threeDs?.region,
+      ]
         .filter(Boolean)
         .join(" · ") || t("connection.unknownValue"),
   },
-  {
-    key: "serial",
-    value: props.device.serialMasked ?? t("connection.unknownValue"),
-    mono: true,
-  },
-  console3ds.value
-    ? {
-        key: "transport",
-        value: t(`device.transport.${props.device.transport}`),
-      }
-    : {
-        key: "udid",
-        value: props.device.udidMasked ?? t("connection.unknownValue"),
-        mono: true,
-      },
+  ...(console3ds.value
+    ? [
+        {
+          key: "runtime",
+          value: props.device.threeDs?.runtime.version
+            ? `Pocket ${props.device.threeDs.runtime.version}`
+            : t("connection.unknownValue"),
+          mono: true,
+        },
+        {
+          key: "transport",
+          value: t(`device.transport.${props.device.transport}`),
+        },
+      ]
+    : [
+        {
+          key: "serial",
+          value: props.device.serialMasked ?? t("connection.unknownValue"),
+          mono: true,
+        },
+        {
+          key: "udid",
+          value: props.device.udidMasked ?? t("connection.unknownValue"),
+          mono: true,
+        },
+      ]),
 ]);
 </script>
 <template>
@@ -103,6 +121,12 @@ const rows = computed(() => [
           t(`readiness.status.${readiness?.status ?? "needsAttention"}`)
         }}</StatusPill>
       </div>
+      <p
+        v-if="device.platform === '3ds' && !device.threeDs?.hardwareVerified"
+        class="mt-2 text-2xs text-muted"
+      >
+        {{ t("threeDs.hardwareScope") }}
+      </p>
       <dl
         class="mt-3 grid grid-cols-3 gap-x-6 gap-y-1.5 text-sm max-[1100px]:grid-cols-2"
       >

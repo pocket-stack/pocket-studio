@@ -12,6 +12,7 @@ export type Transport = "usb" | "network";
 export interface DeviceSummary {
   id: string;
   platform: Platform;
+  threeDs?: ThreeDsDetails | null;
   modelIdentifier: string | null;
   marketingName: string;
   chip: string | null;
@@ -67,10 +68,8 @@ export type ReadinessCheckId =
   | "batteryLevel"
   | "physicalButtons"
   | "normalMode"
-  | "networkReachable"
   | "cfwInstalled"
-  | "homebrewAccess"
-  | "sdCardWritable";
+  | "runtimeAvailable";
 
 export type CheckStatus = "pass" | "fail" | "warn" | "unknown";
 
@@ -258,7 +257,7 @@ export type OperationEvent =
 
 export type PackageCategory = "runtime" | "tool" | "app" | "game";
 export type InstallPolicy =
-  "deb" | "ipa" | "bootstrap" | "cia" | "3dsx" | "unsupported";
+  "deb" | "ipa" | "bootstrap" | "unsupported" | "cia" | "threeDsx" | "pocket";
 export type SignedCatalog = import("./storeProtocol.generated").SignedCatalog;
 export type StoreApplication = SignedCatalog["apps"][number];
 export type StoreRelease = SignedCatalog["releases"][number];
@@ -274,6 +273,7 @@ export type StoreVerdict =
   | "withdrawn"
   | "catalogExpired";
 export interface CatalogDetails {
+  candidates: CatalogCandidate[];
   app: StoreApplication;
   releaseId: string;
   artifactId: string;
@@ -299,7 +299,7 @@ export interface PackageCompatibility {
   platform: string;
   models: string[];
   minOsVersion: string;
-  maxOsVersion: string;
+  maxOsVersion: string | null;
   requiresJailbreak: boolean;
 }
 
@@ -319,6 +319,8 @@ export interface CatalogEntry {
 }
 
 export interface InstalledPackage {
+  installationId: string;
+  managed?: ThreeDsInstallation | null;
   packageId: string;
   version: string;
   installedAt: number | null;
@@ -348,7 +350,10 @@ export interface PackageRequest {
   deviceId: string;
   appId: string;
   action: PackageAction;
-  bundleId: string | null;
+  installationId?: string | null;
+  delivery?: "shared" | "bundled" | null;
+  format?: string | null;
+  deleteData?: boolean | null;
 }
 export interface PackageConsent {
   planId: string;
@@ -361,8 +366,8 @@ export interface PackagePlan {
   appId: string;
   names: Record<string, string>;
   action: PackageAction;
-  bundleId: string;
-  previous: NonNullable<InstalledPackage["native"]> | null;
+  installation: PackageInstallation;
+  deleteData: boolean;
   releaseId: string | null;
   artifact: StoreArtifact | null;
   target: StoreArtifact["targets"][number] | null;
@@ -372,8 +377,6 @@ export interface PackagePlan {
   sequence: number;
   catalogExpiresAt: number;
   expiresAt: number;
-  appsync: RequirementState;
-  jailbreak: RequirementState;
   steps: PlanStep[];
 }
 export interface PackageJob {
@@ -462,6 +465,11 @@ export interface StudioGateway {
       handler: (event: DeviceEvent) => void,
     ): Unsubscribe | Promise<Unsubscribe>;
   };
+  setup: {
+    plan(request: SetupRequest): Promise<SetupPlan>;
+    execute(planId: string): Promise<SetupResult>;
+    connect(pairingId: string, address?: string): Promise<DiscoverySnapshot>;
+  };
   preparation: {
     plan(deviceId: string): Promise<PreparationPlan>;
     start(
@@ -494,4 +502,103 @@ export interface StudioGateway {
     ): Unsubscribe | Promise<Unsubscribe>;
   };
   demo: DemoControls;
+}
+
+export type StoreTarget = StoreArtifact["targets"][number];
+export type RuntimeDelivery = "shared" | "bundled";
+export interface ThreeDsDetails {
+  region: string | null;
+  firmwareRevision: number | null;
+  firmware: string | null;
+  runtime: NonNullable<StoreTarget["runtime_provides"]>;
+  hostAbi: number;
+  hostAppId: string;
+  launcher: boolean;
+  busy: boolean;
+  nativeManagement: boolean;
+  hardwareVerified: boolean;
+}
+export interface ThreeDsInstallation {
+  installationId: string;
+  appId: string;
+  containerId: string;
+  generation: number;
+  format: string;
+  delivery: RuntimeDelivery;
+  installed: boolean;
+  health: "untested" | "accepted" | "rejected";
+  title: string;
+  version: string;
+  revision: number | null;
+  buildId: string | null;
+  guestSha256: string;
+  nativeVersion: string | null;
+  nativeBuildId: string | null;
+  nativeIdentity: StoreArtifact["native_identity"];
+  runtimeId: string | null;
+  runtimeVersion: string | null;
+  hostAbi: number | null;
+  unavailable: boolean;
+}
+export type PackageInstallation =
+  | {
+      platform: "ios";
+      bundleId: string;
+      previous: NonNullable<InstalledPackage["native"]> | null;
+      appsync: RequirementState;
+      jailbreak: RequirementState;
+    }
+  | {
+      platform: "3ds";
+      installationId: string;
+      delivery: RuntimeDelivery;
+      format: string;
+      expectedGeneration: number;
+      previous: ThreeDsInstallation | null;
+      nativeIdentity: StoreArtifact["native_identity"];
+      updatesHost: boolean;
+    };
+export interface CatalogCandidate {
+  delivery: RuntimeDelivery;
+  format: string;
+  version: string;
+  revision: number;
+  releaseId: string;
+  artifactId: string;
+  targetId: string;
+  verdict: StoreVerdict;
+  requiresExistingHost: boolean;
+  runtimeRequirement: StoreTarget["runtime_requirement"];
+  hostAbi: number | null;
+}
+export type SetupDestination =
+  | { kind: "sd"; path: string }
+  | {
+      kind: "ftp";
+      address: string;
+      port: number;
+      username: string;
+      password: string;
+    };
+export interface SetupRequest {
+  runtimeRequirement?: StoreTarget["runtime_requirement"];
+  hostAbi?: number | null;
+  destination: SetupDestination;
+  address?: string;
+  format?: "cia" | "3dsx";
+}
+export interface SetupPlan {
+  bootstrapAppId: string;
+  id: string;
+  destination: string;
+  existingPairing: boolean;
+  artifact: StoreArtifact | null;
+  version: string | null;
+  files: string[];
+  expiresAt: number;
+}
+export interface SetupResult {
+  pairingId: string;
+  filesVerified: boolean;
+  restartRequired: boolean;
 }

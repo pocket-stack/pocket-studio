@@ -61,7 +61,12 @@ it("preserves failed observations and rejects late results after device detachme
   const observed = {
     deviceId,
     entries: [
-      { packageId: "pocket-reader", version: "1.2.0", installedAt: null },
+      {
+        installationId: "ios:pocket-reader",
+        packageId: "pocket-reader",
+        version: "1.2.0",
+        installedAt: null,
+      },
     ],
     state: "fresh" as const,
     observedAt: 123,
@@ -112,8 +117,14 @@ it("native installation submits the device-bound plan directly and refuses a cha
     appId: "pocket-reader",
     names: { en: "Reader" },
     action: "install",
-    bundleId: "reader.native",
-    previous: null,
+    installation: {
+      platform: "ios",
+      bundleId: "reader.native",
+      previous: null,
+      appsync: "unknown",
+      jailbreak: "unknown",
+    },
+    deleteData: false,
     releaseId: null,
     artifact: null,
     target: null,
@@ -123,8 +134,6 @@ it("native installation submits the device-bound plan directly and refuses a cha
     sequence: 1,
     catalogExpiresAt: Date.now() + 10000,
     expiresAt: Date.now() + 10000,
-    appsync: "satisfied",
-    jailbreak: "satisfied",
     steps: [],
   });
   const start = vi.fn().mockResolvedValue({
@@ -178,12 +187,19 @@ it("native installation submits the device-bound plan directly and refuses a cha
       tone: "error",
       key: "store.actions.errors.deviceChanged",
     });
-    // Uninstall is the one action that carries data-removal consent.
+    // Consent mirrors the plan: removing an iOS app takes its data along.
     plan.mockImplementationOnce(async () => ({
       ...makePlan(session.device.value!.id),
       action: "uninstall",
+      deleteData: true,
     }));
-    await store.uninstall("pocket-reader", "reader.native");
+    await store.uninstall("pocket-reader", "ios:reader.native");
+    expect(plan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        action: "uninstall",
+        installationId: "ios:reader.native",
+      }),
+    );
     expect(start).toHaveBeenLastCalledWith({
       planId: "native-plan",
       deleteData: true,
@@ -191,4 +207,58 @@ it("native installation submits the device-bound plan directly and refuses a cha
   } finally {
     vi.doUnmock("../../shared/gateway");
   }
+});
+
+it("plans 3DS titles per instance: a single published form installs directly, several ask for the form", async () => {
+  vi.resetModules();
+  vi.useFakeTimers();
+  vi.stubGlobal("window", { setTimeout, clearTimeout });
+  const { useGateway } = await import("../../shared/gateway");
+  const { useDeviceSession } =
+    await import("../../shared/composables/useDeviceSession");
+  const { useStore } = await import("./useStore");
+  const gateway = useGateway();
+  const session = useDeviceSession();
+  await session.initialize();
+  await gateway.demo.attachDevice("n3dsll");
+  await vi.advanceTimersByTimeAsync(600);
+  const store = useStore();
+  const init = store.initialize();
+  await vi.advanceTimersByTimeAsync(300);
+  await init;
+  const start = vi.spyOn(gateway.store, "start");
+  // Theme Forge is published as a CIA only: no choice to make.
+  await store.install("ctr-theme-forge");
+  expect(start).toHaveBeenCalledTimes(1);
+  expect(store.installed.value.map((item) => item.managed?.format)).toEqual([
+    "cia",
+  ]);
+  // Dual Notebook ships as .pocket, CIA and 3DSX: the form is the user's call.
+  await store.install("ctr-dual-notebook");
+  expect(store.deliveryAppId.value).toBe("ctr-dual-notebook");
+  expect(start).toHaveBeenCalledTimes(1);
+  await store.chooseDelivery("shared", "pocket");
+  expect(store.deliveryAppId.value).toBe(null);
+  expect(store.installed.value).toHaveLength(2);
+  const shared = store.installed.value.find(
+    (item) => item.packageId === "ctr-dual-notebook",
+  )!;
+  expect(shared.managed).toMatchObject({
+    delivery: "shared",
+    format: "pocket",
+  });
+  // Removal keeps app data unless the wipe is requested explicitly.
+  await store.uninstall("ctr-dual-notebook", shared.installationId);
+  expect(start).toHaveBeenLastCalledWith(
+    expect.objectContaining({ deleteData: false }),
+  );
+  expect(store.installed.value.map((item) => item.packageId)).toEqual([
+    "ctr-theme-forge",
+  ]);
+  const cia = store.installed.value[0]!;
+  await store.uninstall("ctr-theme-forge", cia.installationId, true);
+  expect(start).toHaveBeenLastCalledWith(
+    expect.objectContaining({ deleteData: true }),
+  );
+  expect(store.installed.value).toEqual([]);
 });

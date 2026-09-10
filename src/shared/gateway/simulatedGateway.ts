@@ -1,3 +1,4 @@
+import { createThreeDsDemo, threeDsReadiness } from "./threeDsDemo";
 import { validateConsent } from "./consent";
 import { compareVersions } from "../versions";
 import {
@@ -159,13 +160,9 @@ export function createSimulatedGateway(): StudioGateway {
     return device;
   }
 
-  /** Whether the environment a package needs (jailbreak or CFW) is present. */
-  function environmentReady(current: DeviceSummary): boolean {
-    return current.platform === "3ds" ? cfwInstalled : jailbroken;
-  }
-
   function readiness(current: DeviceSummary): ReadinessReport {
-    if (current.platform === "3ds") return readiness3ds(current);
+    if (current.platform === "3ds")
+      return threeDsReadiness(current, cfwInstalled);
     const checks: ReadinessCheck[] = [
       { id: "platformSupported", status: "pass", value: "iOS" },
       {
@@ -198,47 +195,6 @@ export function createSimulatedGateway(): StudioGateway {
         : appsyncInstalled
           ? undefined
           : "appSync",
-      checkedAt: Date.now(),
-    };
-  }
-
-  // No guided preparation exists for the 3DS: custom firmware is assumed and
-  // only verified, so a missing CFW reports without a workflow.
-  function readiness3ds(current: DeviceSummary): ReadinessReport {
-    const checks: ReadinessCheck[] = [
-      { id: "platformSupported", status: "pass", value: "Nintendo 3DS" },
-      {
-        id: "modelSupported",
-        status: "pass",
-        value: current.modelIdentifier ?? undefined,
-      },
-      {
-        id: "osVersionSupported",
-        status: "pass",
-        value: `${current.osVersion}-${current.buildNumber}`,
-      },
-      { id: "networkReachable", status: "pass", value: "Wi-Fi" },
-      {
-        id: "cfwInstalled",
-        status: cfwInstalled ? "pass" : "fail",
-        value: cfwInstalled ? "Luma3DS 13.0.2" : undefined,
-      },
-      {
-        id: "homebrewAccess",
-        status: cfwInstalled ? "pass" : "unknown",
-        value: cfwInstalled ? "hbmenu 2.4.0" : undefined,
-      },
-      { id: "sdCardWritable", status: "pass", value: "32 GB" },
-      {
-        id: "batteryLevel",
-        status: (current.batteryPercent ?? 0) >= 50 ? "pass" : "warn",
-        value: `${current.batteryPercent}%`,
-      },
-    ];
-    return {
-      deviceId: current.id,
-      status: cfwInstalled ? "ready" : "needsPreparation",
-      checks,
       checkedAt: Date.now(),
     };
   }
@@ -545,6 +501,20 @@ export function createSimulatedGateway(): StudioGateway {
     return operation;
   }
 
+  // The paired console is managed through instance-bound plans, like the
+  // native layer; the legacy queue below only serves the iPod demo.
+  const threeDs = createThreeDsDemo({
+    device: () => device,
+    cfwInstalled: () => cfwInstalled,
+    attach: async () => {
+      // One simulated device at a time: the console replaces the iPod.
+      if (device && device.platform !== "3ds")
+        await gateway.demo.detachDevice();
+      await gateway.demo.attachDevice("n3dsll");
+    },
+    snapshot: () => gateway.devices.list(),
+  });
+
   const gateway: StudioGateway = {
     flavor: "browser",
     capabilities: {
@@ -582,6 +552,7 @@ export function createSimulatedGateway(): StudioGateway {
       },
       onEvent: (handler) => deviceEvents.subscribe(handler),
     },
+    setup: threeDs.setup,
     preparation: {
       async plan(deviceId) {
         const current = requireDevice(deviceId);
@@ -695,20 +666,23 @@ export function createSimulatedGateway(): StudioGateway {
       },
     },
     store: {
-      async plan() {
+      async plan(request) {
+        if (requireDevice(request.deviceId).platform === "3ds")
+          return threeDs.plan(request);
         throw new GatewayError(
           "operationUnavailable",
           "Native package planning is unavailable in the browser demo",
         );
       },
-      async start() {
+      async start(consent) {
+        if (device?.platform === "3ds") return threeDs.start(consent);
         throw new GatewayError(
           "operationUnavailable",
           "Native package planning is unavailable in the browser demo",
         );
       },
       async jobs() {
-        return [];
+        return threeDs.jobs();
       },
       async verify() {
         throw new GatewayError(
@@ -717,7 +691,11 @@ export function createSimulatedGateway(): StudioGateway {
         );
       },
       async uninstall(deviceId, packageId) {
-        requireDevice(deviceId);
+        if (requireDevice(deviceId).platform === "3ds")
+          throw new GatewayError(
+            "invalidAction",
+            "3DS instances are removed through a plan",
+          );
         assertIdle();
         const dependent = installed.find((item) =>
           demoCatalog
@@ -746,7 +724,7 @@ export function createSimulatedGateway(): StudioGateway {
       async catalog() {
         await sleep(300);
         return {
-          entries: demoCatalog,
+          entries: [...demoCatalog, ...threeDs.catalog()],
           source: "demo",
           sourceLabel: null,
           sequence: null,
@@ -764,10 +742,13 @@ export function createSimulatedGateway(): StudioGateway {
         );
       },
       async installed(deviceId) {
-        requireDevice(deviceId);
+        const current = requireDevice(deviceId);
         return {
           deviceId,
-          entries: installed.slice(),
+          entries:
+            current.platform === "3ds"
+              ? threeDs.installed()
+              : installed.slice(),
           state: "fresh",
           observedAt: Date.now(),
           issue: null,
@@ -775,16 +756,18 @@ export function createSimulatedGateway(): StudioGateway {
       },
       async install(deviceId, packageId) {
         const current = requireDevice(deviceId);
+        if (current.platform === "3ds")
+          throw new GatewayError(
+            "invalidAction",
+            "3DS installs are planned per instance",
+          );
         assertIdle();
         const entry: CatalogEntry | undefined = demoCatalog.find(
           (item) => item.id === packageId,
         );
         if (!entry)
           throw new GatewayError("unknownPackage", "package not found");
-        if (
-          entry.compatibility.requiresJailbreak &&
-          !environmentReady(current)
-        ) {
+        if (entry.compatibility.requiresJailbreak && !jailbroken) {
           throw new GatewayError(
             "deviceNotReady",
             "package requires a prepared device environment",
@@ -803,7 +786,7 @@ export function createSimulatedGateway(): StudioGateway {
           ) < 0 ||
           compareVersions(
             current.osVersion ?? "",
-            entry.compatibility.maxOsVersion,
+            entry.compatibility.maxOsVersion ?? current.osVersion ?? "",
           ) > 0
         )
           throw new GatewayError(
@@ -825,6 +808,7 @@ export function createSimulatedGateway(): StudioGateway {
             (item) => item.packageId === packageId,
           );
           const record = {
+            installationId: `ios:${packageId}`,
             packageId,
             version: entry.version,
             installedAt: Date.now(),

@@ -24,19 +24,20 @@ const failedPackageId = ref<string>();
     class="inline-block shrink-0 rounded-[18%]"
     :style="{ width: `${size ?? 80}px`, height: `${size ?? 80}px` }"
   />
-  <span
-    v-else-if="entry?.details"
-    class="inline-flex shrink-0 items-center justify-center rounded-[18%] border border-line bg-track text-muted"
-    :style="{ width: `${size ?? 80}px`, height: `${size ?? 80}px` }"
-    ><IconPhSquaresFour width="32" height="32" aria-hidden="true"
-  /></span>
+  <!-- Bundled artwork by package id stands in for catalogs without icons. -->
   <img
-    v-else
-    :src="`/vectors/packages/${failedPackageId === packageId ? 'pocket-runtime' : packageId}.svg`"
+    v-else-if="failedPackageId !== packageId"
+    :src="`/vectors/packages/${packageId}.svg`"
     :width="size ?? 80"
     :height="size ?? 80"
     alt=""
     class="inline-block shrink-0"
     @error="failedPackageId = packageId"
   />
+  <span
+    v-else
+    class="inline-flex shrink-0 items-center justify-center rounded-[18%] bg-ink/6 text-muted"
+    :style="{ width: `${size ?? 80}px`, height: `${size ?? 80}px` }"
+    ><IconPhSquaresFour width="32" height="32" aria-hidden="true"
+  /></span>
 </template>

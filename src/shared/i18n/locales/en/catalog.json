@@ -69,36 +69,6 @@
       "name": "Font Patch",
       "summary": "Adjust text display for small screens",
       "description": "Adjust text display for small screens. This local fixture demonstrates app details, compatibility checks, and installation progress."
-    },
-    "pocket-runtime-ctr": {
-      "name": "Pocket Runtime",
-      "summary": "The Pocket runtime built for the New 3DS family.",
-      "description": "Brings the Pocket JavaScript runtime and system bridge to the New Nintendo 3DS. Installed as a CIA title on a console with custom firmware; it drives both screens and syncs data with the rest of the ecosystem."
-    },
-    "pocket-agent-ctr": {
-      "name": "Pocket Agent",
-      "summary": "Keeps the console connected to Pocket Studio over Wi-Fi.",
-      "description": "A background title that receives install commands from Pocket Studio over the local network, reports console state and keeps the runtime updated. Depends on Pocket Runtime for 3DS."
-    },
-    "ctr-pixel-arcade": {
-      "name": "Pixel Arcade",
-      "summary": "Open-source retro games tuned for two screens.",
-      "description": "A curated set of open-source retro games with the action on the top screen and controls or maps on the touch screen. Save games sync through Pocket Runtime."
-    },
-    "ctr-dual-notebook": {
-      "name": "Dual Notebook",
-      "summary": "Stylus notes on the bottom, pages on the top.",
-      "description": "Handwritten and typed notes that use the stylus on the touch screen while the top screen shows the page you are editing. Notebooks sync with other Pocket devices."
-    },
-    "ctr-pocket-sync": {
-      "name": "Pocket Sync",
-      "summary": "Homebrew helper that mirrors your Pocket data to the SD card.",
-      "description": "A lightweight 3DSX homebrew app launched from the Homebrew Launcher. It mirrors Pocket data to the SD card and back without needing a CIA install."
-    },
-    "ctr-theme-forge": {
-      "name": "Theme Forge",
-      "summary": "Build HOME menu themes from your Pocket library.",
-      "description": "Turns artwork and colours from your Pocket library into HOME menu themes for the 3DS. Installs as a CIA title; themes are written to the SD card only."
     }
   }
 }

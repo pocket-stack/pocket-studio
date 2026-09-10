@@ -76,6 +76,12 @@ export function createTauriGateway(): StudioGateway {
       checkReadiness: (deviceId) => call("check_readiness", { deviceId }),
       onEvent: (handler) => subscribe<DeviceEvent>("studio://device", handler),
     },
+    setup: {
+      plan: (request) => call("plan_device_setup", { request }),
+      execute: (planId) => call("execute_device_setup", { planId }),
+      connect: (pairingId, address) =>
+        call("connect_three_ds", { pairingId, address }),
+    },
     preparation: {
       plan: (deviceId) => call("plan_preparation", { deviceId }),
       start: (consent, sshPassword) =>
