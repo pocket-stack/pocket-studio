@@ -185,6 +185,9 @@ try {
       await shot("connect-sd");
       await click(review);
       await click(write);
+      // The console-side checklist ends with the Runtime menu before verifying.
+      assert.ok((await dialog.innerText()).includes("L+R+SELECT"));
+      await shot("connect-written");
       await click(verify);
       if (
         (await page.locator("header details").first().getAttribute("open")) ===
@@ -258,6 +261,10 @@ try {
       );
       await shot("launcher-plan");
       await click(write);
+      assert.ok(
+        (await dialog.innerText()).includes("Homebrew Launcher"),
+        "a 3DSX launcher is started from the Homebrew Launcher",
+      );
       await shot("launcher-written");
       await click(locale === "en" ? "Close" : "关闭");
       const install = locale === "en" ? "Install" : "安装";

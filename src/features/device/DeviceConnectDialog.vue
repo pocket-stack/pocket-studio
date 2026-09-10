@@ -48,21 +48,21 @@ const target = computed(() => connect.target.value);
 const configured = computed(
   () => !!connection.address.value && connection.ftpPort.value !== null,
 );
-watch(
-  () => connect.open.value,
-  (open) => {
-    if (!open) return;
-    // Preparation flows already know which console they prepare.
-    kind.value = prepares.value ? "3ds" : null;
-    transport.value = configured.value ? "ftp" : "sd";
-    format.value = (
-      card.value ? (target.value?.formats[0] ?? "cia") : "cia"
-    ) as Format;
-    plan.value = null;
-    result.value = null;
-    issue.value = null;
-  },
-);
+watch([() => connect.open.value, () => connect.mode.value], ([open]) => {
+  if (!open) return;
+  // Preparation flows already know which console they prepare.
+  kind.value = prepares.value ? "3ds" : null;
+  transport.value = configured.value ? "ftp" : "sd";
+  format.value = (
+    card.value ? (target.value?.formats[0] ?? "cia") : "cia"
+  ) as Format;
+  plan.value = null;
+  result.value = null;
+  written.value = [];
+  issue.value = null;
+});
+/** Files the last execution wrote, kept for the on-console checklist. */
+const written = ref<string[]>([]);
 const title = computed(() =>
   card.value
     ? t("threeDs.cardTitle", { name: target.value?.name ?? "" })
@@ -95,18 +95,63 @@ const formatOptions = computed(() =>
         { value: "3dsx", label: t("threeDs.bootstrap3dsx") },
       ],
 );
-// What the user does on the console before the connection can be verified.
-const nextStep = computed(() =>
-  card.value
-    ? format.value === "cia"
-      ? "threeDs.cardFbiNext"
-      : "threeDs.cardHbNext"
-    : launcher.value
-      ? format.value === "cia"
-        ? "threeDs.fbiNext"
-        : "threeDs.restartNext"
-      : "threeDs.connectNext",
-);
+// Studio only writes files. Everything after that happens on the console, in
+// this order, before a connection can be verified (see hosts/3ds in PocketJS:
+// ftpd and Pocket never run together; FBI installs a CIA; the Homebrew
+// Launcher starts a 3DSX; L+R+SELECT shows the Runtime's link state).
+interface Step {
+  text: string;
+  /** An in-dialog shortcut when the console still lacks Pocket. */
+  action?: { label: string; run: () => void };
+}
+const steps = computed<Step[]>(() => {
+  const name = card.value
+    ? (target.value?.name ?? "")
+    : t("threeDs.launcherName");
+  const cia = written.value.find((file) => file.startsWith("cias/"));
+  const list: Step[] = [
+    {
+      text: t(
+        transport.value === "ftp"
+          ? "threeDs.steps.exitFtpd"
+          : "threeDs.steps.reinsertCard",
+      ),
+    },
+  ];
+  if (prepares.value) {
+    list.push(
+      {
+        text:
+          format.value === "cia"
+            ? t("threeDs.steps.installCia", {
+                file: cia?.slice("cias/".length) ?? "",
+              })
+            : t("threeDs.steps.placed3dsx", { name }),
+      },
+      {
+        text: t(
+          format.value === "cia"
+            ? "threeDs.steps.launchHome"
+            : "threeDs.steps.launchHbl",
+          { name },
+        ),
+      },
+    );
+  } else {
+    list.push({
+      text: `${t("threeDs.steps.launchExisting")} ${t("threeDs.steps.notInstalled")}`,
+      action: {
+        label: t("threeDs.launcherTitle"),
+        run: () => connect.show("launcher"),
+      },
+    });
+  }
+  list.push(
+    { text: t("threeDs.steps.devMenu") },
+    { text: t("threeDs.steps.verify") },
+  );
+  return list;
+});
 async function review() {
   busy.value = true;
   issue.value = null;
@@ -141,6 +186,7 @@ async function execute() {
   busy.value = true;
   issue.value = null;
   try {
+    written.value = plan.value.files;
     result.value = await gateway.setup.execute(plan.value.id);
     plan.value = null;
   } catch (e) {
@@ -241,6 +287,14 @@ function close() {
           <li>{{ t("threeDs.modelLauncher") }}</li>
           <li>{{ t("threeDs.modelStandalone") }}</li>
           <li class="text-muted">{{ t("threeDs.modelsShared") }}</li>
+          <li>
+            <StudioButton
+              variant="link"
+              size="sm"
+              @click="connect.show('launcher')"
+              >{{ t("threeDs.notInstalledYet") }}</StudioButton
+            >
+          </li>
         </ul>
         <div class="mt-4 flex flex-col gap-3">
           <div class="flex items-center justify-between gap-3">
@@ -330,6 +384,9 @@ function close() {
             t(plan.existingPairing ? "threeDs.reusePair" : "threeDs.newPair")
           }}
         </p>
+        <p v-if="prepares" class="text-xs leading-5 text-muted">
+          {{ t("threeDs.copyOnly") }}
+        </p>
         <ul class="space-y-1 rounded-control bg-ink/4 p-3 text-xs">
           <li
             v-for="file in plan.files"
@@ -354,7 +411,23 @@ function close() {
         <StudioCallout tone="success">{{
           t("threeDs.filesVerified")
         }}</StudioCallout>
-        <p class="text-sm leading-6">{{ t(nextStep) }}</p>
+        <ol
+          class="list-inside list-decimal space-y-1 rounded-control bg-ink/4 px-3 py-2 text-xs leading-5"
+        >
+          <li v-for="step in steps" :key="step.text">
+            {{ step.text }}
+            <StudioButton
+              v-if="step.action"
+              variant="link"
+              size="sm"
+              @click="step.action.run"
+              >{{ step.action.label }}</StudioButton
+            >
+          </li>
+        </ol>
+        <p v-if="card" class="text-xs leading-5 text-muted">
+          {{ t("threeDs.steps.standaloneNote") }}
+        </p>
       </div>
       <StudioCallout v-if="issue" tone="danger" class="mt-3">
         {{ error }}

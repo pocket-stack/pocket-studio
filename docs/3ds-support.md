@@ -37,6 +37,15 @@
 
 启动器是另一条流程：设备“前置环境”页、就绪面板以及商店里需要启动器的应用都通过“安装或升级启动器”打开它，选择 CIA 或 3DSX 后复用同样的无线/读卡器目标。文件列表和目标位置在确认前展示。SD 根目录需要已有 `Nintendo 3DS` 目录和 `boot.firm`，且两者不能是符号链接；这只是目标目录检查，不代表已经通过 CFW 或型号验收。
 
+**Studio 只写文件，安装和启动都在主机上完成**（依据 PocketJS 仓库 `hosts/3ds/README.md` 与 `docs/3DS-LAUNCHER.md`）。写入成功后的结果页按传输方式和文件形式列出主机侧步骤：
+
+1. 用 ftpd 的先在主机上退出 ftpd——它与 Pocket 不能同时运行，退出后 Wi-Fi 需要几秒重新连接；用读卡器的安全弹出后插回主机开机。
+2. CIA：打开 FBI → SD → `cias`，选择刚复制的文件安装，再从 HOME 菜单启动。3DSX：文件已在 `3ds/<小写包名>/boot.3dsx`，从 Homebrew Launcher 启动即可。仅配对时直接启动已安装的 PocketJS Launcher 或自带 Runtime 的应用。
+3. Pocket 读到 `dev.key` 才会在 TCP/UDP 8131 监听。按 L+R+SELECT 打开 Runtime 菜单：`DEV LINK` 为 `DISCOVERABLE` 或 `TCP ONLY` 并显示 `IP:端口` 表示已配对并监听；`NOT PAIRED` 表示没找到密钥。
+4. 回到 Studio 点击“验证连接”。之后每次启动都按设置里的地址静默找到它。
+
+启动器升级同样经 FBI（CIA）或替换 SD 文件（3DSX）后重启；普通管理通道不能替换或删除启动器自身。
+
 密钥位于 `pocketjs/runtime/dev.key`，由 Rust 创建或读取，写入后回读比较；不会传给 webview、加入 Store 或写入日志。只有密钥（以及所选启动器文件）写入并回读成功之后，Studio 才登记配对；写入失败不留下配对记录，重试沿用卡上的密钥。ftpd 与现有 Runtime 开发传输使用可信局域网，**不提供传输加密**。使用 ftpd 后先退出 ftpd，再启动 Pocket。新设备的物理身份只有在用户点击“验证连接”后才会绑定，发现不会创建绑定。
 
 **已知限制：** UDP 发现应答未经认证。局域网内任何主机若得知设备广播的 key id，都可以抢先应答，使 Studio 把明文 hello 中的配对 token 发到它那里。要消除这一点需要 PocketJS 线协议增加挑战应答（设备先证明持有 token，Studio 再发送），属于跨仓库改动，此处仅记录。
