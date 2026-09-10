@@ -44,6 +44,16 @@
     "platform": {
       "ios": "iOS",
       "3ds": "Nintendo 3DS"
+    },
+    "connect": {
+      "title": "Connect a device manually",
+      "intro": "USB devices are detected automatically; devices paired over the network are connected here.",
+      "kinds": {
+        "3ds": {
+          "title": "Nintendo 3DS (New family)",
+          "body": "Writes the pairing key over ftpd on Wi-Fi or through an SD card reader"
+        }
+      }
     }
   }
 }

@@ -36,6 +36,7 @@ declare module 'vue' {
     IconPhMagnifyingGlass: typeof import('~icons/ph/magnifying-glass')['default']
     IconPhPackage: typeof import('~icons/ph/package')['default']
     IconPhPlayFill: typeof import('~icons/ph/play-fill')['default']
+    IconPhPlugs: typeof import('~icons/ph/plugs')['default']
     IconPhShieldCheck: typeof import('~icons/ph/shield-check')['default']
     IconPhSquaresFour: typeof import('~icons/ph/squares-four')['default']
     IconPhStop: typeof import('~icons/ph/stop')['default']

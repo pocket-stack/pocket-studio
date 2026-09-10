@@ -69,7 +69,7 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Appearance, language, device password and about.",
+    "subtitle": "Appearance, language, device password, 3DS connection and about.",
     "theme": {
       "title": "Theme",
       "system": "System",
@@ -88,6 +88,18 @@
     "ssh": {
       "title": "Device root SSH password",
       "hint": "Leave empty to use the factory default alpine. Stored on this computer only."
+    },
+    "threeDs": {
+      "title": "Nintendo 3DS",
+      "hint": "Studio silently looks for a paired console at this address on every scan and uses the ftpd account for wireless preparation; leave it empty to rely on broadcast discovery. Stored on this computer only.",
+      "address": "Console IP",
+      "addressPlaceholder": "For example 192.168.1.50",
+      "port": "ftpd port",
+      "portPlaceholder": "5000",
+      "username": "ftpd user",
+      "usernamePlaceholder": "anonymous",
+      "password": "ftpd password",
+      "passwordPlaceholder": "Usually empty"
     }
   }
 }

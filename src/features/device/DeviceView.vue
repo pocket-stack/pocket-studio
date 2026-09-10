@@ -8,7 +8,7 @@ import StatusPill from "../../shared/ui/StatusPill.vue";
 import StudioButton from "../../shared/ui/StudioButton.vue";
 import StudioCallout from "../../shared/ui/StudioCallout.vue";
 import StudioPanel from "../../shared/ui/StudioPanel.vue";
-import { useThreeDsSetup } from "./useThreeDsSetup";
+import { useDeviceConnect } from "./useDeviceConnect";
 import { usePreparation } from "../preparation/usePreparation";
 import { useStore } from "../store/useStore";
 import PreparationWorkspace from "../preparation/PreparationWorkspace.vue";
@@ -88,8 +88,9 @@ const diagnostics = computed(() =>
   ),
 );
 function startPreparation(): void {
+  // What Studio can prepare on a 3DS is the Pocket launcher; CFW is the user's.
   if (device.value?.platform === "3ds") {
-    useThreeDsSetup().show();
+    useDeviceConnect().show("launcher");
     return;
   }
   if (device.value && gateway.capabilities.preparation)
@@ -160,10 +161,8 @@ function startPreparation(): void {
       >
         <IconPhWifiHigh width="15" height="15" />{{ t("demo.attach3ds") }}
       </StudioButton>
-      <StudioButton @click="useThreeDsSetup().show()">
-        <IconPhGameController width="15" height="15" />{{
-          t("threeDs.addDevice")
-        }}
+      <StudioButton @click="useDeviceConnect().show('connect')">
+        <IconPhPlugs width="15" height="15" />{{ t("device.connect.title") }}
       </StudioButton>
       <StudioButton @click="emit('openStore')">
         {{ t("studio.browseStore") }}
@@ -251,8 +250,8 @@ function startPreparation(): void {
               t("readiness.recheck")
             }}
           </StudioButton>
-          <StudioButton @click="useThreeDsSetup().show()">
-            {{ t("threeDs.setupTitle") }}
+          <StudioButton @click="useDeviceConnect().show('launcher')">
+            {{ t("threeDs.installLauncher") }}
           </StudioButton>
           <StudioButton
             v-if="isReady"

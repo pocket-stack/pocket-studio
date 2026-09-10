@@ -81,6 +81,7 @@ export function createTauriGateway(): StudioGateway {
       execute: (planId) => call("execute_device_setup", { planId }),
       connect: (pairingId, address) =>
         call("connect_three_ds", { pairingId, address }),
+      hint: (address) => call("set_three_ds_address", { address }),
     },
     preparation: {
       plan: (deviceId) => call("plan_preparation", { deviceId }),

@@ -7,6 +7,7 @@ import {
   FACTORY_SSH_PASSWORD,
   useDefaultSshPassword,
 } from "../../shared/preferences/sshPassword";
+import { useThreeDsConnection } from "../../shared/preferences/threeDsConnection";
 import { useTheme, type ThemePreference } from "../../shared/theme";
 import StudioInput from "../../shared/ui/StudioInput.vue";
 import StudioPanel from "../../shared/ui/StudioPanel.vue";
@@ -36,6 +37,8 @@ const themeModel = computed({
   get: () => theme.preference.value,
   set: (value) => theme.setThemePreference(value as ThemePreference),
 });
+const connection = useThreeDsConnection();
+const consoleFields = ["address", "port", "username", "password"] as const;
 const localeModel = computed({
   get: () => locale.value,
   set: (value) => {
@@ -86,6 +89,32 @@ const localeModel = computed({
       <div class="flex items-center justify-between gap-4 px-4 py-3">
         <span class="font-medium">{{ t("settings.about.version") }}</span>
         <span class="font-mono text-muted">0.1.0</span>
+      </div>
+    </StudioPanel>
+    <StudioPanel :padded="false" class="bg-canvas/60">
+      <div class="px-4 pt-3 pb-1">
+        <span class="block font-medium">{{ t("settings.threeDs.title") }}</span>
+        <span class="block text-xs text-muted">{{
+          t("settings.threeDs.hint")
+        }}</span>
+      </div>
+      <div
+        v-for="field in consoleFields"
+        :key="field"
+        class="flex items-center justify-between gap-4 px-4 py-2"
+      >
+        <span>{{ t(`settings.threeDs.${field}`) }}</span>
+        <StudioInput
+          :model-value="connection.settings.value[field]"
+          :type="field === 'password' ? 'password' : 'text'"
+          size="sm"
+          class="w-[180px] shrink-0"
+          autocomplete="off"
+          :inputmode="field === 'port' ? 'numeric' : undefined"
+          :placeholder="t(`settings.threeDs.${field}Placeholder`)"
+          :label="t(`settings.threeDs.${field}`)"
+          @update:model-value="connection.update({ [field]: $event })"
+        />
       </div>
     </StudioPanel>
   </div>

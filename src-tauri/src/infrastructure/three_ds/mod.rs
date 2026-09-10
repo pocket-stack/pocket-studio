@@ -49,6 +49,9 @@ struct Peer {
 pub struct ThreeDsBridge {
     path: PathBuf,
     peers: Mutex<HashMap<String, Arc<Peer>>>,
+    /// Address from Preferences, asked directly on every scan. It is a hint
+    /// only: a console is trusted through its pairing, never its address.
+    hint: Mutex<Option<IpAddr>>,
 }
 impl ThreeDsBridge {
     pub fn new(path: PathBuf) -> Result<Self, provisioning::SetupError> {
@@ -69,7 +72,15 @@ impl ThreeDsBridge {
         Ok(Self {
             path,
             peers: Mutex::new(peers),
+            hint: Mutex::new(None),
         })
+    }
+    pub fn set_hint(&self, address: Option<IpAddr>) -> Result<(), provisioning::SetupError> {
+        *self
+            .hint
+            .lock()
+            .map_err(|_| provisioning::SetupError::Storage)? = address;
+        Ok(())
     }
     fn peer_from(config: Pair) -> Arc<Peer> {
         Arc::new(Peer {
@@ -273,6 +284,7 @@ impl DeviceProbe for ThreeDsBridge {
                 return ProbeSnapshot::default();
             }
             let mut addresses = vec![IpAddr::V4(Ipv4Addr::BROADCAST)];
+            addresses.extend(self.hint.lock().ok().and_then(|hint| *hint));
             addresses.extend(
                 peers
                     .iter()

@@ -231,7 +231,7 @@ const statusClass = {
           {{
             t(
               device?.platform === "3ds"
-                ? "threeDs.setupTitle"
+                ? "threeDs.installLauncher"
                 : report?.requiredWorkflow === "appSync"
                   ? "preparation.appSync.action"
                   : "preparation.reviewPlan",

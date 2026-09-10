@@ -289,6 +289,9 @@ impl SetupPort for NativeSetup {
             self.0.confirm(id).await
         })
     }
+    fn hint(&self, address: Option<IpAddr>) -> Result<(), SetupError> {
+        self.0.set_hint(address)
+    }
 }
 
 #[cfg(test)]

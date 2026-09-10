@@ -8,7 +8,7 @@ import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 import { installationForms } from "./compatibility";
 import { packageText } from "./packageContent";
 import { useStore } from "./useStore";
-import { useThreeDsSetup } from "../device/useThreeDsSetup";
+import { useDeviceConnect } from "../device/useDeviceConnect";
 
 /**
  * A 3DS title can run inside the Pocket launcher or as its own native app.
@@ -59,7 +59,7 @@ function prepare(): void {
   const required = candidate.value?.runtimeRequirement ?? null;
   const abi = candidate.value?.hostAbi ?? null;
   store.closeDelivery();
-  useThreeDsSetup().show(required, abi);
+  useDeviceConnect().show("launcher", required, abi);
 }
 </script>
 <template>
@@ -151,7 +151,7 @@ function prepare(): void {
         v-if="candidate?.verdict === 'requiresPreparation'"
         variant="link"
         @click="prepare"
-        >{{ t("threeDs.setupTitle") }}</StudioButton
+        >{{ t("threeDs.installLauncher") }}</StudioButton
       >
     </StudioCallout>
     <div class="mt-4 flex justify-end gap-2">

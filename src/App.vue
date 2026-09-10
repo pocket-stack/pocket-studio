@@ -15,9 +15,10 @@ import DemoPanel from "./app/DemoPanel.vue";
 import NotificationStack from "./app/NotificationStack.vue";
 import DeviceView from "./features/device/DeviceView.vue";
 import LogsView from "./features/logs/LogsView.vue";
-import ThreeDsSetupDialog from "./features/device/ThreeDsSetupDialog.vue";
+import DeviceConnectDialog from "./features/device/DeviceConnectDialog.vue";
 import DeliveryDialog from "./features/store/DeliveryDialog.vue";
-import { useThreeDsSetup } from "./features/device/useThreeDsSetup";
+import { useDeviceConnect } from "./features/device/useDeviceConnect";
+import { useThreeDsConnection } from "./shared/preferences/threeDsConnection";
 import PreparationWizard from "./features/preparation/PreparationWizard.vue";
 import { usePreparation } from "./features/preparation/usePreparation";
 import SettingsView from "./features/settings/SettingsView.vue";
@@ -187,6 +188,14 @@ function showActivity(): void {
   else if (current.value?.subject) showPackage(current.value.subject);
   else showDevice("summary");
 }
+function openConnect(): void {
+  if (deviceMenu.value) deviceMenu.value.open = false;
+  useDeviceConnect().show("connect");
+}
+function openSettingsFromConnect(): void {
+  useDeviceConnect().close();
+  settingsOpen.value = true;
+}
 async function detect(): Promise<void> {
   if (deviceMenu.value) deviceMenu.value.open = false;
   if (gateway.capabilities.demo && !session.device.value)
@@ -205,7 +214,19 @@ function search(): void {
 watch(preparation.stage, (stage) => {
   if (stage === "overview" || stage === "starting") showDevice("environment");
 });
+// A console at the remembered address is found silently on every scan; the
+// connect flow is only for a console discovery cannot reach or a fresh card.
+const connection = useThreeDsConnection();
+watch(connection.address, async (address) => {
+  try {
+    await gateway.setup.hint(address || null);
+    await session.refresh();
+  } catch {
+    // The scan keeps working from the broadcast domain alone.
+  }
+});
 onMounted(async () => {
+  await gateway.setup.hint(connection.address.value || null).catch(() => {});
   await Promise.allSettled([
     log.initialize(),
     session.initialize(),
@@ -407,10 +428,12 @@ onMounted(async () => {
               />
             </button>
             <button
-              class="w-full rounded-control px-3 py-2 text-left text-xs text-signal hover:bg-ink/4"
-              @click="useThreeDsSetup().show()"
+              class="flex w-full items-center gap-2.5 rounded-control px-2 py-1.5 text-left text-sm text-signal hover:bg-track"
+              @click="openConnect"
             >
-              {{ t("threeDs.addDevice") }}
+              <IconPhPlugs width="16" height="16" />{{
+                t("device.connect.title")
+              }}…
             </button>
             <p
               v-if="!session.devices.value.length"
@@ -637,7 +660,7 @@ onMounted(async () => {
     @close="demoOpen = false"
     ><DemoPanel
   /></StudioDialog>
-  <ThreeDsSetupDialog />
+  <DeviceConnectDialog @open-settings="openSettingsFromConnect" />
   <DeliveryDialog />
   <PreparationWizard />
   <NotificationStack />

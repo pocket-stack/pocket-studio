@@ -623,6 +623,8 @@ export function createThreeDsDemo(context: ThreeDsDemoContext) {
       await context.attach();
       return context.snapshot();
     },
+    // The demo console is always on the simulated network; nothing to probe.
+    async hint(): Promise<void> {},
   };
 
   return {

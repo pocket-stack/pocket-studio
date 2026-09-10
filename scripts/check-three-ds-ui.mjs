@@ -21,6 +21,15 @@ try {
         ({ locale, theme }) => {
           localStorage.setItem("pocket-studio.locale", locale);
           localStorage.setItem("pocket-studio.theme", theme);
+          localStorage.setItem(
+            "pocket-studio.three-ds-connection",
+            JSON.stringify({
+              address: "192.0.2.1",
+              port: "5000",
+              username: "anonymous",
+              password: "",
+            }),
+          );
         },
         { locale, theme },
       );
@@ -74,56 +83,43 @@ try {
       await page.goto(base);
       await page.waitForSelector("aside");
       await page.waitForTimeout(500);
-      await page.locator("header details summary").first().click();
-      await click(locale === "en" ? "Connect a 3DS" : "连接 3DS");
+      const review = locale === "en" ? "Review preparation" : "查看准备方案";
+      const edit = locale === "en" ? "Edit plan" : "修改方案";
+      const write = locale === "en" ? "Write listed files" : "写入所列文件";
+      const verify = locale === "en" ? "Verify connection" : "验证连接";
+      const wireless = locale === "en" ? "Wireless (ftpd)" : "无线（ftpd）";
+      const reader = locale === "en" ? "SD card reader" : "SD 卡读卡器";
+      const cardPath = locale === "en" ? "SD card root folder" : "SD 卡根目录";
       const dialog = page.locator("dialog[open]");
-      const transport = dialog.getByRole("combobox").nth(0);
-      const launcher = dialog.getByRole("combobox").nth(1);
-      assert.deepEqual(
-        await transport
-          .locator("option")
-          .evaluateAll((options) => options.map((option) => option.value)),
-        ["sd", "ftp"],
+      // Manual connection is device-generic; the 3DS is the first kind.
+      await page.locator("header details summary").first().click();
+      await click(
+        `${locale === "en" ? "Connect a device manually" : "手动连接设备"}…`,
       );
-      assert.deepEqual(
-        await launcher
-          .locator("option")
-          .evaluateAll((options) => options.map((option) => option.value)),
-        ["cia", "3dsx", "pair"],
-      );
-      assert.equal(await transport.inputValue(), "sd");
-      assert.equal(await launcher.inputValue(), "cia");
-      assert.ok((await transport.locator("option:checked").innerText()).trim());
-      assert.ok((await launcher.locator("option:checked").innerText()).trim());
+      await shot("connect-kinds");
+      await dialog
+        .getByRole("button", { name: /Nintendo 3DS/ })
+        .first()
+        .click();
+      // Preferences hold the console address, so wireless is preselected and
+      // the dialog only summarises the ftpd account.
       assert.equal(
         await dialog
-          .getByRole("button", {
-            name: locale === "en" ? "Review preparation" : "查看准备方案",
-            exact: true,
-          })
-          .isDisabled(),
-        true,
+          .getByRole("radio", { name: wireless, exact: true })
+          .getAttribute("aria-checked"),
+        "true",
       );
-      await shot("setup-default");
-      await transport.selectOption("ftp");
-      await launcher.selectOption("3dsx");
+      assert.ok((await dialog.innerText()).includes("ftpd 192.0.2.1:5000"));
       assert.equal(
-        await dialog
-          .getByLabel(locale === "en" ? "SD card root folder" : "SD 卡根目录", {
-            exact: true,
-          })
-          .count(),
+        await dialog.getByLabel(cardPath, { exact: true }).count(),
         0,
       );
-      await dialog
-        .getByLabel(
-          locale === "en"
-            ? "IP shown in ftpd (required)"
-            : "ftpd 显示的 IP（必填）",
-          { exact: true },
-        )
-        .fill("192.0.2.1");
-      await shot("ftp-3dsx");
+      assert.equal(
+        await dialog.getByRole("combobox").count(),
+        0,
+        "no launcher choice in the connect flow",
+      );
+      await shot("connect-wireless");
       await page.evaluate(async () => {
         const { useGateway, GatewayError } =
           await import("/src/shared/gateway/index.ts");
@@ -134,7 +130,7 @@ try {
           throw new GatewayError("ftpRootUnavailable", "Remote root fixture");
         };
       });
-      await click(locale === "en" ? "Review preparation" : "查看准备方案");
+      await click(review);
       const remoteError = dialog.getByRole("alert");
       await remoteError
         .getByText("ftpRootUnavailable", { exact: false })
@@ -146,29 +142,53 @@ try {
           locale === "en" ? "Select a prepared" : "请选择",
         ),
       );
-      assert.ok(!remoteMessage.includes("invalid3dsCard"));
-      await shot("ftp-root-unavailable");
-      await click(locale === "en" ? "Review preparation" : "查看准备方案");
-      assert.ok((await dialog.innerText()).includes("ftpd 192.0.2.1"));
-      assert.ok(
-        (await dialog.innerText()).includes("3ds/pocket-runtime-ctr/boot.3dsx"),
-      );
-      await click(locale === "en" ? "Edit plan" : "修改方案");
-      await launcher.selectOption("pair");
-      await click(locale === "en" ? "Review preparation" : "查看准备方案");
+      await shot("connect-ftp-root-unavailable");
+      await click(review);
+      assert.ok((await dialog.innerText()).includes("ftpd 192.0.2.1:5000"));
+      // Pairing only: the key is the single file written.
       assert.deepEqual(await dialog.locator("li").allTextContents(), [
         "pocketjs/runtime/dev.key",
       ]);
-      await click(locale === "en" ? "Edit plan" : "修改方案");
-      await transport.selectOption("sd");
-      await launcher.selectOption("cia");
+      await shot("connect-plan");
+      await click(edit);
+      await dialog.getByRole("radio", { name: reader, exact: true }).click();
+      await dialog.getByLabel(cardPath, { exact: true }).fill("/demo/3ds-card");
+      await shot("connect-sd");
+      await click(review);
+      await click(write);
+      await click(verify);
+      if (
+        (await page.locator("header details").first().getAttribute("open")) ===
+        null
+      )
+        await page.locator("header details summary").first().click();
+      await click("New Nintendo 3DS LL");
+      await page.locator("header details summary").first().click();
+      await shot("device");
+      // The launcher is prepared from the environment page, not while connecting.
       await page
-        .getByLabel(locale === "en" ? "SD card root folder" : "SD 卡根目录", {
-          exact: true,
+        .locator("aside button", {
+          hasText: locale === "en" ? "Preparation" : "前置环境",
         })
-        .fill("/demo/3ds-card");
-      await shot("setup");
-      // Exercise the real error path as well as successful demo preparation.
+        .first()
+        .click();
+      await click(
+        locale === "en"
+          ? "Install or upgrade the launcher"
+          : "安装或升级启动器",
+      );
+      const launcherForm = dialog.getByRole("radiogroup", {
+        name: locale === "en" ? "Launcher form" : "启动器形式",
+      });
+      assert.equal(
+        await launcherForm
+          .getByRole("radio", { name: /CIA/ })
+          .getAttribute("aria-checked"),
+        "true",
+      );
+      await shot("launcher");
+      await launcherForm.getByRole("radio", { name: /3DSX/ }).click();
+      // Store failures surface as such, without blaming the destination.
       await page.evaluate(async () => {
         const { useGateway, GatewayError } =
           await import("/src/shared/gateway/index.ts");
@@ -183,7 +203,7 @@ try {
         };
       });
       for (const code of ["invalidCatalog", "storeOffline"]) {
-        await click(locale === "en" ? "Review preparation" : "查看准备方案");
+        await click(review);
         const alert = dialog.getByRole("alert");
         await alert.getByText(code, { exact: false }).waitFor();
         const message = await alert.innerText();
@@ -197,27 +217,20 @@ try {
         );
         assert.equal(
           await dialog
-            .getByRole("button", {
-              name: locale === "en" ? "Write listed files" : "写入所列文件",
-              exact: true,
-            })
+            .getByRole("button", { name: write, exact: true })
             .count(),
           0,
         );
-        await shot(`setup-${code}`);
+        await shot(`launcher-${code}`);
       }
-      await click(locale === "en" ? "Review preparation" : "查看准备方案");
-      await shot("setup-plan");
-      await click(locale === "en" ? "Write listed files" : "写入所列文件");
-      await click(locale === "en" ? "Verify connection" : "验证连接");
-      if (
-        (await page.locator("header details").first().getAttribute("open")) ===
-        null
-      )
-        await page.locator("header details summary").first().click();
-      await click("New Nintendo 3DS LL");
-      await page.locator("header details summary").first().click();
-      await shot("device");
+      await click(review);
+      assert.ok(
+        (await dialog.innerText()).includes("3ds/pocket-runtime-ctr/boot.3dsx"),
+      );
+      await shot("launcher-plan");
+      await click(write);
+      await shot("launcher-written");
+      await click(locale === "en" ? "Close" : "关闭");
       const install = locale === "en" ? "Install" : "安装";
       const uninstall = locale === "en" ? "Uninstall" : "卸载";
       const confirmUninstall =
@@ -303,7 +316,7 @@ try {
       if (errors.length) throw new Error(errors.join("\n"));
       await context.close();
       console.log(
-        `3DS setup, delivery choice, coexistence and instance removal passed: ${locale} ${theme}`,
+        `3DS connection, launcher, delivery choice, coexistence and removal passed: ${locale} ${theme}`,
       );
     }
   }

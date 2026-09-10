@@ -469,6 +469,8 @@ export interface StudioGateway {
     plan(request: SetupRequest): Promise<SetupPlan>;
     execute(planId: string): Promise<SetupResult>;
     connect(pairingId: string, address?: string): Promise<DiscoverySnapshot>;
+    /** Console address from Preferences; every scan asks it directly. */
+    hint(address: string | null): Promise<void>;
   };
   preparation: {
     plan(deviceId: string): Promise<PreparationPlan>;

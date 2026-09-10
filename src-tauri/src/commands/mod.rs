@@ -239,6 +239,16 @@ pub async fn execute_device_setup(
         .map_err(|e| StudioError::from(e).into())
 }
 #[tauri::command]
+pub fn set_three_ds_address(
+    state: State<'_, AppState>,
+    address: Option<String>,
+) -> CommandResult<()> {
+    state
+        .setup
+        .hint(address.as_deref())
+        .map_err(|e| StudioError::from(e).into())
+}
+#[tauri::command]
 pub async fn connect_three_ds(
     state: State<'_, AppState>,
     pairing_id: String,

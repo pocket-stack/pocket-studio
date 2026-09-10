@@ -127,6 +127,9 @@ pub trait SetupPort: Send + Sync {
         file: Option<(&'a str, &'a Path, &'a str)>,
     ) -> SetupFuture<'a, SetupResult>;
     fn connect<'a>(&'a self, pairing_id: &'a str, address: Option<&'a str>) -> SetupFuture<'a, ()>;
+    /// Remembers where the user expects the console to be so that discovery
+    /// also asks that address directly, not only the broadcast domain.
+    fn hint(&self, address: Option<std::net::IpAddr>) -> Result<(), SetupError>;
 }
 struct Pending {
     request: SetupRequest,
@@ -336,5 +339,14 @@ impl SetupService {
     }
     pub async fn connect(&self, id: &str, address: Option<&str>) -> Result<(), SetupError> {
         self.port.connect(id, address).await
+    }
+    pub fn hint(&self, address: Option<&str>) -> Result<(), SetupError> {
+        let address = address
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::parse)
+            .transpose()
+            .map_err(|_| SetupError::Device)?;
+        self.port.hint(address)
     }
 }

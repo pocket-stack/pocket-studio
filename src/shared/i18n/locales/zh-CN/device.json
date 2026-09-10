@@ -44,6 +44,16 @@
     "platform": {
       "ios": "iOS",
       "3ds": "Nintendo 3DS"
+    },
+    "connect": {
+      "title": "手动连接设备",
+      "intro": "USB 设备会自动识别；通过网络配对的设备从这里手动连接。",
+      "kinds": {
+        "3ds": {
+          "title": "Nintendo 3DS（New 系列）",
+          "body": "通过 Wi-Fi 上的 ftpd 或 SD 卡读卡器写入配对密钥"
+        }
+      }
     }
   }
 }

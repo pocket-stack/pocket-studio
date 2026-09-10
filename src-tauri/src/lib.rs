@@ -54,6 +54,7 @@ pub fn run() -> anyhow::Result<()> {
             commands::plan_device_setup,
             commands::execute_device_setup,
             commands::connect_three_ds,
+            commands::set_three_ds_address,
             commands::check_readiness,
             commands::check_appsync,
             commands::plan_preparation,

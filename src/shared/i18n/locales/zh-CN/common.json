@@ -69,7 +69,7 @@
   },
   "settings": {
     "title": "设置",
-    "subtitle": "外观、语言、设备密码与关于信息。",
+    "subtitle": "外观、语言、设备密码、3DS 连接与关于信息。",
     "theme": {
       "title": "主题",
       "system": "跟随系统",
@@ -88,6 +88,18 @@
     "ssh": {
       "title": "设备 root SSH 密码",
       "hint": "留空则使用出厂默认密码 alpine，仅保存在本机。"
+    },
+    "threeDs": {
+      "title": "Nintendo 3DS",
+      "hint": "启动时按此地址静默查找已配对的主机，无线准备也使用这里的 ftpd 账号；留空则只在局域网广播发现。仅保存在本机。",
+      "address": "主机 IP",
+      "addressPlaceholder": "例如 192.168.1.50",
+      "port": "ftpd 端口",
+      "portPlaceholder": "5000",
+      "username": "ftpd 用户名",
+      "usernamePlaceholder": "anonymous",
+      "password": "ftpd 密码",
+      "passwordPlaceholder": "通常留空"
     }
   }
 }

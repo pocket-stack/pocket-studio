@@ -1,7 +1,5 @@
 {
   "threeDs": {
-    "addDevice": "Connect a 3DS",
-    "setupTitle": "Prepare and pair a 3DS",
     "hardwareScope": "Initial support targets the New family; hardware compatibility is not yet verified. Old models are not supported.",
     "cfwGuide": "Studio requires an existing homebrew environment. Check CFW on the console, then follow the current guide if needed. Studio does not install CFW or write firmware.",
     "checkCfw": "Check for CFW",
@@ -9,16 +7,10 @@
     "sd": "Card reader (card in computer)",
     "ftp": "Wireless (ftpd on console)",
     "transport": "How to access the SD card",
-    "bootstrap": "Where to launch Pocket",
     "bootstrapCia": "HOME Menu (CIA)",
     "bootstrap3dsx": "Homebrew Launcher (3DSX)",
-    "pairOnly": "Pocket is installed — pair only",
     "cardPath": "SD card root folder",
-    "address": "Console IP (optional with discovery)",
-    "port": "ftpd port",
-    "username": "ftpd user",
-    "password": "ftpd password",
-    "ftpHelp": "Open ftpd and enter the address shown on the console. Use a trusted local network: ftpd transfers the pairing key without encryption. Close ftpd before opening Pocket.",
+    "ftpHelp": "Open ftpd on the console and make sure the address it shows matches Settings. Use a trusted local network: ftpd transfers the pairing key without encryption. Close ftpd before opening Pocket.",
     "sdHelp": "Use the folder containing Nintendo 3DS and boot.firm, such as /Volumes/3DS on macOS or E:\\ on Windows. After writing, safely eject the card and return it to the console.",
     "reusePair": "Reuse and verify the existing pairing key.",
     "newPair": "Create a native pairing key and verify it after writing.",
@@ -72,14 +64,10 @@
     "planAgain": "Generate a new app plan for the selected installation form.",
     "verifyExisting": "Verify selected console",
     "unavailable": "This installation could not be verified",
-    "ftpAddress": "IP shown in ftpd (required)",
     "cardPlaceholder": "For example /Volumes/3DS",
-    "ipPlaceholder": "For example 192.168.1.50",
-    "optionalIpPlaceholder": "Can be entered after Pocket starts",
     "formatHelp": {
       "cia": "Choose CIA to open Pocket from the HOME Menu. After copying, install it using FBI on your 3DS.",
-      "3dsx": "Choose 3DSX if you already use Homebrew Launcher and want to open Pocket there. Files will be copied to its SD folder.",
-      "pair": "Choose this when Pocket Launcher or a standalone Runtime is already installed. Only pairing files are prepared."
+      "3dsx": "Choose 3DSX if you already use Homebrew Launcher and want to open Pocket there. Files will be copied to its SD folder."
     },
     "storeFailure": "Could not load the launcher from the store: {reason}",
     "errorCode": "Error code: {code}",
@@ -88,6 +76,16 @@
       "bundled": "Installs as its own title with a private runtime."
     },
     "keepsData": "Keeps app data",
-    "runtimeMissing": "Pocket Launcher not ready"
+    "runtimeMissing": "Pocket Launcher not ready",
+    "launcherTitle": "Install Pocket Launcher",
+    "launcherIntro": "Copies the Pocket launcher to the console's SD card: a CIA is installed with FBI, a 3DSX goes into the Homebrew Launcher folder. Studio does not install CFW or write firmware.",
+    "launcherForm": "Launcher form",
+    "installLauncher": "Install or upgrade the launcher",
+    "wireless": "Wireless (ftpd)",
+    "sdReader": "SD card reader",
+    "ftpSummary": "ftpd {address}:{port} · {username}",
+    "editInSettings": "Edit in Settings",
+    "noAddress": "No console address yet. Enter the 3DS IP and ftpd account in Settings first.",
+    "openSettings": "Open Settings"
   }
 }
