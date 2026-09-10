@@ -844,6 +844,7 @@ async fn a_failed_key_write_records_no_pairing() {
         },
         address: None,
         format: None,
+        app_id: None,
     };
     let observed: SetupObservation = setup.inspect(&request, None).await.unwrap();
     assert!(observed.token.is_none());
@@ -890,6 +891,7 @@ async fn pairing_plan_does_not_write_until_confirmed_and_cannot_be_replayed() {
         },
         address: None,
         format: None,
+        app_id: None,
     };
     let plan = service.plan(request).await.unwrap();
     assert!(!card.join(KEY).exists());
@@ -934,7 +936,7 @@ async fn bootstrap_plans_follow_the_requested_runtime_identity_abi_and_minimum_v
     let sink = Arc::new(Sink::default());
     let service = SetupService::new(
         Arc::new(NativeSetup(bridge)),
-        source,
+        source.clone(),
         Arc::new(Semaphore::new(1)),
         Arc::new(OperationLog::new(sink)),
     );
@@ -950,6 +952,7 @@ async fn bootstrap_plans_follow_the_requested_runtime_identity_abi_and_minimum_v
         },
         address: None,
         format: Some("cia".into()),
+        app_id: None,
     };
     assert!(matches!(
         service.plan(request.clone()).await,
@@ -962,9 +965,28 @@ async fn bootstrap_plans_follow_the_requested_runtime_identity_abi_and_minimum_v
         Err(SetupError::Launcher)
     ));
     request.host_abi = Some(8);
-    let plan = service.plan(request).await.unwrap();
-    assert_eq!(plan.bootstrap_app_id, bootstrap);
+    let plan = service.plan(request.clone()).await.unwrap();
+    assert_eq!(plan.app_id, bootstrap);
     assert_eq!(plan.artifact.unwrap().format, "cia");
+    // Any listed title with a bundled card file can be copied for FBI without
+    // a launcher; a format it does not publish is refused as such.
+    *source.catalog.lock().unwrap() = three_ds_catalog();
+    let app = three_ds_catalog().catalog().apps[0].id.clone();
+    request.runtime_requirement = None;
+    request.host_abi = None;
+    request.app_id = Some(app.clone());
+    let copy = service.plan(request.clone()).await.unwrap();
+    assert_eq!(copy.app_id, app);
+    assert!(
+        copy.files
+            .iter()
+            .any(|f| f.starts_with(&format!("cias/{app}-")) && f.ends_with(".cia"))
+    );
+    request.format = Some("3dsx".into());
+    assert!(matches!(
+        service.plan(request).await,
+        Err(SetupError::Artifact)
+    ));
 }
 
 #[test]

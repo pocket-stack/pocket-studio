@@ -18,6 +18,7 @@ import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 import PackageArtwork from "./PackageArtwork.vue";
 import StoreMedia from "./StoreMedia.vue";
 import { formatBytes, installationForms } from "./compatibility";
+import { useDeviceConnect } from "../device/useDeviceConnect";
 import { packageText, packageMedia } from "./packageContent";
 import type { PackageView } from "./useStore";
 
@@ -92,6 +93,30 @@ const installLabel = computed(() =>
         : t("store.detail.update")
       : t("store.detail.install"),
 );
+// A standalone 3DS title can be copied to the card whenever the launcher is
+// not there to install it: no console, another platform, or no launcher host.
+const cardFormats = computed(() =>
+  installationForms(props.item.entry)
+    .filter((form) => form.delivery === "bundled")
+    .map((form) => form.format),
+);
+const canCopyToCard = computed(
+  () =>
+    props.item.entry.compatibility.platform === "3ds" &&
+    cardFormats.value.length > 0 &&
+    (device.value?.platform !== "3ds" ||
+      !device.value.threeDs?.launcher ||
+      props.item.verdict !== "compatible"),
+);
+function copyToCard(): void {
+  useDeviceConnect().show("card", {
+    target: {
+      appId: props.item.entry.id,
+      name: name.value,
+      formats: cardFormats.value,
+    },
+  });
+}
 const sourceUrl = computed(() => {
   const source = props.item.entry.details?.app.source.repository;
   if (!source) return null;
@@ -311,6 +336,13 @@ const pageReleases = computed(() =>
             @click="emit('prepare')"
           >
             {{ t("store.detail.prepareDevice") }}
+          </StudioButton>
+          <StudioButton
+            v-if="canCopyToCard"
+            class="rounded-full"
+            @click="copyToCard"
+          >
+            {{ t("threeDs.copyToCard") }}
           </StudioButton>
           <span
             class="text-xs"

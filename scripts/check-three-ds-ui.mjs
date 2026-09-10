@@ -91,6 +91,35 @@ try {
       const reader = locale === "en" ? "SD card reader" : "SD 卡读卡器";
       const cardPath = locale === "en" ? "SD card root folder" : "SD 卡根目录";
       const dialog = page.locator("dialog[open]");
+      // Without a launcher (or a console) a standalone title still reaches the
+      // card: the copy flow lists the CIA before anything is paired.
+      await page.locator("header nav button").nth(1).click();
+      await page.waitForTimeout(500);
+      await page.getByRole("radio", { name: "3DS", exact: true }).click();
+      await page.getByRole("searchbox").fill("Theme Forge");
+      await page.waitForTimeout(300);
+      await page
+        .locator("main article", { hasText: "Theme Forge" })
+        .getByRole("heading")
+        .click();
+      await page.waitForTimeout(300);
+      await click(locale === "en" ? "Copy to SD card…" : "复制到 SD 卡…");
+      assert.ok(
+        (await dialog.innerText()).includes(
+          locale === "en" ? "Theme Forge" : "Theme Forge",
+        ),
+      );
+      await shot("card");
+      await click(review);
+      assert.ok(
+        (await dialog.innerText()).includes("cias/ctr-theme-forge-"),
+        "standalone CIA is staged for FBI",
+      );
+      await shot("card-plan");
+      await click(locale === "en" ? "Close" : "关闭");
+      await page.getByRole("searchbox").fill("");
+      await page.locator("header nav button").nth(0).click();
+      await page.waitForTimeout(300);
       // Manual connection is device-generic; the 3DS is the first kind.
       await page.locator("header details summary").first().click();
       await click(

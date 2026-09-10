@@ -20,9 +20,10 @@ import StudioSegmented from "../../shared/ui/StudioSegmented.vue";
 import { useDeviceConnect } from "./useDeviceConnect";
 
 /**
- * Manual connection for devices discovery cannot see, and launcher preparation
- * for a known 3DS. The console's address and ftpd account come from
- * Preferences; the dialog only asks what cannot be remembered.
+ * Manual connection for devices discovery cannot see, plus the two card
+ * preparations for a 3DS: the Pocket launcher, or a standalone title for a
+ * console that does without the launcher. The console's address and ftpd
+ * account come from Preferences; the dialog only asks what cannot be remembered.
  */
 const emit = defineEmits<{ openSettings: [] }>();
 const connect = useDeviceConnect();
@@ -30,15 +31,20 @@ const session = useDeviceSession();
 const gateway = useGateway();
 const connection = useThreeDsConnection();
 const { t, te } = useI18n();
+type Format = "cia" | "3dsx";
 const kind = ref<"3ds" | null>(null);
 const transport = ref<"ftp" | "sd">("sd");
 const path = ref("");
-const format = ref<"cia" | "3dsx">("cia");
+const format = ref<Format>("cia");
 const busy = ref(false);
 const plan = ref<SetupPlan | null>(null);
 const result = ref<SetupResult | null>(null);
 const issue = ref<string | null>(null);
 const launcher = computed(() => connect.mode.value === "launcher");
+const card = computed(() => connect.mode.value === "card");
+/** Both preparation modes write a file chosen by format. */
+const prepares = computed(() => launcher.value || card.value);
+const target = computed(() => connect.target.value);
 const configured = computed(
   () => !!connection.address.value && connection.ftpPort.value !== null,
 );
@@ -46,14 +52,23 @@ watch(
   () => connect.open.value,
   (open) => {
     if (!open) return;
-    // The launcher flow already knows which console it prepares.
-    kind.value = launcher.value ? "3ds" : null;
+    // Preparation flows already know which console they prepare.
+    kind.value = prepares.value ? "3ds" : null;
     transport.value = configured.value ? "ftp" : "sd";
-    format.value = "cia";
+    format.value = (
+      card.value ? (target.value?.formats[0] ?? "cia") : "cia"
+    ) as Format;
     plan.value = null;
     result.value = null;
     issue.value = null;
   },
+);
+const title = computed(() =>
+  card.value
+    ? t("threeDs.cardTitle", { name: target.value?.name ?? "" })
+    : launcher.value
+      ? t("threeDs.launcherTitle")
+      : t("device.connect.title"),
 );
 const error = computed(() => {
   const key = `threeDs.errors.${issue.value}`;
@@ -69,10 +84,29 @@ const transportOptions = computed(() => [
   { value: "ftp", label: t("threeDs.wireless") },
   { value: "sd", label: t("threeDs.sdReader") },
 ]);
-const formatOptions = computed(() => [
-  { value: "cia", label: t("threeDs.bootstrapCia") },
-  { value: "3dsx", label: t("threeDs.bootstrap3dsx") },
-]);
+const formatOptions = computed(() =>
+  card.value
+    ? (target.value?.formats ?? []).map((value) => ({
+        value,
+        label: t(value === "cia" ? "threeDs.formatCia" : "threeDs.format3dsx"),
+      }))
+    : [
+        { value: "cia", label: t("threeDs.bootstrapCia") },
+        { value: "3dsx", label: t("threeDs.bootstrap3dsx") },
+      ],
+);
+// What the user does on the console before the connection can be verified.
+const nextStep = computed(() =>
+  card.value
+    ? format.value === "cia"
+      ? "threeDs.cardFbiNext"
+      : "threeDs.cardHbNext"
+    : launcher.value
+      ? format.value === "cia"
+        ? "threeDs.fbiNext"
+        : "threeDs.restartNext"
+      : "threeDs.connectNext",
+);
 async function review() {
   busy.value = true;
   issue.value = null;
@@ -93,7 +127,8 @@ async function review() {
               password: connection.settings.value.password,
             },
       address: connection.address.value || undefined,
-      format: launcher.value ? format.value : undefined,
+      format: prepares.value ? format.value : undefined,
+      appId: card.value ? target.value?.appId : undefined,
     });
   } catch (e) {
     issue.value = e instanceof GatewayError ? e.code : "unknown";
@@ -141,11 +176,7 @@ function close() {
 }
 </script>
 <template>
-  <StudioDialog
-    :open="connect.open.value"
-    :title="t(launcher ? 'threeDs.launcherTitle' : 'device.connect.title')"
-    @close="close"
-  >
+  <StudioDialog :open="connect.open.value" :title="title" @close="close">
     <!-- Horizontal padding keeps focus rings inside the scroll container. -->
     <div class="-mx-1 min-h-0 overflow-y-auto px-1 text-sm">
       <template v-if="!kind">
@@ -177,7 +208,15 @@ function close() {
           t("threeDs.hardwareScope")
         }}</StudioCallout>
         <p class="mt-3 text-xs leading-5 text-muted">
-          {{ t(launcher ? "threeDs.launcherIntro" : "threeDs.cfwGuide") }}
+          {{
+            t(
+              card
+                ? "threeDs.cardIntro"
+                : launcher
+                  ? "threeDs.launcherIntro"
+                  : "threeDs.cfwGuide",
+            )
+          }}
           <a
             href="https://3ds.hacks.guide/checking-for-cfw.html"
             target="_blank"
@@ -194,6 +233,15 @@ function close() {
             >{{ t("threeDs.guide") }}</a
           >
         </p>
+        <!-- Two ways to use Pocket on a 3DS; both start with the pairing key. -->
+        <ul
+          v-if="!prepares"
+          class="mt-3 space-y-1 rounded-control bg-ink/4 px-3 py-2 text-xs leading-5"
+        >
+          <li>{{ t("threeDs.modelLauncher") }}</li>
+          <li>{{ t("threeDs.modelStandalone") }}</li>
+          <li class="text-muted">{{ t("threeDs.modelsShared") }}</li>
+        </ul>
         <div class="mt-4 flex flex-col gap-3">
           <div class="flex items-center justify-between gap-3">
             <span class="text-xs text-muted">{{ t("threeDs.transport") }}</span>
@@ -204,14 +252,17 @@ function close() {
               :options="transportOptions"
             />
           </div>
-          <div v-if="launcher" class="flex items-center justify-between gap-3">
+          <div
+            v-if="prepares && formatOptions.length > 1"
+            class="flex items-center justify-between gap-3"
+          >
             <span class="text-xs text-muted">{{
-              t("threeDs.launcherForm")
+              t(card ? "threeDs.cardForm" : "threeDs.launcherForm")
             }}</span>
             <StudioSegmented
               v-model="format"
               size="sm"
-              :label="t('threeDs.launcherForm')"
+              :label="t(card ? 'threeDs.cardForm' : 'threeDs.launcherForm')"
               :options="formatOptions"
             />
           </div>
@@ -272,7 +323,7 @@ function close() {
       <div v-else-if="plan" class="space-y-3">
         <p class="font-medium break-all">{{ plan.destination }}</p>
         <p v-if="plan.artifact" class="text-xs break-all text-muted">
-          {{ plan.bootstrapAppId }}
+          {{ plan.appId }}
         </p>
         <p>
           {{
@@ -289,29 +340,21 @@ function close() {
           </li>
         </ul>
         <p v-if="plan.artifact" class="text-xs">
-          {{ t("threeDs.launcherVersion") }} {{ plan.version }} ·
-          {{ plan.artifact.format.toUpperCase() }}
+          {{ t(card ? "store.detail.version" : "threeDs.launcherVersion") }}
+          {{ plan.version }} · {{ plan.artifact.format.toUpperCase() }}
         </p>
         <p v-if="plan.artifact" class="font-mono text-2xs break-all text-muted">
           SHA-256 {{ plan.artifact.blob.sha256 }}
         </p>
         <StudioCallout tone="warning">{{
-          t("threeDs.setupConfirm")
+          t(card ? "threeDs.cardConfirm" : "threeDs.setupConfirm")
         }}</StudioCallout>
       </div>
       <div v-else-if="result" class="space-y-3">
         <StudioCallout tone="success">{{
           t("threeDs.filesVerified")
         }}</StudioCallout>
-        <p class="text-sm leading-6">
-          {{
-            t(
-              launcher && format === "cia"
-                ? "threeDs.fbiNext"
-                : "threeDs.restartNext",
-            )
-          }}
-        </p>
+        <p class="text-sm leading-6">{{ t(nextStep) }}</p>
       </div>
       <StudioCallout v-if="issue" tone="danger" class="mt-3">
         {{ error }}
@@ -329,7 +372,7 @@ function close() {
           kind &&
           !plan &&
           !result &&
-          !launcher &&
+          !prepares &&
           session.device.value?.platform === '3ds'
         "
         :disabled="busy"

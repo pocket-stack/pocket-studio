@@ -588,9 +588,11 @@ export interface SetupRequest {
   destination: SetupDestination;
   address?: string;
   format?: "cia" | "3dsx";
+  /** Copy this listed title to the card instead of the Pocket launcher. */
+  appId?: string;
 }
 export interface SetupPlan {
-  bootstrapAppId: string;
+  appId: string;
   id: string;
   destination: string;
   existingPairing: boolean;

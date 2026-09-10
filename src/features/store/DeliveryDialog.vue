@@ -59,7 +59,16 @@ function prepare(): void {
   const required = candidate.value?.runtimeRequirement ?? null;
   const abi = candidate.value?.hostAbi ?? null;
   store.closeDelivery();
-  useDeviceConnect().show("launcher", required, abi);
+  useDeviceConnect().show("launcher", { runtime: required, abi });
+}
+/** Without a launcher a standalone title still reaches the console via the card. */
+function copyToCard(): void {
+  const appId = store.deliveryAppId.value;
+  if (!appId) return;
+  store.closeDelivery();
+  useDeviceConnect().show("card", {
+    target: { appId, name: name.value, formats: bundledFormats.value },
+  });
 }
 </script>
 <template>
@@ -147,12 +156,20 @@ function prepare(): void {
         <li>{{ t("threeDs.verifyPrepared") }}</li>
         <li>{{ t("threeDs.planAgain") }}</li>
       </ol>
-      <StudioButton
+      <div
         v-if="candidate?.verdict === 'requiresPreparation'"
-        variant="link"
-        @click="prepare"
-        >{{ t("threeDs.installLauncher") }}</StudioButton
+        class="mt-1 flex flex-wrap gap-3"
       >
+        <StudioButton variant="link" @click="prepare">{{
+          t("threeDs.installLauncher")
+        }}</StudioButton>
+        <StudioButton
+          v-if="choice === 'bundled' && bundledFormats.length"
+          variant="link"
+          @click="copyToCard"
+          >{{ t("threeDs.copyToCard") }}</StudioButton
+        >
+      </div>
     </StudioCallout>
     <div class="mt-4 flex justify-end gap-2">
       <StudioButton @click="store.closeDelivery">{{

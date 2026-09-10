@@ -584,25 +584,33 @@ export function createThreeDsDemo(context: ThreeDsDemoContext) {
   const setup = {
     async plan(request: SetupRequest): Promise<SetupPlan> {
       const format = request.format;
-      const launcher = titles.find((item) => item.launcher)!;
+      const title = request.appId
+        ? titles.find((item) => item.id === request.appId)
+        : titles.find((item) => item.launcher);
+      if (
+        !title ||
+        (request.appId && (!format || !title.formats.includes(format)))
+      )
+        throw new GatewayError("artifactUnavailable", "No card file");
+      const file =
+        format === "cia"
+          ? title.launcher
+            ? `cias/${title.id}.cia`
+            : `cias/${title.id}-${fakeDigest(`${title.id}#cia`).slice(0, 16)}.cia`
+          : format === "3dsx"
+            ? `3ds/${title.id}/boot.3dsx`
+            : null;
       const result: SetupPlan = {
-        bootstrapAppId: LAUNCHER_APP_ID,
+        appId: title.id,
         id: crypto.randomUUID(),
         destination:
           request.destination.kind === "sd"
             ? request.destination.path
             : `ftpd ${request.destination.address}:${request.destination.port}`,
         existingPairing: false,
-        artifact: format ? artifact(launcher, format) : null,
+        artifact: format ? artifact(title, format) : null,
         version: format ? "0.3.0" : null,
-        files: [
-          "pocketjs/runtime/dev.key",
-          ...(format === "cia"
-            ? ["cias/pocket-runtime-ctr.cia"]
-            : format === "3dsx"
-              ? ["3ds/pocket-runtime-ctr/boot.3dsx"]
-              : []),
-        ],
+        files: ["pocketjs/runtime/dev.key", ...(file ? [file] : [])],
         expiresAt: Date.now() + 900_000,
       };
       setupPlans.set(result.id, result);

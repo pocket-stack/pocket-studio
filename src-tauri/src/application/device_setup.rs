@@ -7,7 +7,11 @@ use super::{
 use crate::domain::{
     catalog::PackageCategory,
     now_millis,
-    store::{Artifact, Listing, NativeIdentity, ReleaseStatus, RuntimeCapability},
+    store::{
+        Artifact, ArtifactTarget, Listing, NativeIdentity, ReleaseStatus, RuntimeCapability,
+        RuntimeDelivery,
+    },
+    three_ds::supported_model,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -37,6 +41,12 @@ pub enum SetupError {
     Changed,
     #[error("3DS connection or identity could not be verified")]
     Device,
+    #[error("no Pocket runtime answered on the console")]
+    Unreachable,
+    #[error("the console rejected the pairing key")]
+    Pairing,
+    #[error("the catalog has no card file for this application")]
+    Artifact,
     #[error("3DS setup plan expired or is unavailable")]
     Plan,
     #[error("device access is busy")]
@@ -58,6 +68,9 @@ impl SetupError {
             Self::InvalidKey => "invalidPairingKey",
             Self::Changed => "deviceChanged",
             Self::Device => "pairingUnavailable",
+            Self::Unreachable => "hostUnreachable",
+            Self::Pairing => "pairingRejected",
+            Self::Artifact => "artifactUnavailable",
             Self::Plan => "planExpired",
             Self::Busy => "operationBusy",
             Self::Launcher => "runtimeRequired",
@@ -87,6 +100,9 @@ pub struct SetupRequest {
     pub destination: SetupDestination,
     pub address: Option<String>,
     pub format: Option<String>,
+    /// A listed 3DS application to copy to the card for FBI or the Homebrew
+    /// Launcher; without it the plan prepares the Pocket launcher itself.
+    pub app_id: Option<String>,
 }
 #[derive(Clone)]
 pub struct SetupObservation {
@@ -98,7 +114,7 @@ pub struct SetupObservation {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetupPlan {
-    pub bootstrap_app_id: String,
+    pub app_id: String,
     pub id: String,
     pub destination: String,
     pub existing_pairing: bool,
@@ -160,33 +176,47 @@ impl SetupService {
         }
     }
     pub async fn plan(&self, request: SetupRequest) -> Result<SetupPlan, SetupError> {
-        let bootstrap_app_id = request
+        let launcher_id = request
             .runtime_requirement
             .as_ref()
             .and_then(|r| r.bootstrap_app_id.clone())
             .unwrap_or_else(|| "dev.pocket-stack.launcher".into());
+        // Standalone titles ride the same card-writing path as the launcher;
+        // they only need a bundled 3DS artifact, not a runtime to provide.
+        let copies_app = request.app_id.is_some();
+        let app_id = request.app_id.clone().unwrap_or(launcher_id);
+        let missing = || {
+            if copies_app {
+                SetupError::Artifact
+            } else {
+                SetupError::Launcher
+            }
+        };
+        if copies_app && request.format.is_none() {
+            return Err(missing());
+        }
         let mut artifact = None;
         let mut version = None;
         let mut relative = None;
         if let Some(format) = &request.format {
             if !matches!(format.as_str(), "cia" | "3dsx") {
-                return Err(SetupError::Launcher);
+                return Err(missing());
             }
             let read = self.catalog.read(true).await?;
-            let catalog = read.verified.ok_or(SetupError::Launcher)?;
+            let catalog = read.verified.ok_or_else(missing)?;
             if catalog.expired_at(now_millis()) {
-                return Err(SetupError::Launcher);
+                return Err(missing());
             }
             let app = catalog
                 .catalog()
                 .apps
                 .iter()
                 .find(|a| {
-                    a.id == bootstrap_app_id
-                        && a.category == PackageCategory::Runtime
+                    a.id == app_id
                         && a.listing == Listing::Listed
+                        && (copies_app || a.category == PackageCategory::Runtime)
                 })
-                .ok_or(SetupError::Launcher)?;
+                .ok_or_else(missing)?;
             let mut releases: Vec<_> = catalog
                 .catalog()
                 .releases
@@ -199,53 +229,46 @@ impl SetupService {
                     .cmp(&semver::Version::parse(&a.version).unwrap())
                     .then(b.revision.cmp(&a.revision))
             });
+            // The console is not known yet; any New-family target qualifies.
+            let qualifies = |t: &ArtifactTarget| {
+                t.platform == "3ds"
+                    && t.models.iter().any(|m| supported_model(m))
+                    && if copies_app {
+                        t.runtime_deliveries.contains(&RuntimeDelivery::Bundled)
+                    } else {
+                        request.host_abi.is_none_or(|abi| t.host_abi == Some(abi))
+                            && t.runtime_provides.as_ref().is_some_and(|p| {
+                                p.capabilities.contains(&RuntimeCapability::AppLibrary)
+                                    && request.runtime_requirement.as_ref().is_none_or(|r| {
+                                        r.id == p.id
+                                            && semver::Version::parse(&r.min_version)
+                                                .ok()
+                                                .zip(semver::Version::parse(&p.version).ok())
+                                                .is_some_and(|(required, actual)| {
+                                                    actual >= required
+                                                })
+                                    })
+                            })
+                    }
+            };
             let (release, selected) = releases
                 .iter()
                 .find_map(|r| {
                     r.artifacts
                         .iter()
-                        .find(|a| {
-                            a.format == *format
-                                && a.targets.iter().any(|t| {
-                                    t.platform == "3ds"
-                                        && request
-                                            .host_abi
-                                            .is_none_or(|abi| t.host_abi == Some(abi))
-                                        // The console is not known yet; any New-family
-                                        // target qualifies for preparation.
-                                        && t.models
-                                            .iter()
-                                            .any(|m| crate::domain::three_ds::supported_model(m))
-                                        && t.runtime_provides.as_ref().is_some_and(|p| {
-                                            p.capabilities.contains(&RuntimeCapability::AppLibrary)
-                                                && request.runtime_requirement.as_ref().is_none_or(
-                                                    |r| {
-                                                        r.id == p.id
-                                                            && semver::Version::parse(
-                                                                &r.min_version,
-                                                            )
-                                                            .ok()
-                                                            .zip(
-                                                                semver::Version::parse(&p.version)
-                                                                    .ok(),
-                                                            )
-                                                            .is_some_and(|(required, actual)| {
-                                                                actual >= required
-                                                            })
-                                                    },
-                                                )
-                                        })
-                                })
-                        })
+                        .find(|a| a.format == *format && a.targets.iter().any(qualifies))
                         .map(|a| (*r, a))
                 })
-                .ok_or(SetupError::Launcher)?;
+                .ok_or_else(missing)?;
             relative = Some(match &selected.native_identity {
                 Some(NativeIdentity::HomebrewFile { entrypoint }) => entrypoint.clone(),
+                Some(NativeIdentity::ThreeDsTitle { .. }) if copies_app => {
+                    format!("cias/{app_id}-{}.cia", &selected.blob.sha256[..16])
+                }
                 Some(NativeIdentity::ThreeDsTitle { .. }) => {
                     format!("cias/pocket-launcher-{}.cia", selected.blob.sha256)
                 }
-                _ => return Err(SetupError::Launcher),
+                _ => return Err(missing()),
             });
             artifact = Some(selected.clone());
             version = Some(release.version.clone());
@@ -254,7 +277,7 @@ impl SetupService {
         let mut files = vec!["pocketjs/runtime/dev.key".into()];
         files.extend(relative.clone());
         let plan = SetupPlan {
-            bootstrap_app_id,
+            app_id,
             id: uuid::Uuid::new_v4().to_string(),
             destination: observed.label.clone(),
             existing_pairing: observed.token.is_some(),
@@ -290,30 +313,31 @@ impl SetupService {
         if now_millis() >= pending.plan.expires_at {
             return Err(SetupError::Plan);
         }
-        let download =
-            if let Some(artifact) = &pending.plan.artifact {
-                let read = self.catalog.read(true).await?;
-                let catalog = read.verified.ok_or(SetupError::Launcher)?;
-                if catalog.expired_at(now_millis())
-                    || !catalog.catalog().apps.iter().any(|a| {
-                        a.id == pending.plan.bootstrap_app_id && a.listing == Listing::Listed
-                    })
-                    || !catalog.catalog().releases.iter().any(|r| {
-                        r.app_id == pending.plan.bootstrap_app_id
-                            && r.status == ReleaseStatus::Published
-                            && r.artifacts.contains(artifact)
-                    })
-                {
-                    return Err(SetupError::Changed);
-                }
-                Some(
-                    self.catalog
-                        .download(&artifact.blob, DownloadControl::default())
-                        .await?,
-                )
-            } else {
-                None
-            };
+        let download = if let Some(artifact) = &pending.plan.artifact {
+            let read = self.catalog.read(true).await?;
+            let catalog = read.verified.ok_or(SetupError::Launcher)?;
+            if catalog.expired_at(now_millis())
+                || !catalog
+                    .catalog()
+                    .apps
+                    .iter()
+                    .any(|a| a.id == pending.plan.app_id && a.listing == Listing::Listed)
+                || !catalog.catalog().releases.iter().any(|r| {
+                    r.app_id == pending.plan.app_id
+                        && r.status == ReleaseStatus::Published
+                        && r.artifacts.contains(artifact)
+                })
+            {
+                return Err(SetupError::Changed);
+            }
+            Some(
+                self.catalog
+                    .download(&artifact.blob, DownloadControl::default())
+                    .await?,
+            )
+        } else {
+            None
+        };
         if now_millis() >= pending.plan.expires_at {
             return Err(SetupError::Plan);
         }

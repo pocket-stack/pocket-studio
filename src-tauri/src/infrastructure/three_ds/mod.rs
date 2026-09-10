@@ -151,9 +151,15 @@ impl ThreeDsBridge {
     pub async fn confirm(&self, id: &str) -> Result<(), provisioning::SetupError> {
         let peer = self.peer(id).ok_or(provisioning::SetupError::Device)?;
         let mut session = peer.session.lock().await;
+        // Tell "nothing is listening" apart from "the console said no": the
+        // first needs Pocket started on the console, the second a matching key.
         let info = read_info(&peer, &mut session)
             .await
-            .map_err(|_| provisioning::SetupError::Device)?;
+            .map_err(|error| match error {
+                WireError::Unavailable => provisioning::SetupError::Unreachable,
+                WireError::Authentication => provisioning::SetupError::Pairing,
+                _ => provisioning::SetupError::Device,
+            })?;
         let binding = info
             .binding
             .filter(|value| is_digest(value))
